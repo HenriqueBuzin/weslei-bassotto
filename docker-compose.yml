@@ -1,0 +1,96 @@
+services:
+  # === API PROD (sem reload) ===
+  api:
+    profiles: ["prod"]
+    build: ./api
+    container_name: api
+    env_file:
+      - ./.env
+    environment:
+      - API_BASE=${API_BASE}
+      - APP_ENV=prod
+      - MONGO_URI=${MONGO_URI}
+    depends_on:
+      - mongodb
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}
+
+  # === API DEV (hot-reload + bind mount) ===
+  api_dev:
+    profiles: ["dev"]
+    build: ./api
+    container_name: api_dev
+    env_file:
+      - ./.env
+    environment:
+      - API_BASE=${API_BASE}
+      - APP_ENV=dev
+      - MONGO_URI=${MONGO_URI}
+    volumes:
+      - ./api:/app
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    depends_on:
+      - mongodb
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT} --reload
+
+  # === MongoDB (para dev e prod) ===
+  mongodb:
+    image: mongo:${MONGO_IMAGE_TAG}
+    container_name: mongodb
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    # opcional: scripts de seed (qualquer .js/.sh roda na criação do DB)
+    # - ./mongo/init/:/docker-entrypoint-initdb.d:ro
+    # opcional: expor porta local para ferramentas (desative em prod)
+    ports:
+      - "27017:27017"
+
+  # === FRONT DEV (Vite) ===
+  frontend:
+    profiles: ["dev"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    env_file:
+      - ./.env
+    environment:
+      - VITE_API_BASE=${API_BASE}
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "${VITE_PORT}:${VITE_PORT}"
+
+  # === Caddy DEV (proxy / e /api) ===
+  caddy:
+    profiles: ["dev"]
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - "${CADDY_DEV_PORT}:80"
+    depends_on:
+      - api_dev
+      - frontend
+    volumes:
+      - ./web/Caddyfile:/etc/caddy/Caddyfile:ro
+
+  # === WEB PROD (Caddy + build React estático) ===
+  web:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:

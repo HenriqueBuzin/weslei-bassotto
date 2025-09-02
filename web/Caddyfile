@@ -1,0 +1,24 @@
+:80 {
+	encode zstd gzip
+
+	# API sempre via proxy
+	@api path /api/*
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	# PROD: serve estático se houver build do React em /usr/share/caddy
+	@haveindex file { 
+		try_files /index.html
+	}
+	handle @haveindex {
+		root * /usr/share/caddy
+		try_files {path} /index.html
+		file_server
+	}
+
+	# DEV: sem build, proxy para Vite
+	handle {
+		reverse_proxy frontend:5173
+	}
+}
