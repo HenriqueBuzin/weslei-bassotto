@@ -1,25 +1,24 @@
+# app/main.py
 from fastapi import FastAPI
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.core.settings import settings
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from app.core import settings  # <- agora importa do pacote, não do submódulo
 
 def create_app() -> FastAPI:
     app = FastAPI(title="My API", version="1.0.0")
 
     @app.on_event("startup")
-    async def _startup():
+    async def _startup() -> None:
         app.state.mongo_client = AsyncIOMotorClient(settings.mongo_uri)
-        # usa DB padrão do URI; se quiser forçar:
-        # from urllib.parse import urlparse
-        # db_name = urlparse(settings.mongo_uri).path.strip("/") or "myapp"
-        app.state.db = app.state.mongo_client.get_default_database()
+        # tipagem opcional (útil p/ mypy/IDE):
+        db: AsyncIOMotorDatabase = app.state.mongo_client.get_default_database()
+        app.state.db = db
 
     @app.on_event("shutdown")
-    async def _shutdown():
+    async def _shutdown() -> None:
         app.state.mongo_client.close()
 
     @app.get("/health")
     async def health():
-        # ping no mongo
         try:
             await app.state.db.command("ping")
             mongo = "ok"

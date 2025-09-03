@@ -1,0 +1,14 @@
+:80 {
+  encode zstd gzip
+
+  # API - preserva o prefixo /api
+  @api path /api/*
+  handle @api {
+    reverse_proxy api:{$API_PORT}
+  }
+
+  # Front (Vite) – tudo que não for /api
+  handle {
+    reverse_proxy frontend:{$VITE_PORT}
+  }
+}

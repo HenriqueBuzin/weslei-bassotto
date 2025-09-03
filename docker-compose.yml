@@ -1,97 +1,144 @@
 services:
   # === API PROD (sem reload) ===
   api:
-    profiles: ["prod"]
-    build: ./api
     container_name: api
+    profiles: ["prod"]
+    restart: unless-stopped
+    build:
+      context: ./api
+      args:
+        API_PORT: ${API_PORT}
     env_file:
-      - ./.env
+      - .env
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=prod
       - MONGO_URI=${MONGO_URI}
+      - API_PORT=${API_PORT}
     depends_on:
       - mongodb
-    command: uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
 
   # === API DEV (hot-reload + bind mount) ===
   api_dev:
-    profiles: ["dev"]
-    build: ./api
     container_name: api_dev
+    profiles: ["dev"]
+    restart: unless-stopped
+    build:
+      context: ./api
+      args:
+        API_PORT: ${API_PORT}
     env_file:
-      - ./.env
+      - .env
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=dev
       - MONGO_URI=${MONGO_URI}
+      - API_PORT=${API_PORT}
     volumes:
       - ./api:/app
-    ports:
-      - "${API_PORT}:${API_PORT}"
     depends_on:
       - mongodb
-    command: uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT} --reload
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT} --reload"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
+      interval: 3s
+      timeout: 2s
+      retries: 40
+      start_period: 2s
+    networks:
+      default:
+        aliases:
+          - api
 
   # === MongoDB (para dev e prod) ===
   mongodb:
-    image: mongo:${MONGO_IMAGE_TAG}
+    image: mongo:7.0
     container_name: mongodb
     restart: unless-stopped
     env_file:
-      - ./.env
+      - .env
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - mongo_data:/data/db
-    # opcional: scripts de seed (qualquer .js/.sh roda na criação do DB)
-    # - ./mongo/init/:/docker-entrypoint-initdb.d:ro
-    # opcional: expor porta local para ferramentas (desative em prod)
     ports:
       - "27017:27017"
 
   # === FRONT DEV (Vite) ===
   frontend:
+    container_name: frontend
     profiles: ["dev"]
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: frontend
+      args:
+        - VITE_PORT=${VITE_PORT}
     env_file:
-      - ./.env
+      - .env
     environment:
       - VITE_API_BASE=${API_BASE}
+      - VITE_PORT=${VITE_PORT}
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "${VITE_PORT}:${VITE_PORT}"
+      - ./frontend/src:/app/src
+    healthcheck:
+      test: >
+        CMD-SHELL
+        : "${VITE_PORT:?VITE_PORT nao definido}";
+        node -e "
+        const http=require('http'), p=Number(process.env.VITE_PORT);
+        const ping=path=>new Promise(ok=>{
+          const r=http.get({host:'127.0.0.1',port:p,path},s=>ok(s.statusCode===200));
+          r.on('error',()=>ok(false)); setTimeout(()=>{try{r.destroy()}catch{}; ok(false)},1500);
+        });
+        (async()=>{process.exit((await ping('/health'))||(await ping('/'))?0:1)})();"
+      interval: 3s
+      timeout: 2s
+      retries: 40
+      start_period: 2s
 
   # === Caddy DEV (proxy / e /api) ===
   caddy:
-    profiles: ["dev"]
-    image: caddy:2-alpine
     container_name: caddy
+    profiles: ["dev"]
+    restart: unless-stopped
+    image: caddy:2-alpine
     ports:
       - "${CADDY_DEV_PORT}:80"
+    environment:
+      - API_PORT=${API_PORT}
+      - VITE_PORT=${VITE_PORT}
     depends_on:
-      - api_dev
-      - frontend
+      api_dev:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     volumes:
-      - ./web/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web/Caddyfile.dev:/etc/caddy/Caddyfile:ro
 
   # === WEB PROD (Caddy + build React estático) ===
   web:
+    container_name: web
     profiles: ["prod"]
+    restart: unless-stopped
     build:
       context: .
       dockerfile: web/Dockerfile
-    container_name: web
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - api
+    environment:
+    - API_PORT=${API_PORT}
 
 volumes:
   mongo_data:

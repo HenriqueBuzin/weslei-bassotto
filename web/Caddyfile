@@ -1,24 +1,36 @@
+{
+  email you@dominio.com   # e-mail p/ Let's Encrypt
+}
+
+# Redireciona todo HTTP p/ HTTPS
 :80 {
-	encode zstd gzip
+  redir https://{host}{uri} permanent
+}
 
-	# API sempre via proxy
-	@api path /api/*
-	handle @api {
-		reverse_proxy api:8000
-	}
+# Seus domínios
+app.seudominio.com, www.app.seudominio.com {
+  encode zstd gzip
 
-	# PROD: serve estático se houver build do React em /usr/share/caddy
-	@haveindex file { 
-		try_files /index.html
-	}
-	handle @haveindex {
-		root * /usr/share/caddy
-		try_files {path} /index.html
-		file_server
-	}
+  # API com prefixo preservado
+  @api path /api/*
+  handle @api {
+    reverse_proxy api:{$API_PORT}
+  }
 
-	# DEV: sem build, proxy para Vite
-	handle {
-		reverse_proxy frontend:5173
-	}
+  # SPA estática (Vite build copiado para /usr/share/caddy)
+  root * /usr/share/caddy
+  try_files {path} /index.html
+  file_server
+
+  # Cache agressivo em assets fingerprintados; index sem cache
+  @assets path /assets/* *.css *.js *.ico *.svg *.png *.jpg *.webp
+  header @assets Cache-Control "public, max-age=31536000, immutable"
+  header /index.html Cache-Control "no-cache"
+
+  # Cabeçalhos de segurança (opcional)
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
 }

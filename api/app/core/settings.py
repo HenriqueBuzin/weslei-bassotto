@@ -1,12 +1,18 @@
-from pydantic_settings import BaseSettings
+# app/core/settings.py
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 class Settings(BaseSettings):
-    api_base: str = "/api/v1"
-    mongo_uri: str = "mongodb://localhost:27017/myapp"
-    app_env: str = "dev"
+    # sem defaults => obriga vir do ambiente; falha cedo se faltar
+    api_base: str = Field(validation_alias="API_BASE")
+    mongo_uri: str = Field(validation_alias="MONGO_URI")
+    app_env: str = Field(validation_alias="APP_ENV")
 
-    class Config:
-        env_file = ".env"  # útil fora do Docker; dentro, variáveis já vêm do env
-        case_sensitive = False
+    # somente env; sem .env; case-insensitive pros nomes
+    model_config = SettingsConfigDict(
+        env_file=None,          # NÃO lê .env aqui
+        case_sensitive=False,   # API_BASE == api_base
+        extra="ignore",         # ignore outras vars
+    )
 
 settings = Settings()
