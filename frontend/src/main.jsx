@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { api } from "./lib/api";
+import api from "./lib/api";
 
 function App() {
     const [user, setUser] = useState(null);

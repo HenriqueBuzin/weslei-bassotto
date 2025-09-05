@@ -103,6 +103,7 @@ services:
       # - ./frontend:/app
       # - /app/node_modules  
       # docker compose exec frontend npm i bootstrap
+      # docker compose exec frontend npm install --package-lock-only
     healthcheck:
       test: >
         CMD-SHELL
