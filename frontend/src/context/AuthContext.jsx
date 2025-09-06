@@ -1,77 +1,57 @@
 // src/context/AuthContext.jsx
 
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
-import api from "../lib/api";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { api, authApi, bindAccessTokenGetter } from "../lib/api";
 import { isExpired, readRoles } from "../lib/jwt";
 
 const Ctx = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [accessToken, setAT] = useState(
-    localStorage.getItem("access_token") || undefined
-  );
-  const [refreshToken, setRT] = useState(
-    localStorage.getItem("refresh_token") || undefined
-  );
+  const [accessToken, setAT] = useState(undefined);
 
-  // refs para sempre ler o valor mais recente dentro do interceptor
-  const accessRef = useRef(accessToken);
-  const refreshRef = useRef(refreshToken);
-  useEffect(() => {
-    accessRef.current = accessToken;
-  }, [accessToken]);
-  useEffect(() => {
-    refreshRef.current = refreshToken;
-  }, [refreshToken]);
+  // disponibiliza o token atual pro axios
+  useEffect(() => bindAccessTokenGetter(() => accessToken), [accessToken]);
 
   const roles = useMemo(() => readRoles(accessToken), [accessToken]);
-  const isAuthenticated =
-    !!accessToken && !isExpired(accessToken) && !!refreshToken;
+  const isAuthenticated = !!accessToken && !isExpired(accessToken);
 
   const login = useCallback(async (email, password) => {
     const form = new URLSearchParams();
-    form.set("username", email); // backend trata "username" como e-mail
+    form.set("username", email);
     form.set("password", password);
-    const { data } = await api.post("/auth/login", form, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    const { data } = await authApi.post("/auth/login", form, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest" },
     });
-    setAT(data.access_token);
-    setRT(data.refresh_token);
-    localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("refresh_token", data.refresh_token);
+    setAT(data.access_token); // refresh ficou HttpOnly cookie
   }, []);
 
-  const logout = useCallback(() => {
-    setAT(undefined);
-    setRT(undefined);
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+  const logout = useCallback(async () => {
+    try {
+      await authApi.post("/auth/logout", null, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+    } finally {
+      setAT(undefined);
+    }
   }, []);
 
   const doRefresh = useCallback(async () => {
-    const rt = refreshRef.current;
-    if (!rt) throw new Error("no refresh token");
-    const { data } = await api.post("/auth/refresh", {
-      refresh_token: rt,
-    });
+    const { data } = await authApi.post("/auth/refresh", null, { headers: { "X-Requested-With": "XMLHttpRequest" } });
     setAT(data.access_token);
-    setRT(data.refresh_token);
-    localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("refresh_token", data.refresh_token);
     return data.access_token;
   }, []);
 
-  // Evita múltiplos refresh concorrentes
-  const refreshPromiseRef = useRef(null);
+  // silent refresh on mount (se cookie existir, volta um access)
+  useEffect(() => {
+    (async () => {
+      try {
+        await doRefresh();
+      } catch {
+        /* sem cookie ou inválido => fica deslogado */
+      }
+    })();
+  }, [doRefresh]);
 
+  // Retry 401 => tenta refresh 1x
+  const refreshPromiseRef = useRef(null);
   useEffect(() => {
     const id = api.interceptors.response.use(
       (r) => r,
@@ -81,41 +61,24 @@ export function AuthProvider({ children }) {
           return Promise.reject(error);
         }
         original._retry = true;
-
-        if (!refreshRef.current) {
-          logout();
-          return Promise.reject(error);
-        }
-
         try {
           if (!refreshPromiseRef.current) {
-            refreshPromiseRef.current = doRefresh().finally(() => {
-              refreshPromiseRef.current = null;
-            });
+            refreshPromiseRef.current = doRefresh().finally(() => (refreshPromiseRef.current = null));
           }
           await refreshPromiseRef.current;
-          // Retry: o request interceptor vai pegar o novo token do localStorage
           return api(original);
         } catch (e) {
-          logout();
+          setAT(undefined);
           return Promise.reject(e);
         }
       }
     );
     return () => api.interceptors.response.eject(id);
-  }, [doRefresh, logout]);
+  }, [doRefresh]);
 
   const value = useMemo(
-    () => ({
-      accessToken,
-      refreshToken,
-      roles,
-      isAuthenticated,
-      login,
-      logout,
-      refresh: doRefresh,
-    }),
-    [accessToken, refreshToken, roles, isAuthenticated, login, logout, doRefresh]
+    () => ({ accessToken, roles, isAuthenticated, login, logout, refresh: doRefresh }),
+    [accessToken, roles, isAuthenticated, login, logout, doRefresh]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

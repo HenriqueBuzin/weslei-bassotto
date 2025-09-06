@@ -24,9 +24,16 @@ class Settings(BaseSettings):
     admin_email: EmailStr | None = Field(default=None, validation_alias="ADMIN_EMAIL")
     admin_password: str | None = Field(default=None, validation_alias="ADMIN_PASSWORD")
 
+    # --- Cookies (refresh em HttpOnly) ---
+    cookie_domain: str | None = Field(default=None, validation_alias="COOKIE_DOMAIN")
+    cookie_secure: bool = Field(default=True, validation_alias="COOKIE_SECURE")
+    cookie_samesite: str = Field(default="lax", validation_alias="COOKIE_SAMESITE")  # "lax" | "none" | "strict"
+    refresh_cookie_name: str = Field(default="rt", validation_alias="REFRESH_COOKIE_NAME")
+    refresh_cookie_path: str = Field(default="/", validation_alias="REFRESH_COOKIE_PATH")
+
     model_config = SettingsConfigDict(env_file=None, case_sensitive=False, extra="ignore")
 
-    # validadores já existentes …
+    # ---------- Validadores ----------
     @field_validator("api_base", mode="before")
     @classmethod
     def _normalize_api_base(cls, v: str) -> str:
@@ -79,7 +86,33 @@ class Settings(BaseSettings):
             raise ValueError("APP_ENV deve ser 'dev' ou 'prod'")
         return v
 
-    # derivados
+    @field_validator("cookie_samesite", mode="before")
+    @classmethod
+    def _norm_samesite(cls, v: str) -> str:
+        s = str(v or "").strip().lower()
+        if s not in {"lax", "none", "strict"}:
+            raise ValueError("COOKIE_SAMESITE deve ser 'lax', 'none' ou 'strict'")
+        return s
+
+    @field_validator("refresh_cookie_name")
+    @classmethod
+    def _check_cookie_name(cls, v: str) -> str:
+        s = str(v or "").strip()
+        # nome simples (token) — evita caracteres inválidos
+        import re
+        if not s or not re.fullmatch(r"[A-Za-z0-9_\-]+", s):
+            raise ValueError("REFRESH_COOKIE_NAME inválido (use letras/números/_-) ")
+        return s
+
+    @field_validator("refresh_cookie_path", mode="before")
+    @classmethod
+    def _norm_cookie_path(cls, v: str) -> str:
+        s = str(v or "").strip() or "/"
+        if not s.startswith("/"):
+            s = "/" + s
+        return s
+
+    # ---------- Derivados ----------
     @computed_field
     @property
     def ACCESS_TOKEN_EXPIRES(self) -> timedelta:

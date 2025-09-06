@@ -51,11 +51,7 @@ def create_app() -> FastAPI:
         except Exception:
             mongo = "down"
         return {
-            "status": "ok",
-            "mongo": mongo,
-            "version": __version__,
-            "env": settings.app_env,
-            "api_base": settings.api_base,
+            "status": "ok"
         }
 
     return app
