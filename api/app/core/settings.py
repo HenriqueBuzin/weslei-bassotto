@@ -1,8 +1,8 @@
 # app/core/settings.py
 
 from datetime import timedelta
-from pydantic import Field, field_validator, computed_field, ValidationInfo, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator, computed_field, ValidationInfo, EmailStr
 
 class Settings(BaseSettings):
     # --- Básicos ---

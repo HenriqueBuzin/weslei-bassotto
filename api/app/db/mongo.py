@@ -1,9 +1,9 @@
 # app/db/mongo.py
 
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.core.settings import settings
-from .indexes import ensure_all
 from fastapi import Request
+from .indexes import ensure_all
+from app.core.settings import settings
+from motor.motor_asyncio import AsyncIOMotorClient
 
 async def connect(app):
     client = AsyncIOMotorClient(settings.mongo_uri)

@@ -1,8 +1,8 @@
 # app/routers/me.py
 
+from app.schemas.user import UserOut
 from fastapi import APIRouter, Depends
 from app.core.deps import get_current_user
-from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/me", tags=["me"])
 

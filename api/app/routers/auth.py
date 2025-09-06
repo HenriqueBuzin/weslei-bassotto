@@ -1,15 +1,16 @@
 # app/routers/auth.py
 
-from fastapi import APIRouter, HTTPException, status, Request, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+from app.db.mongo import get_db
+
 from bson import ObjectId
 from jose import JWTError
-from app.schemas.user import UserCreate, UserOut, TokenPair, RefreshIn
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token, decode_token
 )
-from app.db.mongo import get_db
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, HTTPException, status, Request, Depends
+from app.schemas.user import UserCreate, UserOut, TokenPair, RefreshIn
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

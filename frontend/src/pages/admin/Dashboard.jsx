@@ -1,7 +1,8 @@
-// Admin.tsx
+// src/pages/admin/Dashboard.jsx
+
 import React from "react";
 
-export default function Admin() {
+export default function Dashboard() {
   return (
     <div className="container mt-5">
       <h1>Área Admin</h1>

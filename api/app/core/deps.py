@@ -1,12 +1,12 @@
 # app/core/deps.py
 
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from bson import ObjectId
+from app.db.mongo import get_db
 from app.core.settings import settings
 from app.core.security import decode_token
-from app.db.mongo import get_db
+from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, status, Request
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_base}/auth/login")
 

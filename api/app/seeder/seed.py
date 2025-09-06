@@ -1,6 +1,7 @@
 # app/seeder/seed.py
-from datetime import datetime, timezone
+
 from app.core.settings import settings
+from datetime import datetime, timezone
 from app.core.security import hash_password
 
 async def seed_roles(db):

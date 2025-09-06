@@ -1,19 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
-import api from "./lib/api";
+// src/main.jsx
 
-function App() {
-    const [user, setUser] = useState(null);
-    useEffect(() => {
-        api.get("/users/1")
-            .then(({ data }) => setUser(data))
-            .catch(console.error);
-    }, []);
-    return (
-        <div style={{ fontFamily: "sans-serif", padding: 24 }}>
-            <h1>React + FastAPI + Caddy</h1>
-            <pre>{JSON.stringify(user, null, 2)}</pre>
-        </div>
-    );
-}
-createRoot(document.getElementById("root")).render(<App />);
+import React, { Suspense } from "react";
+import { createRoot } from "react-dom/client";
+import { RouterProvider } from "react-router-dom";
+import { router } from "./routes";
+import { AuthProvider } from "./context/AuthContext";
+
+createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <AuthProvider>
+      <Suspense fallback={<div>Carregando…</div>}>
+        <RouterProvider router={router} />
+      </Suspense>
+    </AuthProvider>
+  </React.StrictMode>
+);
