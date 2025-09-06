@@ -1,11 +1,11 @@
 # app/core/security.py
 
-from datetime import datetime, timezone
 from jose import jwt
-from passlib.context import CryptContext
 from app.core.settings import settings
+from datetime import datetime, timezone
+from passlib.context import CryptContext
 
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_ctx = CryptContext(schemes=["argon2"], deprecated="auto")
 
 def hash_password(p: str) -> str:
     return pwd_ctx.hash(p)
