@@ -115,9 +115,8 @@ services:
       - VITE_PORT=${VITE_PORT}
       - VITE_APP_NAME=${VITE_APP_NAME}
     volumes:
-      - ./frontend/src:/app/src
-      # - ./frontend:/app
-      # - /app/node_modules  
+      - ./frontend:/app
+      - react_node_modules:/app/node_modules
       # docker compose exec frontend npm i bootstrap
       # docker compose exec frontend npm install --package-lock-only
     healthcheck:
@@ -179,3 +178,4 @@ services:
       
 volumes:
   mongo_data:
+  react_node_modules:

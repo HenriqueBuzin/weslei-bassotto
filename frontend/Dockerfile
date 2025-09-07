@@ -2,7 +2,6 @@ FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# deps de runtime (opcional, mas bom pra sinal/kill limpo)
 RUN apt-get update && apt-get install -y --no-install-recommends dumb-init && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./

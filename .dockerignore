@@ -1,0 +1,21 @@
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Geral
+.vscode/
+Dockerfile*
+docker-compose*.yml
+
+# macOS
+.DS_Store
+
+# Git metadata
+.git
+.gitignore
+
+# .env (não incluir no contexto do build)
+.env
+.env.*
+**/.env
+**/.env.*
