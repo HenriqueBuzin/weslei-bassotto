@@ -1,0 +1,138 @@
+/* Fundo estilo "loja": escuro, com degradê e leve textura */
+.auth-hero {
+  --brand: #27ae60;                  /* verde destaque (pode ajustar) */
+  --bg-1: #0b0b0d;
+  --bg-2: #141416;
+  background: radial-gradient(1200px 600px at 10% -10%, #1d1f22 0%, transparent 60%),
+              radial-gradient(800px 400px at 100% 0%, #0e3324 0%, transparent 60%),
+              linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+  padding: 24px 0;
+}
+
+/* Card com “vidro” */
+.glass {
+  background: rgba(18, 18, 20, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Título/brand no topo */
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: #cbd5e1; /* slate-300 */
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+}
+
+/* Botão principal em verde */
+.btn-brand {
+  --bs-btn-color: #0e1d15;
+  --bs-btn-bg: var(--brand);
+  --bs-btn-border-color: var(--brand);
+  --bs-btn-hover-bg: #1f9b56;
+  --bs-btn-hover-border-color: #1f9b56;
+  --bs-btn-active-bg: #1a874a;
+  --bs-btn-active-border-color: #1a874a;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Links sutis sobre fundo escuro */
+.link-light-subtle {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+}
+.link-light-subtle:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* Link “marca” em verde */
+.link-brand {
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 600;
+}
+.link-brand:hover {
+  text-decoration: underline;
+}
+
+/* Inputs maiores e mais escuros */
+.form-control-lg,
+.input-group-lg > .form-control,
+.input-group-lg > .input-group-text,
+.input-group-lg > .btn {
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+}
+
+.form-control {
+  background-color: #0f1012;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+}
+.form-control::placeholder {
+  color: #6b7280;
+}
+.form-control:focus {
+  background-color: #121316;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.15);
+}
+
+/* Botão claro bem discreto (para toggle de senha) */
+.btn-outline-light-subtle {
+  --bs-btn-color: rgba(255, 255, 255, 0.8);
+  --bs-btn-border-color: rgba(255, 255, 255, 0.2);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: rgba(255, 255, 255, 0.08);
+  --bs-btn-hover-border-color: rgba(255, 255, 255, 0.25);
+  --bs-btn-active-bg: rgba(255, 255, 255, 0.12);
+  --bs-btn-active-border-color: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+}
+
+/* Pequeno tracking no título */
+.tracking-1 { letter-spacing: .06em; }
+
+/* deixa o .text-secondary-emphasis mais claro só dentro do card de vidro */
+.glass .text-secondary-emphasis {
+  color: rgba(255, 255, 255, 0.75) !important; /* ajuste fino: 0.70–0.80 */
+}
+
+/* Texto dentro do input mais claro (normal e focado) */
+.form-control,
+.input-group-lg > .form-control {
+  color: rgba(255, 255, 255, 0.90);
+}
+
+.form-control:focus {
+  color: rgba(255, 255, 255, 0.96);
+  caret-color: #fff; /* cor do cursor */
+}
+
+/* Placeholder ainda discreto, mas um tico mais legível */
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.60);
+}
+
+/* Corrige o "amarelo" do autofill e mantém texto claro (Chrome/Safari) */
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.96) !important;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: 0 0 0 1000px #121316 inset; /* combine com seu bg do :focus */
+}
+
+/* Pseudo padrão (alguns browsers): garante texto claro no autofill */
+input:autofill {
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.96) !important;
+}

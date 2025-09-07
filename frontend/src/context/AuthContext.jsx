@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { api, authApi, bindAccessTokenGetter } from "../lib/api";
 import { isExpired, readRoles } from "../lib/jwt";
 
@@ -9,20 +9,28 @@ const Ctx = createContext(null);
 export function AuthProvider({ children }) {
   const [accessToken, setAT] = useState(undefined);
 
-  // disponibiliza o token atual pro axios
+  // importante para cookies HttpOnly (se front e back estiverem em domínios diferentes)
+  authApi.defaults.withCredentials = true;
+
+  // disponibiliza o token atual para o axios principal
   useEffect(() => bindAccessTokenGetter(() => accessToken), [accessToken]);
 
   const roles = useMemo(() => readRoles(accessToken), [accessToken]);
   const isAuthenticated = !!accessToken && !isExpired(accessToken);
 
-  const login = useCallback(async (email, password) => {
+  // ✅ agora aceitando 'remember' e enviando no form
+  const login = useCallback(async (email, password, remember = false) => {
     const form = new URLSearchParams();
     form.set("username", email);
     form.set("password", password);
+    form.set("remember", remember ? "true" : "false");
     const { data } = await authApi.post("/auth/login", form, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Requested-With": "XMLHttpRequest",
+      },
     });
-    setAT(data.access_token); // refresh ficou HttpOnly cookie
+    setAT(data.access_token); // refresh fica no cookie HttpOnly
   }, []);
 
   const logout = useCallback(async () => {
@@ -39,18 +47,14 @@ export function AuthProvider({ children }) {
     return data.access_token;
   }, []);
 
-  // silent refresh on mount (se cookie existir, volta um access)
+  // tenta renovar na montagem (se o cookie existir)
   useEffect(() => {
     (async () => {
-      try {
-        await doRefresh();
-      } catch {
-        /* sem cookie ou inválido => fica deslogado */
-      }
+      try { await doRefresh(); } catch {}
     })();
   }, [doRefresh]);
 
-  // Retry 401 => tenta refresh 1x
+  // retry automático após 401
   const refreshPromiseRef = useRef(null);
   useEffect(() => {
     const id = api.interceptors.response.use(

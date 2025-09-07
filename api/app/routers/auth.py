@@ -2,7 +2,7 @@
 
 from bson import ObjectId
 from jose import JWTError
-from fastapi import APIRouter, HTTPException, status, Request, Depends, Response
+from fastapi import APIRouter, HTTPException, status, Request, Depends, Response, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
@@ -20,16 +20,19 @@ from app.schemas.user import UserCreate, UserOut
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ===== Helpers =====
-def set_refresh_cookie(response: Response, token: str) -> None:
-    """Seta o refresh token em cookie HttpOnly."""
-    max_age = int(settings.REFRESH_TOKEN_EXPIRES.total_seconds())
+def set_refresh_cookie(response: Response, token: str, *, max_age: int | None) -> None:
+    """
+    Seta o refresh token em cookie HttpOnly.
+    - max_age=None => cookie de sessão (não persiste após fechar o navegador)
+    - max_age=int  => cookie persistente (Max-Age em segundos)
+    """
     response.set_cookie(
         key=settings.refresh_cookie_name,
         value=token,
         httponly=True,
         secure=bool(settings.cookie_secure),
-        samesite=settings.cookie_samesite,  # já vem normalizado (lower)
-        max_age=max_age,
+        samesite=settings.cookie_samesite,  # normalizado
+        max_age=max_age,                    # <- agora vem de fora
         path=settings.refresh_cookie_path,
         domain=settings.cookie_domain or None,
     )
@@ -65,6 +68,7 @@ async def login(
     request: Request,
     response: Response,
     form: OAuth2PasswordRequestForm = Depends(),
+    remember: bool = Form(False),  # <- NOVO: vem do x-www-form-urlencoded
 ):
     db = get_db(request)
     email = form.username.strip().lower()
@@ -74,8 +78,21 @@ async def login(
 
     sub = str(user["_id"])
     access = create_access_token(sub, user.get("roles", []))
-    refresh = create_refresh_token(sub)
-    set_refresh_cookie(response, refresh)
+
+    # expiração do refresh conforme "lembrar de mim"
+    rt_expires = (
+        settings.REFRESH_TOKEN_EXPIRES_LONG
+        if remember
+        else settings.REFRESH_TOKEN_EXPIRES_SHORT
+    )
+
+    # IMPORTANTE: inclua um claim para sabermos depois se era "remember"
+    # Ex.: rm = 1 (persistente) ou 0 (sessão)
+    refresh = create_refresh_token(sub, expires_delta=rt_expires, claims={"rm": 1 if remember else 0})
+
+    # Cookie: persistente quando remember=true; sessão quando remember=false
+    max_age = int(rt_expires.total_seconds()) if remember else None
+    set_refresh_cookie(response, refresh, max_age=max_age)
     return {"access_token": access}
 
 @router.post("/refresh", response_model=TokenOut)
@@ -94,15 +111,28 @@ async def refresh(request: Request, response: Response):
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Use refresh token")
 
+    # Descobre se o refresh original era "remember" pelos claims (rm=1/0)
+    remember = bool(payload.get("rm", 0))
+
     db = get_db(request)
     user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
     if not user:
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
 
     access = create_access_token(str(user["_id"]), user.get("roles", []))
-    # Rotação do refresh (opcional, mas recomendado)
-    new_rt = create_refresh_token(str(user["_id"]))
-    set_refresh_cookie(response, new_rt)
+
+    # Rotaciona o refresh preservando a política remember
+    rt_expires = (
+        settings.REFRESH_TOKEN_EXPIRES_LONG
+        if remember
+        else settings.REFRESH_TOKEN_EXPIRES_SHORT
+    )
+    new_rt = create_refresh_token(str(user["_id"]), expires_delta=rt_expires, claims={"rm": 1 if remember else 0})
+
+    # Cookie: persistente se remember, sessão se não
+    max_age = int(rt_expires.total_seconds()) if remember else None
+    set_refresh_cookie(response, new_rt, max_age=max_age)
+
     return {"access_token": access}
 
 @router.post("/logout", status_code=204)

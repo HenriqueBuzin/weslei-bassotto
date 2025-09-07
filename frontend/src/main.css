@@ -1,0 +1,123 @@
+:root {
+  --brand: #27ae60;
+  --bg-1: #0b0b0d;
+  --bg-2: #141416;
+}
+
+html, body {
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+  color-scheme: dark;
+}
+
+/* ===== Navbar ===== */
+.navbar-glass {
+  background: rgba(18,18,20,0.7);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.navbar-glass .nav-link { color: rgba(255,255,255,.8); }
+.navbar-glass .nav-link:hover, .navbar-glass .nav-link.active { color: #fff; }
+.tracking-1 { letter-spacing: .06em; }
+
+/* ===== Hero ===== */
+.hero {
+  min-height: 70vh;
+  padding-top: 96px; /* compensa navbar fixa */
+}
+.hero-ls {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.65)),
+    url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop')
+    center/cover no-repeat;
+}
+
+/* ===== Seções ===== */
+.section { padding: 64px 0; }
+.section-alt { background: rgba(255,255,255,0.02); }
+
+/* ===== Cards/ghost ===== */
+.card-ghost {
+  background: rgba(18,18,20,0.6);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.card-ghost:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+
+/* ===== Steps ===== */
+.step-badge {
+  width: 44px; height: 44px;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: #fff; font-weight: 700; margin-bottom: .75rem;
+}
+
+/* ===== Stats ===== */
+.stat-n { font-size: 2rem; font-weight: 800; color: #fff; }
+.stat-t { font-size: .95rem; }
+
+/* ===== Partners strip ===== */
+.partners-strip {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 24px 0;
+}
+
+/* ===== CTA ===== */
+.cta-band {
+  background: linear-gradient(90deg, rgba(39,174,96,.15), rgba(39,174,96,.1));
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 28px 0;
+}
+
+/* ===== Footer ===== */
+.site-footer { padding: 32px 0; border-top: 1px solid rgba(255,255,255,0.08); }
+
+/* ===== Botão brand (compartilhado) ===== */
+.btn-brand{
+  --bs-btn-color:#0e1d15; --bs-btn-bg:var(--brand); --bs-btn-border-color:var(--brand);
+  --bs-btn-hover-bg:#1f9b56; --bs-btn-hover-border-color:#1f9b56;
+  --bs-btn-active-bg:#1a874a; --bs-btn-active-border-color:#1a874a;
+  font-weight:700; letter-spacing:.02em;
+}
+
+/* ===== Utilitários ===== */
+.object-cover{ object-fit: cover; }
+
+/* ===== Estilos do Login (herdados) ===== */
+.auth-hero{
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #1d1f22 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 0%, #0e3324 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+  padding:24px 0;
+}
+.glass{
+  background:rgba(18,18,20,.75);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.08)!important;
+}
+.form-control{ background:#0f1012; border-color:rgba(255,255,255,.12); color:rgba(255,255,255,.92); }
+.form-control::placeholder{ color:rgba(255,255,255,.60); }
+.form-control:focus{
+  background:#121316; border-color:var(--brand);
+  box-shadow:0 0 0 .2rem rgba(39,174,96,.15);
+  color:rgba(255,255,255,.96); caret-color:#fff;
+}
+.btn-outline-light-subtle{
+  --bs-btn-color:rgba(255,255,255,.8);
+  --bs-btn-border-color:rgba(255,255,255,.2);
+  --bs-btn-hover-color:#fff; --bs-btn-hover-bg:rgba(255,255,255,.08);
+  --bs-btn-hover-border-color:rgba(255,255,255,.25);
+  --bs-btn-active-bg:rgba(255,255,255,.12);
+  --bs-btn-active-border-color:rgba(255,255,255,.3);
+  backdrop-filter:blur(4px);
+}
+.glass .text-secondary-emphasis{ color:rgba(255,255,255,.75)!important; }
+input:-webkit-autofill, input:-webkit-autofill:focus{
+  -webkit-text-fill-color:rgba(255,255,255,.96)!important;
+  transition:background-color 5000s ease-in-out 0s;
+  box-shadow:0 0 0 1000px #121316 inset;
+}
