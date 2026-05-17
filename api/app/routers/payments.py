@@ -11,9 +11,9 @@ from app.schemas.payment import CardSubscriptionIn, CheckoutIn, CheckoutOut, Ren
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 PLANS = {
-    "trimestral": {"name": "Plano Trimestral", "months": 3, "total": 597.00},
-    "semestral": {"name": "Plano Semestral", "months": 6, "total": 997.00},
-    "anual": {"name": "Plano Anual", "months": 12, "total": 1597.00},
+    "trimestral": {"name": "Plano Trimestral", "months": 3, "cash": 597.00, "subscription_total": 638.00},
+    "semestral": {"name": "Plano Semestral", "months": 6, "cash": 997.00, "subscription_total": 1093.00},
+    "anual": {"name": "Plano Anual", "months": 12, "cash": 1597.00, "subscription_total": 1863.00},
 }
 
 
@@ -23,7 +23,7 @@ def public_url(path: str, params: dict[str, str]) -> str:
 
 
 def monthly_amount(plan: dict) -> float:
-    return round(plan["total"] / plan["months"], 2)
+    return round(plan["subscription_total"] / plan["months"], 2)
 
 
 def add_months(source: date, months: int) -> date:
@@ -92,6 +92,28 @@ async def create_authorized_preapproval(payload: dict) -> SubscriptionOut:
     return SubscriptionOut(preapproval_id=data["id"], status=data.get("status", "unknown"))
 
 
+async def create_card_payment(payload: dict) -> SubscriptionOut:
+    if not settings.mercado_pago_access_token:
+        raise HTTPException(status_code=500, detail="MERCADO_PAGO_ACCESS_TOKEN não configurado")
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.mercadopago.com/v1/payments",
+            headers={
+                "Authorization": f"Bearer {settings.mercado_pago_access_token}",
+                "Content-Type": "application/json",
+                "X-Idempotency-Key": payload["external_reference"],
+            },
+            json=payload,
+        )
+
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=response.text)
+
+    data = response.json()
+    return SubscriptionOut(preapproval_id=str(data["id"]), status=data.get("status", "unknown"))
+
+
 async def fetch_preapproval(preapproval_id: str) -> dict:
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.get(
@@ -134,6 +156,20 @@ async def checkout(data: CheckoutIn, req: Request):
 @router.post("/card-subscription", response_model=SubscriptionOut)
 async def card_subscription(data: CardSubscriptionIn, req: Request):
     plan = PLANS[data.plan_slug]
+    if data.payment_mode == "cash":
+        payment = {
+            "transaction_amount": plan["cash"],
+            "token": data.card_token_id,
+            "description": f"{plan['name']} - pagamento à vista",
+            "installments": 1,
+            "payment_method_id": data.payment_method_id,
+            "payer": {"email": data.payer_email},
+            "external_reference": f"cash:{data.plan_slug}:{data.payer_email}",
+        }
+        if not data.payment_method_id:
+            payment.pop("payment_method_id")
+        return await create_card_payment(payment)
+
     preapproval = {
         "reason": f"{plan['name']} - {plan['months']} cobranças mensais",
         "external_reference": f"new:{data.plan_slug}",

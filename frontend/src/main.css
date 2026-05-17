@@ -317,6 +317,40 @@ a {
   background: #0d0d0e;
 }
 
+.payment-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.payment-mode-grid button {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid var(--line);
+  padding: 16px;
+  color: #fff;
+  text-align: left;
+  background: #0d0d0e;
+  cursor: pointer;
+}
+
+.payment-mode-grid button.active {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px rgba(215, 255, 56, 0.18);
+}
+
+.payment-mode-grid strong {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.payment-mode-grid span {
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.45;
+}
+
 .plan-card {
   position: relative;
   display: flex;
@@ -596,6 +630,10 @@ input:-webkit-autofill:focus {
 
   .gallery-strip img {
     height: 380px;
+  }
+
+  .payment-mode-grid {
+    grid-template-columns: 1fr;
   }
 
   .footer-grid {

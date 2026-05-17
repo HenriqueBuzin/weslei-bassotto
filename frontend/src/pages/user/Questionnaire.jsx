@@ -43,7 +43,7 @@ export default function Questionnaire() {
     api
       .get("/consultancy/questions")
       .then(({ data }) => {
-        if (alive) setQuestions(data);
+        if (alive) setQuestions(Array.isArray(data) ? data : []);
       })
       .catch(() => {
         if (alive) setError("Nao foi possivel carregar as perguntas agora.");
@@ -204,7 +204,7 @@ export default function Questionnaire() {
                         required={question.required}
                       >
                         <option value="">Selecione</option>
-                        {question.options.map((option) => (
+                        {(question.options || []).map((option) => (
                           <option value={option} key={option}>
                             {option}
                           </option>

@@ -37,7 +37,7 @@ const plans = [
     name: "Plano Trimestral",
     period: "3 meses",
     cash: "R$ 597,00",
-    recurring: "3 cobranças mensais de R$ 199,00",
+    recurring: "3 cobranças mensais de R$ 212,66",
     installmentTotal: "R$ 638,00",
     installments: "3x de R$ 212,66",
     protocols: "2 protocolos de treino",
@@ -47,7 +47,7 @@ const plans = [
     name: "Plano Semestral",
     period: "6 meses",
     cash: "R$ 997,00",
-    recurring: "6 cobranças mensais de R$ 166,17",
+    recurring: "6 cobranças mensais de R$ 182,23",
     installmentTotal: "R$ 1.093,00",
     installments: "6x de R$ 182,23",
     protocols: "3 protocolos de treino",
@@ -58,7 +58,7 @@ const plans = [
     name: "Plano Anual",
     period: "12 meses",
     cash: "R$ 1.597,00",
-    recurring: "12 cobranças mensais de R$ 133,08",
+    recurring: "12 cobranças mensais de R$ 155,25",
     installmentTotal: "R$ 1.863,00",
     installments: "12x de R$ 155,25",
     protocols: "6 protocolos de treino",
@@ -183,8 +183,8 @@ export default function Home() {
               <p className="eyebrow">Escolha seu plano</p>
               <h2>Assinaturas com período fechado e acompanhamento mensal.</h2>
               <p>
-                Você contrata o ciclo completo, mas a cobrança é mensal recorrente no Mercado Pago
-                até finalizar o período do plano.
+                Você escolhe pagar à vista ou em assinatura mensal recorrente pelo período do
+                plano, direto pelo Mercado Pago dentro do site.
               </p>
             </div>
 
@@ -199,9 +199,9 @@ export default function Home() {
                     <strong>{plan.cash}</strong>
                   </div>
                   <p className="installments">
-                    Recorrência: {plan.recurring}
+                    À vista: {plan.cash}
                     <br />
-                    Não é parcelamento comum: o Mercado Pago cobra mensalmente durante o período.
+                    Assinatura: {plan.recurring}
                   </p>
                   <ul>
                     <li>{plan.protocols}</li>

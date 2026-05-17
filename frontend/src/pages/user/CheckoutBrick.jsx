@@ -5,10 +5,14 @@ import { api } from "../../lib/api";
 const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
 
 const plans = {
-  trimestral: { name: "Plano Trimestral", months: 3, total: 597, monthly: 199 },
-  semestral: { name: "Plano Semestral", months: 6, total: 997, monthly: 166.17 },
-  anual: { name: "Plano Anual", months: 12, total: 1597, monthly: 133.08 },
+  trimestral: { name: "Plano Trimestral", months: 3, cash: 597, subscriptionTotal: 638, monthly: 212.66 },
+  semestral: { name: "Plano Semestral", months: 6, cash: 997, subscriptionTotal: 1093, monthly: 182.23 },
+  anual: { name: "Plano Anual", months: 12, cash: 1597, subscriptionTotal: 1863, monthly: 155.25 },
 };
+
+function brl(value) {
+  return `R$ ${value.toFixed(2).replace(".", ",")}`;
+}
 
 function loadMercadoPagoScript() {
   if (window.MercadoPago) return Promise.resolve();
@@ -26,15 +30,20 @@ export default function CheckoutBrick() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const planSlug = plans[params.get("plano")] ? params.get("plano") : "trimestral";
+  const renewId = params.get("renew") || "";
   const plan = plans[planSlug];
   const [email, setEmail] = useState("");
+  const [paymentMode, setPaymentMode] = useState("subscription");
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const controllerRef = useRef(null);
   const emailRef = useRef("");
 
-  const amount = useMemo(() => String(plan.monthly), [plan.monthly]);
+  const amount = useMemo(
+    () => String(paymentMode === "cash" ? plan.cash : plan.monthly),
+    [paymentMode, plan.cash, plan.monthly]
+  );
 
   useEffect(() => {
     emailRef.current = email;
@@ -50,6 +59,8 @@ export default function CheckoutBrick() {
       }
 
       try {
+        setReady(false);
+        controllerRef.current?.unmount?.();
         await loadMercadoPagoScript();
         if (!mounted) return;
         const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" });
@@ -82,17 +93,22 @@ export default function CheckoutBrick() {
                     payer_email: payerEmail,
                     card_token_id: token,
                     payment_method_id: paymentMethodId,
+                    payment_mode: paymentMode,
                   })
                   .then(({ data }) => {
                     resolve();
-                    navigate(
-                      `/questionario?plano=${planSlug}&preapproval_id=${data.preapproval_id}&email=${encodeURIComponent(
-                        payerEmail
-                      )}`
-                    );
+                    if (renewId) {
+                      return api
+                        .post(`/consultancy/me/submissions/${renewId}/renew`, {
+                          plan_slug: planSlug,
+                          payment_reference: data.preapproval_id,
+                        })
+                        .then(() => navigate("/assinante?renovacao=ok"));
+                    }
+                    navigate(`/questionario?plano=${planSlug}&preapproval_id=${data.preapproval_id}&email=${encodeURIComponent(payerEmail)}`);
                   })
                   .catch((err) => {
-                    setError(err?.response?.data?.detail || "Nao foi possivel autorizar a assinatura.");
+                    setError(err?.response?.data?.detail || "Nao foi possivel autorizar o pagamento.");
                     reject(err);
                   })
                   .finally(() => setBusy(false));
@@ -111,7 +127,7 @@ export default function CheckoutBrick() {
       mounted = false;
       controllerRef.current?.unmount?.();
     };
-  }, [amount, navigate, planSlug]);
+  }, [amount, navigate, paymentMode, planSlug, renewId]);
 
   return (
     <main className="questionnaire-page">
@@ -124,14 +140,39 @@ export default function CheckoutBrick() {
           <p className="eyebrow">Pagamento dentro do site</p>
           <h1>{plan.name}</h1>
           <p>
-            Assinatura recorrente de {plan.months} meses: R$ {plan.monthly.toFixed(2).replace(".", ",")} por
-            mes. O Mercado Pago processa os dados do cartao com seguranca.
+            Escolha pagamento a vista ou assinatura mensal recorrente. O Mercado Pago processa os
+            dados do cartao com seguranca.
           </p>
+          {renewId && <p className="muted">Renovacao da sua consultoria atual.</p>}
         </header>
 
         <section className="questionnaire-form">
           <div className="form-section">
-            <h2>Dados para assinatura</h2>
+            <h2>Forma de pagamento</h2>
+            <div className="payment-mode-grid">
+              <button
+                type="button"
+                className={paymentMode === "cash" ? "active" : ""}
+                onClick={() => setPaymentMode("cash")}
+              >
+                <strong>A vista</strong>
+                <span>{brl(plan.cash)} em uma cobrança</span>
+              </button>
+              <button
+                type="button"
+                className={paymentMode === "subscription" ? "active" : ""}
+                onClick={() => setPaymentMode("subscription")}
+              >
+                <strong>Assinatura mensal</strong>
+                <span>
+                  {plan.months}x de {brl(plan.monthly)}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h2>Dados do comprador</h2>
             <div className="form-grid">
               <label>
                 E-mail do comprador
@@ -144,10 +185,12 @@ export default function CheckoutBrick() {
                 />
               </label>
               <div className="purchase-summary">
-                <strong>R$ {plan.total.toFixed(2).replace(".", ",")}</strong>
-                <span>Total do plano</span>
+                <strong>{brl(paymentMode === "cash" ? plan.cash : plan.subscriptionTotal)}</strong>
+                <span>{paymentMode === "cash" ? "A vista" : "Total da assinatura"}</span>
                 <p>
-                  Cobranças mensais recorrentes por {plan.months} meses. Nao e parcelamento comum.
+                  {paymentMode === "cash"
+                    ? "Uma cobrança única no cartão."
+                    : `Cobranças mensais recorrentes por ${plan.months} meses.`}
                 </p>
               </div>
             </div>
@@ -159,7 +202,7 @@ export default function CheckoutBrick() {
             <div id="cardPaymentBrick_container" />
           </div>
 
-          {busy && <div className="success-alert">Autorizando assinatura...</div>}
+          {busy && <div className="success-alert">Processando pagamento...</div>}
           {error && <div className="form-alert">{error}</div>}
         </section>
       </div>
