@@ -1,5 +1,4 @@
 services:
-  # === API PROD (sem reload) ===
   api:
     profiles: ["prod"]
     restart: unless-stopped
@@ -43,8 +42,10 @@ services:
       timeout: 2s
       retries: 10
       start_period: 5s
+    networks:
+      - default
+      - proxy-network
 
-  # === API DEV (hot-reload + bind mount) ===
   api_dev:
     profiles: ["dev"]
     restart: unless-stopped
@@ -97,8 +98,8 @@ services:
       default:
         aliases:
           - api
+      proxy-network:
 
-  # === MongoDB (para dev e prod) ===
   mongodb:
     image: mongo:7.0
     restart: unless-stopped
@@ -110,8 +111,9 @@ services:
       - MONGO_INITDB_DATABASE=${MONGO_DB}
     volumes:
       - mongo_data:/data/db
+    networks:
+      - default
 
-  # === FRONT DEV (Vite) ===
   frontend:
     profiles: ["dev"]
     restart: unless-stopped
@@ -134,8 +136,6 @@ services:
     volumes:
       - ./frontend:/app
       - react_node_modules:/app/node_modules
-      # docker compose exec frontend npm i bootstrap
-      # docker compose exec frontend npm install --package-lock-only
     healthcheck:
       test: >
         CMD-SHELL
@@ -151,8 +151,9 @@ services:
       timeout: 2s
       retries: 40
       start_period: 2s
+    networks:
+      - default
 
-  # === Caddy DEV (proxy / e /api) ===
   caddy:
     profiles: ["dev"]
     restart: unless-stopped
@@ -169,8 +170,10 @@ services:
         condition: service_healthy
     volumes:
       - ./web/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    networks:
+      - default
+      - proxy-network
 
-  # === WEB PROD (Caddy + build React estático) ===
   web:
     profiles: ["prod"]
     restart: unless-stopped
@@ -193,7 +196,14 @@ services:
       - API_PORT=${API_PORT}
       - CADDY_DOMAIN=${CADDY_DOMAIN}
       - CADDY_EMAIL=${CADDY_EMAIL}
-      
+    networks:
+      - default
+      - proxy-network
+
 volumes:
   mongo_data:
   react_node_modules:
+
+networks:
+  proxy-network:
+    external: true
