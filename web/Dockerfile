@@ -23,11 +23,12 @@ ENV VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
 ARG VITE_MP_PUBLIC_KEY
 ENV VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
 
-ENV NODE_ENV=production
-
 # Instala deps com bom cache
 COPY frontend/package.json frontend/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
+
+# Depois define produção
+ENV NODE_ENV=production
 
 # Copia o código e builda
 COPY frontend/ ./
@@ -37,4 +38,4 @@ RUN npm run build
 FROM caddy:2-alpine
 COPY --from=build /app/dist /usr/share/caddy
 COPY web/Caddyfile /etc/caddy/Caddyfile
-EXPOSE 80 443
+EXPOSE 80
