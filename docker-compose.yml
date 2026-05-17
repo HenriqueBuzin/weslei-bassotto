@@ -185,7 +185,7 @@ services:
         - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
         - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
     ports:
-      - "${WEB_PORT}:80"
+      - "${CADDY_DEV_PORT}:80"
     depends_on:
       api:
         condition: service_healthy
