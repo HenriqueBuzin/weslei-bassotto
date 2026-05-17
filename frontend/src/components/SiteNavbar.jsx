@@ -1,7 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 
 export default function SiteNavbar() {
-  const appName = import.meta.env.VITE_APP_NAME || "Weslei Bassotto";
+  const appName = import.meta.env.VITE_APP_NAME || "AAAWeslei Bassotto";
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top" data-bs-theme="dark">
