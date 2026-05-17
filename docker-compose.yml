@@ -42,10 +42,7 @@ services:
       timeout: 2s
       retries: 10
       start_period: 5s
-    networks:
-      - default
-      - proxy-network
-
+      
   api_dev:
     profiles: ["dev"]
     restart: unless-stopped
@@ -98,7 +95,6 @@ services:
       default:
         aliases:
           - api
-      proxy-network:
 
   mongodb:
     image: mongo:7.0
@@ -111,8 +107,6 @@ services:
       - MONGO_INITDB_DATABASE=${MONGO_DB}
     volumes:
       - mongo_data:/data/db
-    networks:
-      - default
 
   frontend:
     profiles: ["dev"]
@@ -151,8 +145,6 @@ services:
       timeout: 2s
       retries: 40
       start_period: 2s
-    networks:
-      - default
 
   caddy:
     profiles: ["dev"]
@@ -171,7 +163,6 @@ services:
     volumes:
       - ./web/Caddyfile.dev:/etc/caddy/Caddyfile:ro
     networks:
-      - default
       - proxy-network
 
   web:
@@ -197,7 +188,6 @@ services:
       - CADDY_DOMAIN=${CADDY_DOMAIN}
       - CADDY_EMAIL=${CADDY_EMAIL}
     networks:
-      - default
       - proxy-network
 
 volumes:
