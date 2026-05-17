@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
+import { formatDateBR } from "../../lib/date";
 
 const plans = {
   trimestral: { name: "Plano Trimestral", months: 3 },
@@ -17,6 +18,7 @@ function readPaymentReference(params) {
     params.get("payment_id") ||
     params.get("collection_id") ||
     params.get("preference_id") ||
+    params.get("preapproval_id") ||
     params.get("external_reference") ||
     ""
   );
@@ -27,9 +29,10 @@ export default function Questionnaire() {
   const planSlug = initialPlan(params.get("plano"));
   const plan = plans[planSlug];
   const paymentReference = readPaymentReference(params);
+  const paymentConfirmed = Boolean(paymentReference);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
-  const [customer, setCustomer] = useState({ name: "", email: "", phone: "" });
+  const [customer, setCustomer] = useState({ name: "", email: params.get("email") || "", phone: "" });
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,10 +84,7 @@ export default function Questionnaire() {
       const { data } = await api.post("/consultancy/submissions", payload);
       setSuccess(data);
     } catch (err) {
-      setError(
-        err?.response?.data?.detail?.missing_questions?.join(", ") ||
-          "Nao foi possivel enviar suas respostas."
-      );
+      setError(err?.response?.data?.detail?.missing_questions?.join(", ") || err?.response?.data?.detail || "Nao foi possivel enviar suas respostas.");
     } finally {
       setBusy(false);
     }
@@ -112,12 +112,25 @@ export default function Questionnaire() {
             <p className="eyebrow">Recebido</p>
             <h2>Questionario enviado com sucesso.</h2>
             <p>
-              Seu plano ficou registrado como {success.plan.name}, de {success.plan.start_date} ate{" "}
-              {success.plan.end_date}. O admin ja consegue ver seu plano e todas as respostas no
+              Seu plano ficou registrado como {success.plan.name}, de {formatDateBR(success.plan.start_date)} ate{" "}
+              {formatDateBR(success.plan.end_date)}. O admin ja consegue ver seu plano e todas as respostas no
               painel.
             </p>
             <Link to="/" className="btn btn-brand">
               Voltar ao inicio
+            </Link>
+          </section>
+        ) : !paymentConfirmed ? (
+          <section className="success-panel">
+            <p className="eyebrow">Pagamento necessario</p>
+            <h2>Anamnese liberada somente apos pagamento confirmado.</h2>
+            <p>
+              Para responder o questionario, finalize a compra pelo Mercado Pago. Depois do
+              pagamento confirmado, voce sera enviado para esta pagina com a referencia da
+              transacao.
+            </p>
+            <Link to="/#planos" className="btn btn-brand">
+              Escolher plano
             </Link>
           </section>
         ) : (

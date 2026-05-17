@@ -1,11 +1,7 @@
 import { Link } from "react-router-dom";
 import SiteNavbar from "../../components/SiteNavbar";
 
-const paymentLinks = {
-  trimestral: import.meta.env.VITE_MP_TRIMESTRAL_URL || "/questionario?plano=trimestral",
-  semestral: import.meta.env.VITE_MP_SEMESTRAL_URL || "/questionario?plano=semestral",
-  anual: import.meta.env.VITE_MP_ANUAL_URL || "/questionario?plano=anual",
-};
+const whatsappUrl = "https://wa.me/55549911126308";
 
 const steps = [
   {
@@ -41,6 +37,7 @@ const plans = [
     name: "Plano Trimestral",
     period: "3 meses",
     cash: "R$ 597,00",
+    recurring: "3 cobranças mensais de R$ 199,00",
     installmentTotal: "R$ 638,00",
     installments: "3x de R$ 212,66",
     protocols: "2 protocolos de treino",
@@ -50,6 +47,7 @@ const plans = [
     name: "Plano Semestral",
     period: "6 meses",
     cash: "R$ 997,00",
+    recurring: "6 cobranças mensais de R$ 166,17",
     installmentTotal: "R$ 1.093,00",
     installments: "6x de R$ 182,23",
     protocols: "3 protocolos de treino",
@@ -60,6 +58,7 @@ const plans = [
     name: "Plano Anual",
     period: "12 meses",
     cash: "R$ 1.597,00",
+    recurring: "12 cobranças mensais de R$ 133,08",
     installmentTotal: "R$ 1.863,00",
     installments: "12x de R$ 155,25",
     protocols: "6 protocolos de treino",
@@ -116,7 +115,7 @@ export default function Home() {
             <a className="btn btn-brand btn-lg" href="#planos">
               Quero fazer parte
             </a>
-            <Link className="btn btn-outline-light btn-lg" to="/login">
+            <Link className="btn btn-outline-light btn-lg" to="/assinante">
               Área do assinante
             </Link>
           </div>
@@ -184,8 +183,8 @@ export default function Home() {
               <p className="eyebrow">Escolha seu plano</p>
               <h2>Assinaturas com período fechado e acompanhamento mensal.</h2>
               <p>
-                Você contrata o ciclo completo e recebe os protocolos previstos ao longo do plano,
-                com suporte e ajustes semanais.
+                Você contrata o ciclo completo, mas a cobrança é mensal recorrente no Mercado Pago
+                até finalizar o período do plano.
               </p>
             </div>
 
@@ -196,13 +195,13 @@ export default function Home() {
                   <p className="plan-period">{plan.period}</p>
                   <h3>{plan.name}</h3>
                   <div className="price-block">
-                    <span>À vista</span>
+                    <span>Total do plano</span>
                     <strong>{plan.cash}</strong>
                   </div>
                   <p className="installments">
-                    Parcelado: {plan.installmentTotal}
+                    Recorrência: {plan.recurring}
                     <br />
-                    {plan.installments}
+                    Não é parcelamento comum: o Mercado Pago cobra mensalmente durante o período.
                   </p>
                   <ul>
                     <li>{plan.protocols}</li>
@@ -210,9 +209,9 @@ export default function Home() {
                     <li>Dieta personalizada elaborada por nutricionista</li>
                     <li>Ajustes semanais de treino e dieta</li>
                   </ul>
-                  <a className="btn btn-brand w-100" href={paymentLinks[plan.slug]}>
-                    Comprar pelo Mercado Pago
-                  </a>
+                  <Link className="btn btn-brand w-100" to={`/checkout?plano=${plan.slug}`}>
+                    Assinar dentro do site
+                  </Link>
                 </article>
               ))}
             </div>
@@ -254,7 +253,7 @@ export default function Home() {
               <a className="btn btn-brand btn-lg" href="#planos">
                 Ver planos
               </a>
-              <a className="btn btn-outline-light btn-lg" href="https://wa.me/" target="_blank" rel="noreferrer">
+              <a className="btn btn-outline-light btn-lg" href={whatsappUrl} target="_blank" rel="noreferrer">
                 Tirar dúvidas no WhatsApp
               </a>
             </div>

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { formatDateBR } from "../../lib/date";
 
 const plans = [
   { slug: "trimestral", name: "Plano Trimestral", months: 3 },
@@ -13,8 +14,20 @@ function answersToMap(submission) {
   return Object.fromEntries((submission?.answers || []).map((answer) => [answer.question_id, answer.value || ""]));
 }
 
+function readPaymentReference(params) {
+  return (
+    params.get("payment_id") ||
+    params.get("collection_id") ||
+    params.get("preference_id") ||
+    params.get("preapproval_id") ||
+    params.get("external_reference") ||
+    ""
+  );
+}
+
 export default function SubscriberArea() {
   const { logout } = useAuth();
+  const [params] = useSearchParams();
   const [questions, setQuestions] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -22,6 +35,7 @@ export default function SubscriberArea() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [handledReturn, setHandledReturn] = useState(false);
 
   const selected = useMemo(
     () => submissions.find((submission) => submission.id === selectedId) || submissions[0],
@@ -51,6 +65,30 @@ export default function SubscriberArea() {
   useEffect(() => {
     setAnswers(answersToMap(selected));
   }, [selected?.id]);
+
+  useEffect(() => {
+    const paymentReference = readPaymentReference(params);
+    const planSlug = params.get("plano");
+    const targetId = params.get("renew") || selected?.id;
+    if (handledReturn || !paymentReference || !planSlug || !targetId || !plans.some((plan) => plan.slug === planSlug)) {
+      return;
+    }
+
+    setHandledReturn(true);
+    setBusy(true);
+    api
+      .post(`/consultancy/me/submissions/${targetId}/renew`, {
+        plan_slug: planSlug,
+        payment_reference: paymentReference,
+      })
+      .then(({ data }) => {
+        setSubmissions((items) => items.map((item) => (item.id === data.id ? data : item)));
+        setSelectedId(data.id);
+        setNotice("Pagamento confirmado e renovacao registrada. As datas foram atualizadas.");
+      })
+      .catch(() => setError("Nao foi possivel confirmar a renovacao automaticamente."))
+      .finally(() => setBusy(false));
+  }, [handledReturn, params, selected?.id]);
 
   function setAnswer(questionId, value) {
     setAnswers((current) => ({ ...current, [questionId]: value }));
@@ -85,13 +123,13 @@ export default function SubscriberArea() {
     setError("");
     setNotice("");
     try {
-      const { data } = await api.post(`/consultancy/me/submissions/${selected.id}/renew`, {
+      const { data } = await api.post("/payments/renewal-checkout", {
         plan_slug: planSlug,
+        submission_id: selected.id,
       });
-      setSubmissions((items) => items.map((item) => (item.id === selected.id ? data : item)));
-      setNotice("Renovacao registrada. O admin vera a recompra e as datas atualizadas.");
-    } catch {
-      setError("Nao foi possivel registrar a renovacao agora.");
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      setError(err?.response?.data?.detail || "Nao foi possivel iniciar o checkout de renovacao.");
     } finally {
       setBusy(false);
     }
@@ -149,7 +187,7 @@ export default function SubscriberArea() {
                     <strong>{submission.plan.name}</strong>
                     <span>{submission.status}</span>
                     <small>
-                      {submission.plan.start_date} ate {submission.plan.end_date}
+                      {formatDateBR(submission.plan.start_date)} ate {formatDateBR(submission.plan.end_date)}
                     </small>
                   </button>
                 ))}
@@ -163,7 +201,7 @@ export default function SubscriberArea() {
                     <div>
                       <h2>{selected.plan.name}</h2>
                       <p>
-                        Periodo: {selected.plan.start_date} ate {selected.plan.end_date}
+                        Periodo: {formatDateBR(selected.plan.start_date)} ate {formatDateBR(selected.plan.end_date)}
                       </p>
                     </div>
                     <span className="pill">Renovacoes: {selected.renewal_count || 0}</span>

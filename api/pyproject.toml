@@ -16,7 +16,8 @@ dependencies = [
   "python-jose[cryptography]==3.5.0",
   "passlib[argon2]==1.7.4",
   "argon2-cffi==25.1.0",
-  "python-multipart==0.0.20"
+  "python-multipart==0.0.20",
+  "httpx==0.28.1"
 ]
 
 [tool.setuptools.packages.find]

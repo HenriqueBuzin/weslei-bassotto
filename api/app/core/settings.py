@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     refresh_cookie_name: str = Field(validation_alias="REFRESH_COOKIE_NAME")
     refresh_cookie_path: str = Field(validation_alias="REFRESH_COOKIE_PATH")
 
+    # --- Mercado Pago / Checkout Pro ---
+    mercado_pago_access_token: str = Field(default="", validation_alias="MERCADO_PAGO_ACCESS_TOKEN")
+    app_public_url: str = Field(default="http://localhost:8080", validation_alias="APP_PUBLIC_URL")
+
     model_config = SettingsConfigDict(env_file=None, case_sensitive=False, extra="ignore")
 
     # ---------- Validadores ----------

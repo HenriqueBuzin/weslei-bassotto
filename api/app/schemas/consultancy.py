@@ -77,5 +77,7 @@ class SubmissionOut(BaseModel):
     answers_seen_at: datetime | None = None
     renewal_count: int = 0
     renewals: list[dict[str, Any]] = []
+    recurrence_status: str | None = None
+    recurrence_issue: str | None = None
     created_at: datetime
     updated_at: datetime

@@ -10,10 +10,12 @@ const Login = lazy(() => import("../pages/Login.jsx"));
 const Dashboard = lazy(() => import("../pages/admin/Dashboard.jsx"));
 const Questionnaire = lazy(() => import("../pages/user/Questionnaire.jsx"));
 const SubscriberArea = lazy(() => import("../pages/user/SubscriberArea.jsx"));
+const CheckoutBrick = lazy(() => import("../pages/user/CheckoutBrick.jsx"));
 const NotFound = lazy(() => import("../pages/NotFound.jsx"));
 
 const routes = [
   { path: "/", element: <Home /> },
+  { path: "/checkout", element: <CheckoutBrick /> },
   { path: "/questionario", element: <Questionnaire /> },
   { path: "/login", element: <Login /> },
   {
