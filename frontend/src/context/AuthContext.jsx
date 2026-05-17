@@ -31,6 +31,7 @@ export function AuthProvider({ children }) {
       },
     });
     setAT(data.access_token); // refresh fica no cookie HttpOnly
+    return data.access_token;
   }, []);
 
   const logout = useCallback(async () => {

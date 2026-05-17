@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { readRoles } from "../lib/jwt";
 import "./Login.css";
 
 export default function Login() {
@@ -24,8 +25,9 @@ export default function Login() {
     setErr(null);
     setBusy(true);
     try {
-      await login(email, password, remember);
-      nav("/");
+      const token = await login(email, password, remember);
+      const roles = readRoles(token);
+      nav(roles.includes("admin") ? "/app" : "/assinante");
     } catch (e) {
       const msg =
         e?.response?.data?.detail ||
