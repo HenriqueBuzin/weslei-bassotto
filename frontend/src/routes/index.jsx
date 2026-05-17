@@ -8,15 +8,26 @@ import ProtectedRoute from "../auth/ProtectedRoute";
 const Home = lazy(() => import("../pages/user/Home.jsx"));
 const Login = lazy(() => import("../pages/Login.jsx"));
 const Dashboard = lazy(() => import("../pages/admin/Dashboard.jsx"));
+const Questionnaire = lazy(() => import("../pages/user/Questionnaire.jsx"));
+const SubscriberArea = lazy(() => import("../pages/user/SubscriberArea.jsx"));
 const NotFound = lazy(() => import("../pages/NotFound.jsx"));
 
 const routes = [
   { path: "/", element: <Home /> },
+  { path: "/questionario", element: <Questionnaire /> },
   { path: "/login", element: <Login /> },
+  {
+    path: "/assinante",
+    element: (
+      <ProtectedRoute>
+        <SubscriberArea />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: "/app",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute roles={["admin"]}>
         <Dashboard />
       </ProtectedRoute>
     ),
