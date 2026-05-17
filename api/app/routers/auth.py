@@ -1,10 +1,17 @@
 # app/routers/auth.py
 
+import asyncio
+import hashlib
+import secrets
+import smtplib
+from datetime import UTC, datetime, timedelta
+from email.message import EmailMessage
+
 from bson import ObjectId
 from jose import JWTError
 from fastapi import APIRouter, HTTPException, status, Request, Depends, Response, Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 
 from app.db.mongo import get_db
 from app.core.settings import settings
@@ -61,6 +68,58 @@ def _user_out(doc) -> UserOut:
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordOut(BaseModel):
+    ok: bool = True
+    email_sent: bool = False
+    reset_url: str | None = None
+
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    password: str = Field(min_length=6)
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _reset_url(token: str) -> str:
+    return f"{settings.frontend_public_url.rstrip('/')}/redefinir-senha?token={token}"
+
+
+def _smtp_configured() -> bool:
+    return bool(settings.smtp_user and settings.smtp_password)
+
+
+def _send_reset_email(to_email: str, reset_url: str) -> None:
+    sender = settings.smtp_from or settings.smtp_user
+    message = EmailMessage()
+    message["Subject"] = "Recuperacao de senha"
+    message["From"] = sender
+    message["To"] = to_email
+    message.set_content(
+        "\n".join(
+            [
+                "Recebemos uma solicitacao para redefinir sua senha.",
+                "",
+                f"Acesse este link para criar uma nova senha: {reset_url}",
+                "",
+                f"Este link expira em {settings.password_reset_expires_minutes} minutos.",
+                "Se voce nao pediu essa alteracao, ignore este e-mail.",
+            ]
+        )
+    )
+
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
+        smtp.starttls()
+        smtp.login(settings.smtp_user, settings.smtp_password)
+        smtp.send_message(message)
 
 # ===== Endpoints =====
 @router.post("/login", response_model=TokenOut)
@@ -140,10 +199,62 @@ async def logout(response: Response, request: Request):
     _require_xhr_if_none_samesite(request)
     clear_refresh_cookie(response)
 
+
+@router.post("/forgot-password", response_model=ForgotPasswordOut)
+async def forgot_password(req: Request, data: ForgotPasswordIn):
+    db = get_db(req)
+    email = data.email.strip().lower()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        return ForgotPasswordOut()
+
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(UTC) + timedelta(minutes=settings.password_reset_expires_minutes)
+    await db.password_reset_tokens.insert_one(
+        {
+            "user_id": user["_id"],
+            "token_hash": _token_hash(token),
+            "created_at": datetime.now(UTC),
+            "expires_at": expires_at,
+            "used_at": None,
+        }
+    )
+
+    reset_url = _reset_url(token)
+    if not _smtp_configured():
+        return ForgotPasswordOut(ok=True, email_sent=False, reset_url=reset_url if settings.is_dev else None)
+
+    await asyncio.to_thread(_send_reset_email, email, reset_url)
+    return ForgotPasswordOut(ok=True, email_sent=True, reset_url=reset_url if settings.is_dev else None)
+
+
+@router.post("/reset-password")
+async def reset_password(req: Request, data: ResetPasswordIn):
+    db = get_db(req)
+    now = datetime.now(UTC)
+    token_doc = await db.password_reset_tokens.find_one(
+        {
+            "token_hash": _token_hash(data.token),
+            "used_at": None,
+            "expires_at": {"$gt": now},
+        }
+    )
+    if not token_doc:
+        raise HTTPException(status_code=400, detail="Link invalido ou expirado")
+
+    await db.users.update_one(
+        {"_id": token_doc["user_id"]},
+        {"$set": {"password_hash": hash_password(data.password)}},
+    )
+    await db.password_reset_tokens.update_one(
+        {"_id": token_doc["_id"]},
+        {"$set": {"used_at": now}},
+    )
+    return {"ok": True}
+
 @router.post("/register", response_model=UserOut, status_code=201)
 async def register(req: Request, data: UserCreate):
     db = get_db(req)
-    await db.users.create_index("email", unique=True)
 
     email = data.email.strip().lower()
     exists = await db.users.find_one({"email": email})
