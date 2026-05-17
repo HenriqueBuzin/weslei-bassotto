@@ -48,6 +48,15 @@ class Settings(BaseSettings):
     mercado_pago_access_token: str = Field(default="", validation_alias="MERCADO_PAGO_ACCESS_TOKEN")
     app_public_url: str = Field(default="http://localhost:8080", validation_alias="APP_PUBLIC_URL")
 
+    # --- Recuperação de senha / Gmail SMTP ---
+    frontend_public_url: str = Field(default="http://localhost:5173", validation_alias="FRONTEND_PUBLIC_URL")
+    password_reset_expires_minutes: int = Field(default=30, validation_alias="PASSWORD_RESET_EXPIRES_MINUTES")
+    smtp_host: str = Field(default="smtp.gmail.com", validation_alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, validation_alias="SMTP_PORT")
+    smtp_user: str = Field(default="", validation_alias="SMTP_USER")
+    smtp_password: str = Field(default="", validation_alias="SMTP_PASSWORD")
+    smtp_from: str = Field(default="", validation_alias="SMTP_FROM")
+
     model_config = SettingsConfigDict(env_file=None, case_sensitive=False, extra="ignore")
 
     # ---------- Validadores ----------
