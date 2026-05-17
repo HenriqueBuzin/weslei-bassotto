@@ -70,6 +70,8 @@ def submission_out(doc: dict[str, Any]) -> SubmissionOut:
         answers_seen_at=doc.get("answers_seen_at"),
         renewal_count=doc.get("renewal_count", 0),
         renewals=doc.get("renewals", []),
+        recurrence_status=doc.get("recurrence_status"),
+        recurrence_issue=doc.get("recurrence_issue"),
         created_at=doc["created_at"],
         updated_at=doc["updated_at"],
     )
@@ -127,6 +129,12 @@ async def list_public_questions(req: Request):
 
 @router.post("/submissions", response_model=SubmissionOut, status_code=status.HTTP_201_CREATED)
 async def create_submission(req: Request, data: SubmissionIn):
+    if not data.payment_reference:
+        raise HTTPException(
+            status_code=402,
+            detail="Pagamento confirmado é obrigatório para responder a anamnese",
+        )
+
     db = get_db(req)
     answers = await build_answer_snapshot(db, data.answers)
 
@@ -150,6 +158,8 @@ async def create_submission(req: Request, data: SubmissionIn):
         "answers_seen_at": None,
         "renewal_count": 0,
         "renewals": [],
+        "recurrence_status": "active",
+        "recurrence_issue": None,
         "created_at": timestamp,
         "updated_at": timestamp,
     }
@@ -202,6 +212,12 @@ async def renew_my_plan(
     data: RenewalIn,
     user=Depends(get_current_user),
 ):
+    if not data.payment_reference:
+        raise HTTPException(
+            status_code=402,
+            detail="Pagamento confirmado é obrigatório para renovar o plano",
+        )
+
     db = get_db(req)
     current = await find_owned_submission(db, submission_id, user)
     plan_base = PLANS[data.plan_slug]
@@ -232,6 +248,8 @@ async def renew_my_plan(
                 },
                 "status": "paid" if data.payment_reference else "pending_payment",
                 "payment_reference": data.payment_reference,
+                "recurrence_status": "active",
+                "recurrence_issue": None,
                 "last_renewed_at": timestamp,
                 "updated_at": timestamp,
             },

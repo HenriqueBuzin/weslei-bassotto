@@ -26,6 +26,8 @@ services:
       - COOKIE_SAMESITE=${COOKIE_SAMESITE}
       - REFRESH_COOKIE_NAME=${REFRESH_COOKIE_NAME}
       - REFRESH_COOKIE_PATH=${REFRESH_COOKIE_PATH}
+      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
+      - APP_PUBLIC_URL=${APP_PUBLIC_URL}
     depends_on:
       - mongodb
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}"
@@ -66,6 +68,8 @@ services:
       - SEED_ON_START=${SEED_ON_START}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
+      - APP_PUBLIC_URL=${APP_PUBLIC_URL}
     volumes:
       - ./api:/app
     depends_on:
@@ -117,6 +121,7 @@ services:
       - VITE_MP_TRIMESTRAL_URL=${VITE_MP_TRIMESTRAL_URL}
       - VITE_MP_SEMESTRAL_URL=${VITE_MP_SEMESTRAL_URL}
       - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
+      - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
     volumes:
       - ./frontend:/app
       - react_node_modules:/app/node_modules
@@ -171,6 +176,7 @@ services:
         - VITE_MP_TRIMESTRAL_URL=${VITE_MP_TRIMESTRAL_URL}
         - VITE_MP_SEMESTRAL_URL=${VITE_MP_SEMESTRAL_URL}
         - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
+        - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
     ports:
       - "80:80"
       - "443:443"

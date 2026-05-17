@@ -294,6 +294,29 @@ a {
   align-items: stretch;
 }
 
+.checkout-email {
+  max-width: 520px;
+  margin: 0 auto 24px;
+  border: 1px solid var(--line);
+  padding: 18px;
+  background: #101010;
+}
+
+.checkout-email label {
+  display: grid;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 900;
+}
+
+.checkout-email input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 12px 13px;
+  color: #fff;
+  background: #0d0d0e;
+}
+
 .plan-card {
   position: relative;
   display: flex;

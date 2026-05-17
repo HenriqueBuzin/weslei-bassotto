@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { formatDateBR } from "../../lib/date";
 
 const emptyQuestion = {
   label: "",
@@ -23,6 +24,10 @@ function hasUnseenAnswers(submission) {
   if (!submission?.answers_changed_at) return false;
   if (!submission.answers_seen_at) return true;
   return new Date(submission.answers_changed_at) > new Date(submission.answers_seen_at);
+}
+
+function hasRecurrenceIssue(submission) {
+  return submission?.recurrence_status && !["active", "authorized"].includes(submission.recurrence_status);
 }
 
 function normalizeQuestion(question) {
@@ -184,10 +189,11 @@ export default function Dashboard() {
                   >
                     <strong>{submission.customer.name}</strong>
                     {hasUnseenAnswers(submission) && <em>Respostas novas/alteradas</em>}
+                    {hasRecurrenceIssue(submission) && <em>Problema na recorrência</em>}
                     {submission.renewal_count > 0 && <em>Recomprou {submission.renewal_count}x</em>}
                     <span>{submission.plan.name}</span>
                     <small>
-                      {submission.plan.start_date} até {submission.plan.end_date}
+                      {formatDateBR(submission.plan.start_date)} até {formatDateBR(submission.plan.end_date)}
                     </small>
                   </button>
                 ))}
@@ -216,23 +222,32 @@ export default function Dashboard() {
                     </select>
                   </div>
 
+                  {hasRecurrenceIssue(selectedSubmission) && (
+                    <div className="form-alert">
+                      Recorrência com atenção: {selectedSubmission.recurrence_status}
+                      {selectedSubmission.recurrence_issue ? ` - ${selectedSubmission.recurrence_issue}` : ""}
+                    </div>
+                  )}
+
                   <div className="subscription-editor">
                     <label>
                       Início
-                      <input
-                        type="date"
-                        value={selectedSubmission.plan.start_date}
-                        onChange={(e) => updateSubmission(selectedSubmission.id, { start_date: e.target.value })}
-                      />
-                    </label>
-                    <label>
-                      Fim
-                      <input
-                        type="date"
-                        value={selectedSubmission.plan.end_date}
-                        onChange={(e) => updateSubmission(selectedSubmission.id, { end_date: e.target.value })}
-                      />
-                    </label>
+                        <input
+                          type="date"
+                          value={selectedSubmission.plan.start_date}
+                          onChange={(e) => updateSubmission(selectedSubmission.id, { start_date: e.target.value })}
+                        />
+                        <small>{formatDateBR(selectedSubmission.plan.start_date)}</small>
+                      </label>
+                      <label>
+                        Fim
+                        <input
+                          type="date"
+                          value={selectedSubmission.plan.end_date}
+                          onChange={(e) => updateSubmission(selectedSubmission.id, { end_date: e.target.value })}
+                        />
+                        <small>{formatDateBR(selectedSubmission.plan.end_date)}</small>
+                      </label>
                     <label>
                       Referência Mercado Pago
                       <input
@@ -261,7 +276,7 @@ export default function Dashboard() {
                       <h3>Histórico de renovação</h3>
                       {selectedSubmission.renewals.map((renewal, index) => (
                         <p key={`${renewal.created_at}-${index}`}>
-                          {renewal.plan_name}: {renewal.start_date} até {renewal.end_date}
+                          {renewal.plan_name}: {formatDateBR(renewal.start_date)} até {formatDateBR(renewal.end_date)}
                         </p>
                       ))}
                     </div>
