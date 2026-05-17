@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { formatDateBR } from "../../lib/date";
@@ -27,6 +27,7 @@ function readPaymentReference(params) {
 
 export default function SubscriberArea() {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const [questions, setQuestions] = useState([]);
   const [submissions, setSubmissions] = useState([]);
@@ -61,6 +62,12 @@ export default function SubscriberArea() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  useEffect(() => {
+    if (params.get("renovacao") === "ok") {
+      setNotice("Renovacao registrada. As datas do plano foram atualizadas.");
+    }
+  }, [params]);
 
   useEffect(() => {
     setAnswers(answersToMap(selected));
@@ -117,22 +124,11 @@ export default function SubscriberArea() {
     }
   }
 
-  async function renewPlan(planSlug) {
+  function renewPlan(planSlug) {
     if (!selected) return;
-    setBusy(true);
     setError("");
     setNotice("");
-    try {
-      const { data } = await api.post("/payments/renewal-checkout", {
-        plan_slug: planSlug,
-        submission_id: selected.id,
-      });
-      window.location.href = data.checkout_url;
-    } catch (err) {
-      setError(err?.response?.data?.detail || "Nao foi possivel iniciar o checkout de renovacao.");
-    } finally {
-      setBusy(false);
-    }
+    navigate(`/checkout?plano=${planSlug}&renew=${selected.id}`);
   }
 
   return (
