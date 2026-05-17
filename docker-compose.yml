@@ -192,8 +192,10 @@ services:
 
 volumes:
   mongo_data:
+    name: ${COMPOSE_PROJECT_NAME}_mongo_data
   react_node_modules:
-
+    name: ${COMPOSE_PROJECT_NAME}_react_node_modules
+    
 networks:
   proxy-network:
     external: true
