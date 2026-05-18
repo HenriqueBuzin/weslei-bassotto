@@ -206,6 +206,8 @@ a {
   line-height: 0.95;
   font-weight: 950;
   text-transform: uppercase;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .section-heading p:not(.eyebrow),
@@ -702,15 +704,20 @@ input:-webkit-autofill:focus {
 
   .section-heading h2,
   .coach-grid h2 {
-    font-size: clamp(2rem, 12vw, 3.1rem);
-    line-height: 0.98;
+    font-size: clamp(1.5rem, 7.7vw, 1.92rem);
+    line-height: 1.08;
+    letter-spacing: 0;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .cta-final h2 {
-    max-width: min(calc(100vw - 24px), 350px);
-    font-size: clamp(1.95rem, 9.6vw, 2.55rem);
-    line-height: 1;
-    overflow-wrap: anywhere;
+    max-width: min(calc(100vw - 40px), 336px);
+    font-size: clamp(1.58rem, 7.8vw, 2.02rem);
+    line-height: 1.04;
+    letter-spacing: 0;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .cta-final {
