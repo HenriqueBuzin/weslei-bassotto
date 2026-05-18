@@ -5,7 +5,7 @@ export default function SiteNavbar() {
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top" data-bs-theme="dark">
-      <div className="container">
+      <div className="container-fluid mx-3">
         <Link className="navbar-brand fw-black tracking-1" to="/">
           {appName}
         </Link>
