@@ -45,9 +45,7 @@ services:
       retries: 10
       start_period: 5s
     networks:
-      proxy-network:
-        aliases:
-          - api
+      - proxy-network
       
   api_dev:
     profiles: ["dev"]
@@ -100,9 +98,7 @@ services:
       retries: 40
       start_period: 2s
     networks:
-      proxy-network:
-        aliases:
-          - api
+      - proxy-network
 
   mongodb:
     image: mongo:7.0
