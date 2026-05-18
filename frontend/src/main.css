@@ -771,6 +771,13 @@ input:-webkit-autofill:focus {
   text-transform: uppercase;
 }
 
+.field-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .questionnaire-form input,
 .questionnaire-form select,
 .questionnaire-form textarea,

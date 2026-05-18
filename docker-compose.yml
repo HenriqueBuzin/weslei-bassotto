@@ -30,6 +30,8 @@ services:
       - PASSWORD_RESET_EXPIRES_MINUTES=${PASSWORD_RESET_EXPIRES_MINUTES}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - SMTP_USE_SSL=${SMTP_USE_SSL}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
@@ -79,6 +81,8 @@ services:
       - PASSWORD_RESET_EXPIRES_MINUTES=${PASSWORD_RESET_EXPIRES_MINUTES}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - SMTP_USE_SSL=${SMTP_USE_SSL}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
@@ -121,7 +125,7 @@ services:
     env_file:
       - .env
     environment:
-      - VITE_API_BASE=${API_BASE}
+      - VITE_API_BASE=${VITE_API_BASE}
       - VITE_PORT=${VITE_PORT}
       - VITE_APP_NAME=${VITE_APP_NAME}
       - VITE_MP_TRIMESTRAL_URL=${VITE_MP_TRIMESTRAL_URL}
@@ -176,7 +180,7 @@ services:
       context: .
       dockerfile: web/Dockerfile
       args:
-        - VITE_API_BASE=${API_BASE}
+        - VITE_API_BASE=${VITE_API_BASE}
         - VITE_APP_NAME=${VITE_APP_NAME}
         - VITE_MP_TRIMESTRAL_URL=${VITE_MP_TRIMESTRAL_URL}
         - VITE_MP_SEMESTRAL_URL=${VITE_MP_SEMESTRAL_URL}

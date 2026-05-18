@@ -26,6 +26,14 @@ function loadMercadoPagoScript() {
   });
 }
 
+function safeUnmountBrick(controller) {
+  try {
+    controller?.unmount?.();
+  } catch {
+    // O SDK pode falhar ao desmontar um Brick ja removido pelo React.
+  }
+}
+
 export default function CheckoutBrick() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -59,8 +67,10 @@ export default function CheckoutBrick() {
       }
 
       try {
+        setError("");
         setReady(false);
-        controllerRef.current?.unmount?.();
+        safeUnmountBrick(controllerRef.current);
+        controllerRef.current = null;
         await loadMercadoPagoScript();
         if (!mounted) return;
         const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" });
@@ -72,7 +82,10 @@ export default function CheckoutBrick() {
             paymentMethods: { maxInstallments: 1 },
           },
           callbacks: {
-            onReady: () => setReady(true),
+            onReady: () => {
+              setReady(true);
+              setError("");
+            },
             onSubmit: (cardFormData) =>
               new Promise((resolve, reject) => {
                 const payerEmail = cardFormData?.payer?.email || emailRef.current;
@@ -116,8 +129,14 @@ export default function CheckoutBrick() {
             onError: (err) => setError(err?.message || "Erro no formulario do Mercado Pago."),
           },
         });
-      } catch {
-        setError("Nao foi possivel carregar o Checkout Bricks do Mercado Pago.");
+        if (mounted) {
+          setReady(true);
+          setError("");
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err?.message || "Nao foi possivel carregar o Checkout Bricks do Mercado Pago.");
+        }
       }
     }
 
@@ -125,7 +144,7 @@ export default function CheckoutBrick() {
 
     return () => {
       mounted = false;
-      controllerRef.current?.unmount?.();
+      safeUnmountBrick(controllerRef.current);
     };
   }, [amount, navigate, paymentMode, planSlug, renewId]);
 
@@ -176,6 +195,9 @@ export default function CheckoutBrick() {
             <div className="form-grid">
               <label>
                 E-mail do comprador
+                <small className="field-hint">
+                  Pode ser diferente do e-mail da conta. Use o e-mail do proprietario do cartao.
+                </small>
                 <input
                   type="email"
                   value={email}

@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     password_reset_expires_minutes: int = Field(default=30, validation_alias="PASSWORD_RESET_EXPIRES_MINUTES")
     smtp_host: str = Field(default="smtp.gmail.com", validation_alias="SMTP_HOST")
     smtp_port: int = Field(default=587, validation_alias="SMTP_PORT")
+    smtp_use_tls: bool = Field(default=True, validation_alias="SMTP_USE_TLS")
+    smtp_use_ssl: bool = Field(default=False, validation_alias="SMTP_USE_SSL")
     smtp_user: str = Field(default="", validation_alias="SMTP_USER")
     smtp_password: str = Field(default="", validation_alias="SMTP_PASSWORD")
     smtp_from: str = Field(default="", validation_alias="SMTP_FROM")

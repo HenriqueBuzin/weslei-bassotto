@@ -24,6 +24,16 @@ function readPaymentReference(params) {
   );
 }
 
+function formatPhoneBR(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 export default function Questionnaire() {
   const [params] = useSearchParams();
   const planSlug = initialPlan(params.get("plano"));
@@ -172,7 +182,10 @@ export default function Questionnaire() {
                   WhatsApp
                   <input
                     value={customer.phone}
-                    onChange={(e) => setCustomer((c) => ({ ...c, phone: e.target.value }))}
+                    onChange={(e) => setCustomer((c) => ({ ...c, phone: formatPhoneBR(e.target.value) }))}
+                    inputMode="tel"
+                    maxLength={15}
+                    placeholder="(54) 99112-6308"
                     required
                   />
                 </label>
