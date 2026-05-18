@@ -8,7 +8,13 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ["dev.wesleibassotto.com.br", "localhost", "127.0.0.1"],
+    allowedHosts: [
+      "dev.wesleibassotto.com.br",
+      "wesleibassotto.com.br",
+      "www.wesleibassotto.com.br",
+      "localhost",
+      "127.0.0.1",
+    ],
     proxy: {
       "/api": {
         target: proxyTarget,

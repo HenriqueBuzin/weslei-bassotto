@@ -210,7 +210,7 @@ export default function Home() {
                     <li>Ajustes semanais de treino e dieta</li>
                   </ul>
                   <Link className="btn btn-brand w-100" to={`/checkout?plano=${plan.slug}`}>
-                    Assinar dentro do site
+                    Assinar
                   </Link>
                 </article>
               ))}
