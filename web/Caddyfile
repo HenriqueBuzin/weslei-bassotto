@@ -1,14 +1,15 @@
 :80 {
   encode zstd gzip
 
-  @api path /api/*
-  handle @api {
-    reverse_proxy api:{$API_PORT}
-  }
-
   root * /usr/share/caddy
-  try_files {path} /index.html
-  file_server
+
+  route {
+    @api path /api/*
+    reverse_proxy @api api:{$API_PORT}
+
+    try_files {path} /index.html
+    file_server
+  }
 
   @assets path /assets/* *.css *.js *.ico *.svg *.png *.jpg *.webp
   header @assets Cache-Control "public, max-age=31536000, immutable"
