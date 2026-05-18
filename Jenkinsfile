@@ -35,6 +35,7 @@ pipeline {
                         docker compose --profile prod down || true
 
                         echo "🐳 Subindo produção..."
+                        docker compose --profile prod build --no-cache
                         docker compose --profile prod up -d --build
 
                         echo "🧹 Limpando imagens antigas..."
@@ -61,6 +62,7 @@ pipeline {
                         docker compose --profile dev down || true
 
                         echo "🐳 Subindo dev..."
+                        docker compose --profile dev build --no-cache
                         docker compose --profile dev up -d --build
 
                         echo "🧹 Limpando imagens antigas..."
