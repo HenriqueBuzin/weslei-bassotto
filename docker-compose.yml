@@ -42,6 +42,8 @@ services:
       timeout: 2s
       retries: 10
       start_period: 5s
+    networks:
+      - proxy-network
       
   api_dev:
     profiles: ["dev"]
@@ -105,6 +107,8 @@ services:
       - MONGO_INITDB_DATABASE=${MONGO_DB}
     volumes:
       - mongo_data:/data/db
+    networks:
+      - proxy-network
 
   frontend:
     profiles: ["dev"]
