@@ -92,9 +92,7 @@ services:
       retries: 40
       start_period: 2s
     networks:
-      default:
-        aliases:
-          - api
+      - proxy-network
 
   mongodb:
     image: mongo:7.0
@@ -145,6 +143,8 @@ services:
       timeout: 2s
       retries: 40
       start_period: 2s
+    networks:
+      - proxy-network
 
   caddy:
     profiles: ["dev"]
