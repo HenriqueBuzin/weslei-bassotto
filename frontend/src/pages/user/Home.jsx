@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import SiteNavbar from "../../components/SiteNavbar";
 
-const whatsappUrl = "https://wa.me/55549911126308";
+const whatsappNumber = (import.meta.env.VITE_WHATSAPP_NUMBER || "555491126308").replace(/\D/g, "");
+const whatsappUrl = `https://wa.me/${whatsappNumber}`;
 
 const steps = [
   {

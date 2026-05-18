@@ -23,6 +23,9 @@ ENV VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
 ARG VITE_MP_PUBLIC_KEY
 ENV VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
 
+ARG VITE_WHATSAPP_NUMBER
+ENV VITE_WHATSAPP_NUMBER=${VITE_WHATSAPP_NUMBER}
+
 # Instala deps com bom cache
 COPY frontend/package.json frontend/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
