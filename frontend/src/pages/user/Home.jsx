@@ -90,10 +90,10 @@ const testimonials = [
 ];
 
 const gallery = [
-  "/consultoria/weslei-terra-execucao.jpeg",
-  "/consultoria/weslei-maquina.jpeg",
-  "/consultoria/weslei-espelho-wide.jpeg",
-  "/consultoria/weslei-barra-relogio.jpeg",
+  "/consultoria/weslei-terra-execucao-v2.jpeg",
+  "/consultoria/weslei-maquina-v2.jpeg",
+  "/consultoria/weslei-espelho-wide-v2.jpeg",
+  "/consultoria/weslei-barra-relogio-v2.jpeg",
 ];
 
 export default function Home() {
@@ -171,7 +171,7 @@ export default function Home() {
             </div>
             <div className="coach-photo-wrap">
               <img
-                src="/consultoria/weslei-espelho-vertical.jpeg"
+                src="/consultoria/weslei-espelho-vertical-v2.jpeg"
                 alt="Weslei Bassotto em academia"
               />
             </div>
