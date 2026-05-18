@@ -7,7 +7,7 @@ services:
       args:
         API_PORT: ${API_PORT}
     env_file:
-      - .env
+      - ${ENV_FILE}
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
@@ -55,7 +55,7 @@ services:
       args:
         API_PORT: ${API_PORT}
     env_file:
-      - .env
+      - ${ENV_FILE}
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
@@ -104,7 +104,7 @@ services:
     image: mongo:7.0
     restart: unless-stopped
     env_file:
-      - .env
+      - ${ENV_FILE}
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
@@ -123,7 +123,7 @@ services:
       args:
         - VITE_PORT=${VITE_PORT}
     env_file:
-      - .env
+      - ${ENV_FILE}
     environment:
       - VITE_API_BASE=${VITE_API_BASE}
       - VITE_PORT=${VITE_PORT}
@@ -133,20 +133,24 @@ services:
       - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
       - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
       - VITE_PROXY_TARGET=http://api_dev:8000
+      - VITE_HMR_HOST=${VITE_HMR_HOST}
+      - VITE_HMR_PROTOCOL=${VITE_HMR_PROTOCOL}
+      - VITE_HMR_CLIENT_PORT=${VITE_HMR_CLIENT_PORT}
     volumes:
       - ./frontend:/app
       - react_node_modules:/app/node_modules
     healthcheck:
-      test: >
-        CMD-SHELL
-        : "${VITE_PORT:?VITE_PORT nao definido}";
-        node -e "
-        const http=require('http'), p=Number(process.env.VITE_PORT);
-        const ping=path=>new Promise(ok=>{
-          const r=http.get({host:'127.0.0.1',port:p,path},s=>ok(s.statusCode===200));
-          r.on('error',()=>ok(false)); setTimeout(()=>{try{r.destroy()}catch{}; ok(false)},1500);
-        });
-        (async()=>{process.exit((await ping('/health'))||(await ping('/'))?0:1)})();"
+      test:
+        - CMD-SHELL
+        - |
+          : "$${VITE_PORT:?VITE_PORT nao definido}";
+          node -e "
+          const http=require('http'), p=Number(process.env.VITE_PORT);
+          const ping=path=>new Promise(ok=>{
+            const r=http.get({host:'127.0.0.1',port:p,path},s=>ok(s.statusCode===200));
+            r.on('error',()=>ok(false)); setTimeout(()=>{try{r.destroy()}catch{}; ok(false)},1500);
+          });
+          (async()=>{process.exit((await ping('/health'))||(await ping('/'))?0:1)})();"
       interval: 3s
       timeout: 2s
       retries: 40
