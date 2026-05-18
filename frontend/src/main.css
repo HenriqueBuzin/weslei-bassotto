@@ -743,6 +743,10 @@ input:-webkit-autofill:focus {
   color: var(--muted);
 }
 
+.purchase-summary-wide {
+  grid-column: 1 / -1;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

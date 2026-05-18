@@ -30,7 +30,7 @@ function safeUnmountBrick(controller) {
   try {
     controller?.unmount?.();
   } catch {
-    // O SDK pode falhar ao desmontar um Brick ja removido pelo React.
+    // The SDK can throw when React already removed the Brick container.
   }
 }
 
@@ -40,22 +40,16 @@ export default function CheckoutBrick() {
   const planSlug = plans[params.get("plano")] ? params.get("plano") : "trimestral";
   const renewId = params.get("renew") || "";
   const plan = plans[planSlug];
-  const [email, setEmail] = useState("");
   const [paymentMode, setPaymentMode] = useState("subscription");
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const controllerRef = useRef(null);
-  const emailRef = useRef("");
 
   const amount = useMemo(
     () => String(paymentMode === "cash" ? plan.cash : plan.monthly),
     [paymentMode, plan.cash, plan.monthly]
   );
-
-  useEffect(() => {
-    emailRef.current = email;
-  }, [email]);
 
   useEffect(() => {
     let mounted = true;
@@ -73,6 +67,7 @@ export default function CheckoutBrick() {
         controllerRef.current = null;
         await loadMercadoPagoScript();
         if (!mounted) return;
+
         const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" });
         const bricksBuilder = mp.bricks();
         controllerRef.current = await bricksBuilder.create("cardPayment", "cardPaymentBrick_container", {
@@ -88,12 +83,12 @@ export default function CheckoutBrick() {
             },
             onSubmit: (cardFormData) =>
               new Promise((resolve, reject) => {
-                const payerEmail = cardFormData?.payer?.email || emailRef.current;
+                const payerEmail = cardFormData?.payer?.email;
                 const token = cardFormData?.token || cardFormData?.card_token_id;
                 const paymentMethodId = cardFormData?.payment_method_id || cardFormData?.paymentMethodId;
 
                 if (!payerEmail || !token) {
-                  setError("Preencha o e-mail e os dados do cartao.");
+                  setError("Preencha o e-mail do proprietario do cartao e os dados do cartao.");
                   reject();
                   return;
                 }
@@ -118,7 +113,11 @@ export default function CheckoutBrick() {
                         })
                         .then(() => navigate("/assinante?renovacao=ok"));
                     }
-                    navigate(`/questionario?plano=${planSlug}&preapproval_id=${data.preapproval_id}&email=${encodeURIComponent(payerEmail)}`);
+                    navigate(
+                      `/questionario?plano=${planSlug}&preapproval_id=${data.preapproval_id}&email=${encodeURIComponent(
+                        payerEmail
+                      )}`
+                    );
                   })
                   .catch((err) => {
                     setError(err?.response?.data?.detail || "Nao foi possivel autorizar o pagamento.");
@@ -129,6 +128,7 @@ export default function CheckoutBrick() {
             onError: (err) => setError(err?.message || "Erro no formulario do Mercado Pago."),
           },
         });
+
         if (mounted) {
           setReady(true);
           setError("");
@@ -175,7 +175,7 @@ export default function CheckoutBrick() {
                 onClick={() => setPaymentMode("cash")}
               >
                 <strong>A vista</strong>
-                <span>{brl(plan.cash)} em uma cobrança</span>
+                <span>{brl(plan.cash)} em uma cobranca</span>
               </button>
               <button
                 type="button"
@@ -191,30 +191,19 @@ export default function CheckoutBrick() {
           </div>
 
           <div className="form-section">
-            <h2>Dados do comprador</h2>
-            <div className="form-grid">
-              <label>
-                E-mail do comprador
-                <small className="field-hint">
-                  Pode ser diferente do e-mail da conta. Use o e-mail do proprietario do cartao.
-                </small>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                />
-              </label>
-              <div className="purchase-summary">
-                <strong>{brl(paymentMode === "cash" ? plan.cash : plan.subscriptionTotal)}</strong>
-                <span>{paymentMode === "cash" ? "A vista" : "Total da assinatura"}</span>
-                <p>
-                  {paymentMode === "cash"
-                    ? "Uma cobrança única no cartão."
-                    : `Cobranças mensais recorrentes por ${plan.months} meses.`}
-                </p>
-              </div>
+            <h2>Resumo</h2>
+            <div className="purchase-summary purchase-summary-wide">
+              <strong>{brl(paymentMode === "cash" ? plan.cash : plan.subscriptionTotal)}</strong>
+              <span>{paymentMode === "cash" ? "A vista" : "Total da assinatura"}</span>
+              <p>
+                {paymentMode === "cash"
+                  ? "Uma cobranca unica no cartao."
+                  : `Cobrancas mensais recorrentes por ${plan.months} meses.`}
+              </p>
+              <small>
+                O e-mail pedido no cartao e o e-mail do proprietario do cartao. Ele pode ser
+                diferente do e-mail da conta no site.
+              </small>
             </div>
           </div>
 
