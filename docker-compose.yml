@@ -133,9 +133,11 @@ services:
       - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
       - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
       - VITE_PROXY_TARGET=http://api_dev:8000
+      - VITE_HMR_DISABLED=${VITE_HMR_DISABLED}
       - VITE_HMR_HOST=${VITE_HMR_HOST}
       - VITE_HMR_PROTOCOL=${VITE_HMR_PROTOCOL}
       - VITE_HMR_CLIENT_PORT=${VITE_HMR_CLIENT_PORT}
+      - VITE_HMR_PATH=${VITE_HMR_PATH}
     volumes:
       - ./frontend:/app
       - react_node_modules:/app/node_modules
