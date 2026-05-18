@@ -242,7 +242,13 @@ export default function Home() {
 
         <section className="gallery-strip" aria-label="Fotos da consultoria">
           {gallery.map((src) => (
-            <img src={src} alt="Treino em academia" key={src} />
+            <div
+              className="gallery-tile"
+              key={src}
+              role="img"
+              aria-label="Treino em academia"
+              style={{ backgroundImage: `url(${src})` }}
+            />
           ))}
         </section>
 
