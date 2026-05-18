@@ -4,7 +4,7 @@
   # API - preserva o prefixo /api
   @api path /api/*
   handle @api {
-    reverse_proxy api:{$API_PORT}
+    reverse_proxy api_dev:{$API_PORT}
   }
 
   # Front (Vite) – tudo que não for /api
