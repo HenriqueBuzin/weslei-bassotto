@@ -116,8 +116,10 @@ def _send_reset_email(to_email: str, reset_url: str) -> None:
         )
     )
 
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
-        smtp.starttls()
+    smtp_class = smtplib.SMTP_SSL if settings.smtp_use_ssl else smtplib.SMTP
+    with smtp_class(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
+        if settings.smtp_use_tls and not settings.smtp_use_ssl:
+            smtp.starttls()
         smtp.login(settings.smtp_user, settings.smtp_password)
         smtp.send_message(message)
 

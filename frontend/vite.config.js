@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 const proxyTarget = process.env.VITE_PROXY_TARGET || "http://localhost:8080";
 
 export default defineConfig({
+  envDir: "..",
   server: {
     host: true,
     port: 5173,
