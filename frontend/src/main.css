@@ -99,7 +99,7 @@ a {
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.48) 42%, rgba(0, 0, 0, 0.12) 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.05) 45%, #060607 100%),
-    url("/consultoria/weslei-barra-frontal.jpeg") center 30% / cover no-repeat;
+    url("/consultoria/weslei-barra-frontal-v2.jpeg") center 30% / cover no-repeat;
 }
 
 .hero-consultoria::after {
@@ -506,7 +506,7 @@ a {
   padding: clamp(76px, 10vw, 128px) 0;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.34)),
-    url("/consultoria/weslei-terra-preparo.jpeg") center 42% / cover no-repeat;
+    url("/consultoria/weslei-terra-preparo-v2.jpeg") center 42% / cover no-repeat;
 }
 
 .cta-final .container {
