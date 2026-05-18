@@ -707,8 +707,8 @@ input:-webkit-autofill:focus {
   }
 
   .cta-final h2 {
-    max-width: min(calc(100vw - 32px), 342px);
-    font-size: clamp(2.1rem, 10.5vw, 2.85rem);
+    max-width: min(calc(100vw - 24px), 350px);
+    font-size: clamp(1.95rem, 9.6vw, 2.55rem);
     line-height: 1;
     overflow-wrap: anywhere;
   }
