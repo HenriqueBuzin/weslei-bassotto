@@ -650,7 +650,8 @@ input:-webkit-autofill:focus {
   .hero-copy {
     width: min(calc(100vw - 48px), 342px);
     max-width: min(calc(100vw - 48px), 342px);
-    align-self: flex-start;
+    align-self: center;
+    margin-inline: auto;
     padding-bottom: 0;
   }
 
@@ -674,6 +675,12 @@ input:-webkit-autofill:focus {
     overflow-wrap: anywhere;
   }
 
+  .hero-actions,
+  .cta-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
   .hero-actions .btn,
   .cta-actions .btn {
     display: flex;
@@ -683,6 +690,8 @@ input:-webkit-autofill:focus {
     min-width: 0;
     align-items: center;
     justify-content: center;
+    margin-right: auto;
+    margin-left: auto;
     padding-inline: 14px;
     font-size: clamp(1rem, 5vw, 1.12rem);
     line-height: 1.12;
@@ -694,6 +703,7 @@ input:-webkit-autofill:focus {
     width: 100%;
     margin-top: 22px;
     gap: 8px;
+    justify-content: center;
   }
 
   .hero-meta span {
@@ -730,10 +740,9 @@ input:-webkit-autofill:focus {
     margin-left: auto;
     margin-right: auto;
     padding-inline: 16px;
-  }
-
-  .cta-actions {
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .process-item {
