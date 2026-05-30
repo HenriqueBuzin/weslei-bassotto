@@ -18,12 +18,12 @@ const steps = [
   {
     number: "03",
     title: "Treino no aplicativo",
-    text: "Você recebe o treino pelo aplicativo, com plano completo e vídeos em que explico a execução e a biomecânica dos exercícios.",
+    text: "Você recebe o treino pelo aplicativo, com plano completo e vídeos em que eu te explico a execução e a biomecânica dos exercícios.",
   },
   {
     number: "04",
     title: "Planejamento alimentar",
-    text: "Cardápio para todos os dias, lista de compras e substituições alimentares para facilitar sua rotina e manter constância.",
+    text: "Cardápio para todos os dias, feito pela nutri do time, lista de compras e substituições alimentares para facilitar sua rotina e manter constância.",
   },
   {
     number: "05",
@@ -133,7 +133,7 @@ export default function Home() {
           <div className="container">
             <div className="section-heading">
               <p className="eyebrow">Veja como funciona</p>
-              <h2>Uma consultoria para acompanhar sua rotina de perto.</h2>
+              <h2>Uma consultoria que se encaixa na sua rotina e te acompanha de perto.</h2>
               <p>
                 O processo combina avaliação inicial, treino no aplicativo, estratégia alimentar e
                 ajustes semanais para manter sua evolução acontecendo.
@@ -165,8 +165,8 @@ export default function Home() {
               </p>
               <ul className="credential-list">
                 <li>Praticante de musculação há 21 anos</li>
-                <li>Dúvidas por WhatsApp ou videochamada</li>
-                <li>Ajustes de estratégia conforme sua resposta semanal</li>
+                <li>Suporte diário pelo WhatsAppp exclusivo</li>
+                <li>Ajustes de estratégia semanal</li>
               </ul>
             </div>
             <div className="coach-photo-wrap">
