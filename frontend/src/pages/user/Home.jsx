@@ -172,7 +172,7 @@ export default function Home() {
             </div>
             <div className="coach-photo-wrap">
               <img
-                src="/consultoria/weslei-espelho-vertical-v3.jpeg"
+                src="/consultoria/weslei-espelho-wide-v3.jpeg"
                 alt="Weslei Bassotto em academia"
               />
             </div>
