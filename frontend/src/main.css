@@ -669,7 +669,7 @@ input:-webkit-autofill:focus {
     padding: 104px 16px 34px;
     align-items: flex-start;
     flex-direction: column;
-    background-position: 50% 50%;
+    background-position: center center;
   }
 
   .hero-copy {
@@ -691,7 +691,7 @@ input:-webkit-autofill:focus {
     max-width: 100%;
     font-size: clamp(2rem, 10vw, 3rem) !important;
     line-height: 0.9;
-    margin-top: 60px;
+    margin-top: 70px;
   }
 
   .hero-lead {
@@ -699,6 +699,7 @@ input:-webkit-autofill:focus {
     font-size: 1.03rem;
     line-height: 1.45;
     overflow-wrap: anywhere;
+    margin: 12px 0 0;
   }
 
   .hero-actions,
