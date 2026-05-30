@@ -91,7 +91,6 @@ const testimonials = [
 
 const gallery = [
   "/consultoria/weslei-terra-execucao-v3.jpeg",
-  "/consultoria/weslei-maquina-v3.jpeg",
   "/consultoria/weslei-espelho-wide-v3.jpeg",
   "/consultoria/weslei-barra-relogio-v3.jpeg",
 ];
