@@ -792,6 +792,9 @@ input:-webkit-autofill:focus {
 
   .footer-grid {
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 }
 
