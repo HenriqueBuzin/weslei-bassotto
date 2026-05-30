@@ -130,7 +130,7 @@ a {
 .hero-copy h1 {
   margin: 0;
   max-width: 760px;
-  font-size: clamp(3.6rem, 10vw, 8.5rem);
+  font-size: clamp(3rem, 8vw, 6rem);
   line-height: 0.84;
   font-weight: 950;
   text-transform: uppercase;
@@ -689,7 +689,7 @@ input:-webkit-autofill:focus {
 
   .hero-copy h1 {
     max-width: 100%;
-    font-size: clamp(2.75rem, 14.5vw, 3.8rem);
+    font-size: clamp(2rem, 10vw, 3rem);
     line-height: 0.9;
   }
 
