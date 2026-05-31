@@ -56,7 +56,7 @@ export default function Questionnaire() {
         if (alive) setQuestions(Array.isArray(data) ? data : []);
       })
       .catch(() => {
-        if (alive) setError("Nao foi possivel carregar as perguntas agora.");
+        if (alive) setError("Não foi possível carregar as perguntas agora.");
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -94,7 +94,7 @@ export default function Questionnaire() {
       const { data } = await api.post("/consultancy/submissions", payload);
       setSuccess(data);
     } catch (err) {
-      setError(err?.response?.data?.detail?.missing_questions?.join(", ") || err?.response?.data?.detail || "Nao foi possivel enviar suas respostas.");
+      setError(err?.response?.data?.detail?.missing_questions?.join(", ") || err?.response?.data?.detail || "Não foi possível enviar suas respostas.");
     } finally {
       setBusy(false);
     }
@@ -109,35 +109,35 @@ export default function Questionnaire() {
 
         <header className="questionnaire-header">
           <p className="eyebrow">Anamnese da consultoria</p>
-          <h1>Responda o questionario inicial.</h1>
+          <h1>Responda o questionário inicial.</h1>
           <p>
-            Essas informacoes ajudam o treinador a entender sua rotina, seus objetivos, possiveis
-            limitacoes, doencas, frequencia de treino e tudo que for necessario para montar a
-            estrategia.
+            Essas informações ajudam o treinador a entender sua rotina, seus objetivos, possíveis
+            limitações, doenças, frequência de treino e tudo que for necessário para montar a
+            estratégia.
           </p>
         </header>
 
         {success ? (
           <section className="success-panel">
             <p className="eyebrow">Recebido</p>
-            <h2>Questionario enviado com sucesso.</h2>
+            <h2>Questionário enviado com sucesso.</h2>
             <p>
-              Seu plano ficou registrado como {success.plan.name}, de {formatDateBR(success.plan.start_date)} ate{" "}
-              {formatDateBR(success.plan.end_date)}. O admin ja consegue ver seu plano e todas as respostas no
+              Seu plano ficou registrado como {success.plan.name}, de {formatDateBR(success.plan.start_date)} até{" "}
+              {formatDateBR(success.plan.end_date)}. O admin já consegue ver seu plano e todas as respostas no
               painel.
             </p>
             <Link to="/" className="btn btn-brand">
-              Voltar ao inicio
+              Voltar ao início
             </Link>
           </section>
         ) : !paymentConfirmed ? (
           <section className="success-panel">
-            <p className="eyebrow">Pagamento necessario</p>
-            <h2>Anamnese liberada somente apos pagamento confirmado.</h2>
+            <p className="eyebrow">Pagamento necessário</p>
+            <h2>Anamnese liberada somente após pagamento confirmado.</h2>
             <p>
-              Para responder o questionario, finalize a compra pelo Mercado Pago. Depois do
-              pagamento confirmado, voce sera enviado para esta pagina com a referencia da
-              transacao.
+              Para responder o questionário, finalize a compra pelo Mercado Pago. Depois do
+              pagamento confirmado, você será enviado para esta página com a referência da
+              transação.
             </p>
             <Link to="/#planos" className="btn btn-brand">
               Escolher plano
@@ -151,10 +151,10 @@ export default function Questionnaire() {
                 <strong>{plan.name}</strong>
                 <span>{plan.months} meses de acompanhamento</span>
                 <p>
-                  O periodo e definido pelo plano pago. No painel, o admin ve o aluno, o plano, a
+                  O período é definido pelo plano pago. No painel, o admin vê o aluno, o plano, a
                   data inicial, a data final e todas as respostas cadastradas.
                 </p>
-                {paymentReference && <small>Referencia do pagamento: {paymentReference}</small>}
+                {paymentReference && <small>Referência do pagamento: {paymentReference}</small>}
               </div>
             </section>
 
@@ -196,13 +196,13 @@ export default function Questionnaire() {
               <h2>Perguntas da anamnese</h2>
               {loading && <p className="muted">Carregando perguntas...</p>}
               {!loading && questions.length === 0 && (
-                <p className="muted">O admin ainda nao cadastrou perguntas.</p>
+                <p className="muted">O admin ainda não cadastrou perguntas.</p>
               )}
               <div className="dynamic-questions">
                 {questions.map((question) => (
                   <label className="question-field" key={question.id}>
                     {question.label}
-                    {question.required && <span> obrigatorio</span>}
+                    {question.required && <span> obrigatório</span>}
                     {question.type === "textarea" && (
                       <textarea
                         value={answers[question.id] || ""}
@@ -232,7 +232,7 @@ export default function Questionnaire() {
                       >
                         <option value="">Selecione</option>
                         <option value="Sim">Sim</option>
-                        <option value="Nao">Nao</option>
+                        <option value="Não">Não</option>
                       </select>
                     )}
                     {(question.type === "text" || question.type === "number") && (
@@ -251,7 +251,7 @@ export default function Questionnaire() {
             {error && <div className="form-alert">{error}</div>}
 
             <button className="btn btn-brand btn-lg" disabled={busy || !canSubmit}>
-              {busy ? "Enviando..." : "Enviar questionario"}
+              {busy ? "Enviando..." : "Enviar questionário"}
             </button>
           </form>
         )}

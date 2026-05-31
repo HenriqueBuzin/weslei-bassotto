@@ -164,7 +164,7 @@ export default function Home() {
               </p>
               <ul className="credential-list">
                 <li>Praticante de musculação há 21 anos</li>
-                <li>Suporte diário pelo WhatsAppp exclusivo</li>
+                <li>Suporte diário pelo WhatsApp exclusivo</li>
                 <li>Ajustes de estratégia semanal</li>
               </ul>
             </div>

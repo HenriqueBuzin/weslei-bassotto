@@ -55,7 +55,7 @@ export default function SubscriberArea() {
       setSelectedId((current) => current || submissionRes.data[0]?.id || null);
       setAnswers(answersToMap(submissionRes.data[0]));
     } catch {
-      setError("Nao foi possivel carregar sua area do assinante.");
+      setError("Não foi possível carregar sua área do assinante.");
     }
   }
 
@@ -65,7 +65,7 @@ export default function SubscriberArea() {
 
   useEffect(() => {
     if (params.get("renovacao") === "ok") {
-      setNotice("Renovacao registrada. As datas do plano foram atualizadas.");
+      setNotice("Renovação registrada. As datas do plano foram atualizadas.");
     }
   }, [params]);
 
@@ -91,9 +91,9 @@ export default function SubscriberArea() {
       .then(({ data }) => {
         setSubmissions((items) => items.map((item) => (item.id === data.id ? data : item)));
         setSelectedId(data.id);
-        setNotice("Pagamento confirmado e renovacao registrada. As datas foram atualizadas.");
+        setNotice("Pagamento confirmado e renovação registrada. As datas foram atualizadas.");
       })
-      .catch(() => setError("Nao foi possivel confirmar a renovacao automaticamente."))
+      .catch(() => setError("Não foi possível confirmar a renovação automaticamente."))
       .finally(() => setBusy(false));
   }, [handledReturn, params, selected?.id]);
 
@@ -113,11 +113,11 @@ export default function SubscriberArea() {
       };
       const { data } = await api.patch(`/consultancy/me/submissions/${selected.id}/answers`, payload);
       setSubmissions((items) => items.map((item) => (item.id === selected.id ? data : item)));
-      setNotice("Respostas atualizadas. O admin sera sinalizado ate visualizar a alteracao.");
+      setNotice("Respostas atualizadas. O admin será sinalizado até visualizar a alteração.");
     } catch (err) {
       setError(
         err?.response?.data?.detail?.missing_questions?.join(", ") ||
-          "Nao foi possivel salvar suas respostas."
+          "Não foi possível salvar suas respostas."
       );
     } finally {
       setBusy(false);
@@ -135,10 +135,10 @@ export default function SubscriberArea() {
     <main className="subscriber-page">
       <section className="subscriber-hero">
         <div>
-          <p className="eyebrow">Area do assinante</p>
+          <p className="eyebrow">Área do assinante</p>
           <h1>Seu plano e sua anamnese.</h1>
           <p>
-            Aqui voce acompanha o periodo contratado, renova a consultoria e atualiza suas respostas
+            Aqui você acompanha o período contratado, renova a consultoria e atualiza suas respostas
             quando algo mudar na rotina.
           </p>
         </div>
@@ -160,7 +160,7 @@ export default function SubscriberArea() {
           <div className="admin-panel">
             <h2>Nenhum plano encontrado</h2>
             <p className="muted">
-              Compre um plano pelo site e preencha o questionario para aparecer aqui.
+              Compre um plano pelo site e preencha o questionário para aparecer aqui.
             </p>
             <Link className="btn btn-brand" to="/#planos">
               Ver planos
@@ -183,7 +183,7 @@ export default function SubscriberArea() {
                     <strong>{submission.plan.name}</strong>
                     <span>{submission.status}</span>
                     <small>
-                      {formatDateBR(submission.plan.start_date)} ate {formatDateBR(submission.plan.end_date)}
+                      {formatDateBR(submission.plan.start_date)} até {formatDateBR(submission.plan.end_date)}
                     </small>
                   </button>
                 ))}
@@ -197,10 +197,10 @@ export default function SubscriberArea() {
                     <div>
                       <h2>{selected.plan.name}</h2>
                       <p>
-                        Periodo: {formatDateBR(selected.plan.start_date)} ate {formatDateBR(selected.plan.end_date)}
+                        Período: {formatDateBR(selected.plan.start_date)} até {formatDateBR(selected.plan.end_date)}
                       </p>
                     </div>
-                    <span className="pill">Renovacoes: {selected.renewal_count || 0}</span>
+                    <span className="pill">Renovações: {selected.renewal_count || 0}</span>
                   </div>
 
                   <div className="renewal-grid">
@@ -220,7 +220,7 @@ export default function SubscriberArea() {
                     {questions.map((question) => (
                       <label className="question-field" key={question.id}>
                         {question.label}
-                        {question.required && <span> obrigatorio</span>}
+                        {question.required && <span> obrigatório</span>}
                         {question.type === "textarea" && (
                           <textarea
                             value={answers[question.id] || ""}
@@ -250,7 +250,7 @@ export default function SubscriberArea() {
                           >
                             <option value="">Selecione</option>
                             <option value="Sim">Sim</option>
-                            <option value="Nao">Nao</option>
+                            <option value="Não">Não</option>
                           </select>
                         )}
                         {(question.type === "text" || question.type === "number") && (

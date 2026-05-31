@@ -20,21 +20,21 @@ export default function ResetPassword() {
     setError("");
     setMessage("");
     if (!token) {
-      setError("Link invalido. Solicite uma nova recuperacao de senha.");
+      setError("Link inválido. Solicite uma nova recuperação de senha.");
       return;
     }
     if (password !== confirmPassword) {
-      setError("As senhas nao conferem.");
+      setError("As senhas não conferem.");
       return;
     }
 
     setBusy(true);
     try {
       await authApi.post("/auth/reset-password", { token, password });
-      setMessage("Senha alterada com sucesso. Voce ja pode entrar.");
+      setMessage("Senha alterada com sucesso. Você já pode entrar.");
       setTimeout(() => nav("/login"), 1200);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Nao foi possivel alterar sua senha.");
+      setError(err?.response?.data?.detail || "Não foi possível alterar sua senha.");
     } finally {
       setBusy(false);
     }
@@ -65,7 +65,7 @@ export default function ResetPassword() {
                       onChange={(event) => setPassword(event.target.value)}
                       type="password"
                       autoComplete="new-password"
-                      placeholder="Minimo 6 caracteres"
+                      placeholder="Mínimo 6 caracteres"
                       minLength={6}
                       required
                     />

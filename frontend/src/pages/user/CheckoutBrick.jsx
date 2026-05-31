@@ -56,7 +56,7 @@ export default function CheckoutBrick() {
 
     async function mountBrick() {
       if (!publicKey) {
-        setError("VITE_MP_PUBLIC_KEY nao configurada.");
+        setError("VITE_MP_PUBLIC_KEY não configurada.");
         return;
       }
 
@@ -88,7 +88,7 @@ export default function CheckoutBrick() {
                 const paymentMethodId = cardFormData?.payment_method_id || cardFormData?.paymentMethodId;
 
                 if (!payerEmail || !token) {
-                  setError("Preencha o e-mail do proprietario do cartao e os dados do cartao.");
+                  setError("Preencha o e-mail do proprietário do cartão e os dados do cartão.");
                   reject();
                   return;
                 }
@@ -120,7 +120,7 @@ export default function CheckoutBrick() {
                     );
                   })
                   .catch((err) => {
-                    setError(err?.response?.data?.detail || "Nao foi possivel autorizar o pagamento.");
+                    setError(err?.response?.data?.detail || "Não foi possível autorizar o pagamento.");
                     reject(err);
                   })
                   .finally(() => setBusy(false));
@@ -135,7 +135,7 @@ export default function CheckoutBrick() {
         }
       } catch (err) {
         if (mounted) {
-          setError(err?.message || "Nao foi possivel carregar o Checkout Bricks do Mercado Pago.");
+          setError(err?.message || "Não foi possível carregar o Checkout Bricks do Mercado Pago.");
         }
       }
     }
@@ -159,10 +159,10 @@ export default function CheckoutBrick() {
           <p className="eyebrow">Pagamento dentro do site</p>
           <h1>{plan.name}</h1>
           <p>
-            Escolha pagamento a vista ou assinatura mensal recorrente. O Mercado Pago processa os
-            dados do cartao com seguranca.
+            Escolha pagamento à vista ou assinatura mensal recorrente. O Mercado Pago processa os
+            dados do cartão com segurança.
           </p>
-          {renewId && <p className="muted">Renovacao da sua consultoria atual.</p>}
+          {renewId && <p className="muted">Renovação da sua consultoria atual.</p>}
         </header>
 
         <section className="questionnaire-form">
@@ -174,8 +174,8 @@ export default function CheckoutBrick() {
                 className={paymentMode === "cash" ? "active" : ""}
                 onClick={() => setPaymentMode("cash")}
               >
-                <strong>A vista</strong>
-                <span>{brl(plan.cash)} em uma cobranca</span>
+                <strong>À vista</strong>
+                <span>{brl(plan.cash)} em uma cobrança</span>
               </button>
               <button
                 type="button"
@@ -194,21 +194,21 @@ export default function CheckoutBrick() {
             <h2>Resumo</h2>
             <div className="purchase-summary purchase-summary-wide">
               <strong>{brl(paymentMode === "cash" ? plan.cash : plan.subscriptionTotal)}</strong>
-              <span>{paymentMode === "cash" ? "A vista" : "Total da assinatura"}</span>
+              <span>{paymentMode === "cash" ? "À vista" : "Total da assinatura"}</span>
               <p>
                 {paymentMode === "cash"
-                  ? "Uma cobranca unica no cartao."
-                  : `Cobrancas mensais recorrentes por ${plan.months} meses.`}
+                  ? "Uma cobrança única no cartão."
+                  : `Cobranças mensais recorrentes por ${plan.months} meses.`}
               </p>
               <small>
-                O e-mail pedido no cartao e o e-mail do proprietario do cartao. Ele pode ser
+                O e-mail pedido no cartão é o e-mail do proprietário do cartão. Ele pode ser
                 diferente do e-mail da conta no site.
               </small>
             </div>
           </div>
 
           <div className="form-section">
-            <h2>Cartao</h2>
+            <h2>Cartão</h2>
             {!ready && <p className="muted">Carregando Mercado Pago...</p>}
             <div id="cardPaymentBrick_container" />
           </div>

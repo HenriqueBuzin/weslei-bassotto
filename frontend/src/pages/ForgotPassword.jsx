@@ -23,11 +23,11 @@ export default function ForgotPassword() {
       if (data.email_sent) {
         setMessage("Enviamos um link para redefinir sua senha. Confira seu Gmail.");
       } else {
-        setMessage("Se este e-mail estiver cadastrado, voce recebera um link para redefinir sua senha.");
+        setMessage("Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.");
       }
       if (data.reset_url) setResetUrl(data.reset_url);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Nao foi possivel solicitar a recuperacao agora.");
+      setError(err?.response?.data?.detail || "Não foi possível solicitar a recuperação agora.");
     } finally {
       setBusy(false);
     }
@@ -45,7 +45,7 @@ export default function ForgotPassword() {
                     Recuperar senha
                   </h1>
                   <p className="text-secondary-emphasis small mb-0">
-                    Informe seu e-mail para receber o link de redefinicao
+                    Informe seu e-mail para receber o link de redefinição
                   </p>
                 </div>
 
