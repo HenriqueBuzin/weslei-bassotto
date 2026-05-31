@@ -522,11 +522,11 @@ a {
 }
 
 .gallery-tile:nth-child(3) {
-  background-position: center 60%;
+  background-position: center 48%;
 }
 
 .gallery-tile:nth-child(4) {
-  background-position: center 60%;
+  background-position: center 48%;
 }
 
 .cta-final {
