@@ -106,12 +106,12 @@ def _send_reset_email(to_email: str, reset_url: str) -> None:
     message.set_content(
         "\n".join(
             [
-                "Recebemos uma solicitacao para redefinir sua senha.",
+                "Recebemos uma solicitação para redefinir sua senha.",
                 "",
                 f"Acesse este link para criar uma nova senha: {reset_url}",
                 "",
                 f"Este link expira em {settings.password_reset_expires_minutes} minutos.",
-                "Se voce nao pediu essa alteracao, ignore este e-mail.",
+                "Se você não pediu essa alteração, ignore este e-mail.",
             ]
         )
     )
