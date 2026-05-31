@@ -107,7 +107,11 @@ export default function Home() {
       <header className="hero-consultoria" id="inicio">
         <div className="hero-copy">
           <p className="eyebrow">Consultoria online personalizada</p>
-          <h1>{appName}</h1>
+          <h1>
+            {appName.split(" ").map((part) => (
+              <span key={part}>{part}</span>
+            ))}
+          </h1>
           <p className="hero-lead">
             Treino, dieta e acompanhamento direto para mulheres que querem evoluir com método,
             segurança e constância.
