@@ -137,6 +137,14 @@ a {
   overflow-wrap: anywhere;
 }
 
+.hero-copy h1 span {
+  display: inline;
+}
+
+.hero-copy h1 span + span::before {
+  content: " ";
+}
+
 .hero-lead {
   max-width: 620px;
   margin: 24px 0 0;
@@ -690,6 +698,14 @@ input:-webkit-autofill:focus {
     font-size: clamp(1.85rem, 8.8vw, 2.6rem) !important;
     line-height: 0.9;
     margin-top: 80px;
+  }
+
+  .hero-copy h1 span {
+    display: block;
+  }
+
+  .hero-copy h1 span + span::before {
+    content: "";
   }
 
   .hero-lead {
