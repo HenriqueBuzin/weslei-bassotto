@@ -100,7 +100,7 @@ def _smtp_configured() -> bool:
 def _send_reset_email(to_email: str, reset_url: str) -> None:
     sender = settings.smtp_from or settings.smtp_user
     message = EmailMessage()
-    message["Subject"] = "Recuperacao de senha"
+    message["Subject"] = "Recuperação de senha"
     message["From"] = sender
     message["To"] = to_email
     message.set_content(
