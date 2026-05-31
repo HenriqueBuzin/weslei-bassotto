@@ -90,11 +90,10 @@ const testimonials = [
 ];
 
 const gallery = [
+  "/consultoria/weslei-barra-relogio-v3.jpeg",
   "/consultoria/weslei-espelho-wide-v3.jpeg",
   "/consultoria/weslei-terra-preparo-v3.jpeg",
-  "/consultoria/weslei-barra-relogio-v3.jpeg",
   "/consultoria/weslei-terra-execucao-v3.jpeg",
-  "/consultoria/weslei-barra-frontal-v3.jpeg",
 ];
 
 export default function Home() {

@@ -130,7 +130,7 @@ a {
 .hero-copy h1 {
   margin: 0;
   max-width: 760px;
-  font-size: clamp(3rem, 8vw, 6rem) !important;
+  font-size: clamp(2.7rem, 6.8vw, 5.2rem) !important;
   line-height: 0.84;
   font-weight: 950;
   text-transform: uppercase;
@@ -478,7 +478,7 @@ a {
 
 .gallery-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   width: 100%;
   background: #050505;
 }
@@ -517,10 +517,6 @@ a {
 
 .gallery-tile:nth-child(4) {
   background-position: center 48%;
-}
-
-.gallery-tile:nth-child(5) {
-  background-position: center 34%;
 }
 
 .cta-final {
@@ -690,7 +686,7 @@ input:-webkit-autofill:focus {
 
   .hero-copy h1 {
     max-width: 100%;
-    font-size: clamp(2rem, 10vw, 3rem) !important;
+    font-size: clamp(1.85rem, 8.8vw, 2.6rem) !important;
     line-height: 0.9;
     margin-top: 80px;
   }
