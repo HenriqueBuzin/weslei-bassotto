@@ -89,7 +89,13 @@ const testimonials = [
   },
 ];
 
-const galleryImage = "/consultoria/weslei-barra-relogio-v3.jpeg";
+const gallery = [
+  "/consultoria/weslei-espelho-wide-v3.jpeg",
+  "/consultoria/weslei-terra-preparo-v3.jpeg",
+  "/consultoria/weslei-barra-relogio-v3.jpeg",
+  "/consultoria/weslei-terra-execucao-v3.jpeg",
+  "/consultoria/weslei-barra-frontal-v3.jpeg",
+];
 
 export default function Home() {
   const appName = import.meta.env.VITE_APP_NAME || "Weslei Bassotto";
@@ -235,12 +241,15 @@ export default function Home() {
         </section>
 
         <section className="gallery-strip" aria-label="Fotos da consultoria">
-          <div
-            className="gallery-tile"
-            role="img"
-            aria-label="Treino em academia"
-            style={{ backgroundImage: `url(${galleryImage})` }}
-          />
+          {gallery.map((src) => (
+            <div
+              className="gallery-tile"
+              key={src}
+              role="img"
+              aria-label="Treino em academia"
+              style={{ backgroundImage: `url(${src})` }}
+            />
+          ))}
         </section>
 
         <section className="cta-final" id="contato">
