@@ -645,7 +645,8 @@ input:-webkit-autofill:focus {
     display: none;
   }
 
-  .gallery-strip img {
+  .gallery-strip img,
+  .gallery-tile {
     height: 340px;
   }
 }
@@ -779,12 +780,16 @@ input:-webkit-autofill:focus {
   }
 
   .gallery-strip {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-tile:nth-child(n + 2) {
+    display: none;
   }
 
   .gallery-strip img,
   .gallery-tile {
-    height: min(300px, 54vh);
+    height: min(520px, 70vh);
     border-right: 0;
     background-position: center;
   }
