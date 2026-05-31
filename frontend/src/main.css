@@ -666,7 +666,8 @@ input:-webkit-autofill:focus {
     padding: 104px 16px 34px;
     align-items: flex-start;
     flex-direction: column;
-    background-position: center center;
+    background-position: 0 0, 0 0, 22% 34%;
+    background-size: auto, auto, 124% auto;
   }
 
   .hero-copy {
