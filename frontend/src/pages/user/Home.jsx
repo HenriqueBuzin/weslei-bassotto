@@ -155,8 +155,7 @@ export default function Home() {
               <p className="eyebrow">Treinador</p>
               <h2>Especialista em treino, estética feminina e estética abdominal.</h2>
               <p>
-                Consultoria conduzida por profissional com CREF 03373-G/SC, especialista em
-                estética feminina, estética abdominal e diástase abdominal.
+                Especialista em emagrecimento, estética feminina e estética abdominal.
               </p>
               <ul className="credential-list">
                 <li>Praticante de musculação há 21 anos</li>
