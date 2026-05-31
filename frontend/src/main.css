@@ -514,19 +514,19 @@ a {
 }
 
 .gallery-tile:nth-child(1) {
-  background-position: center 44%;
+  background-position: center 60%;
 }
 
 .gallery-tile:nth-child(2) {
-  background-position: center 45%;
+  background-position: center 60%;
 }
 
 .gallery-tile:nth-child(3) {
-  background-position: center 42%;
+  background-position: center 60%;
 }
 
 .gallery-tile:nth-child(4) {
-  background-position: center 48%;
+  background-position: center 60%;
 }
 
 .cta-final {
