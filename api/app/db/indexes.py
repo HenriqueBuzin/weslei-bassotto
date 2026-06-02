@@ -21,8 +21,15 @@ CONSULTANCY_SUBMISSION_INDEXES = [
     IndexModel([("created_at", ASCENDING)], name="idx_submission_created_at"),
 ]
 
+PASSWORD_RESET_TOKEN_INDEXES = [
+    IndexModel([("token_hash", ASCENDING)], unique=True, name="uniq_password_reset_token_hash"),
+    IndexModel([("user_id", ASCENDING), ("used_at", ASCENDING)], name="idx_password_reset_user_used"),
+    IndexModel([("expires_at", ASCENDING)], expireAfterSeconds=0, name="ttl_password_reset_expires_at"),
+]
+
 async def ensure_all(db: AsyncIOMotorDatabase) -> None:
     await db.users.create_indexes(USERS_INDEXES)
     await db.roles.create_indexes(ROLES_INDEXES)
     await db.consultancy_questions.create_indexes(CONSULTANCY_QUESTION_INDEXES)
     await db.consultancy_submissions.create_indexes(CONSULTANCY_SUBMISSION_INDEXES)
+    await db.password_reset_tokens.create_indexes(PASSWORD_RESET_TOKEN_INDEXES)
