@@ -12,6 +12,7 @@ from jose import JWTError
 from fastapi import APIRouter, HTTPException, status, Request, Depends, Response, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
+from pymongo import ReturnDocument
 
 from app.db.mongo import get_db
 from app.core.settings import settings
@@ -211,12 +212,17 @@ async def forgot_password(req: Request, data: ForgotPasswordIn):
         return ForgotPasswordOut()
 
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(UTC) + timedelta(minutes=settings.password_reset_expires_minutes)
+    now = datetime.now(UTC)
+    expires_at = now + timedelta(minutes=settings.password_reset_expires_minutes)
+    await db.password_reset_tokens.update_many(
+        {"user_id": user["_id"], "used_at": None},
+        {"$set": {"used_at": now}},
+    )
     await db.password_reset_tokens.insert_one(
         {
             "user_id": user["_id"],
             "token_hash": _token_hash(token),
-            "created_at": datetime.now(UTC),
+            "created_at": now,
             "expires_at": expires_at,
             "used_at": None,
         }
@@ -234,22 +240,27 @@ async def forgot_password(req: Request, data: ForgotPasswordIn):
 async def reset_password(req: Request, data: ResetPasswordIn):
     db = get_db(req)
     now = datetime.now(UTC)
-    token_doc = await db.password_reset_tokens.find_one(
+    token_doc = await db.password_reset_tokens.find_one_and_update(
         {
             "token_hash": _token_hash(data.token),
             "used_at": None,
             "expires_at": {"$gt": now},
-        }
+        },
+        {"$set": {"used_at": now}},
+        return_document=ReturnDocument.AFTER,
     )
     if not token_doc:
-        raise HTTPException(status_code=400, detail="Link invalido ou expirado")
+        raise HTTPException(status_code=400, detail="Link inválido, expirado ou já utilizado")
 
-    await db.users.update_one(
+    update_result = await db.users.update_one(
         {"_id": token_doc["user_id"]},
         {"$set": {"password_hash": hash_password(data.password)}},
     )
-    await db.password_reset_tokens.update_one(
-        {"_id": token_doc["_id"]},
+    if update_result.matched_count != 1:
+        raise HTTPException(status_code=400, detail="Link inválido, expirado ou já utilizado")
+
+    await db.password_reset_tokens.update_many(
+        {"user_id": token_doc["user_id"], "used_at": None},
         {"$set": {"used_at": now}},
     )
     return {"ok": True}

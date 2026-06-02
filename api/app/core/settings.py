@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     # --- Recuperação de senha / Gmail SMTP ---
     frontend_public_url: str = Field(default="http://localhost:5173", validation_alias="FRONTEND_PUBLIC_URL")
-    password_reset_expires_minutes: int = Field(default=30, validation_alias="PASSWORD_RESET_EXPIRES_MINUTES")
+    password_reset_expires_minutes: int = Field(default=30, gt=0, validation_alias="PASSWORD_RESET_EXPIRES_MINUTES")
     smtp_host: str = Field(default="smtp.gmail.com", validation_alias="SMTP_HOST")
     smtp_port: int = Field(default=587, validation_alias="SMTP_PORT")
     smtp_use_tls: bool = Field(default=True, validation_alias="SMTP_USE_TLS")
