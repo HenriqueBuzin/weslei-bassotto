@@ -110,6 +110,8 @@ describe("AuthContext", () => {
     expect(storageGet(undefined, "x")).toBeUndefined();
     expect(() => storageSet(undefined, "x", "1")).not.toThrow();
     expect(() => storageRemove(undefined, "x")).not.toThrow();
+    expect(() => storageSet({ setItem: () => { throw new Error("blocked"); } }, "x", "1")).not.toThrow();
+    expect(() => storageRemove({ removeItem: () => { throw new Error("blocked"); } }, "x")).not.toThrow();
     const original = globalThis.window;
     vi.stubGlobal("window", undefined);
     expect(shouldTryInitialRefresh()).toBe(false);
