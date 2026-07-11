@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -147,8 +147,9 @@ describe("Dashboard", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: /Segundo aluno/ }));
     expect(screen.getByText("Sem resposta")).toBeInTheDocument();
-    await user.clear(screen.getByLabelText("Início")); await user.type(screen.getByLabelText("Início"), "2026-02-01");
-    await user.clear(screen.getByLabelText("Fim")); await user.type(screen.getByLabelText("Fim"), "2026-05-01");
+    const dates = document.querySelectorAll('input[type="date"]');
+    fireEvent.change(dates[0], { target: { value: "2026-02-01" } });
+    fireEvent.change(dates[1], { target: { value: "2026-05-01" } });
     await user.type(screen.getByLabelText("Referência Mercado Pago"), "ref-2");
     await user.click(screen.getByRole("button", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Editar" }));
@@ -158,7 +159,7 @@ describe("Dashboard", () => {
     expect(screen.getByLabelText("Obrigatória")).toBeChecked();
     expect(screen.getByLabelText("Ativa")).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Alunos e respostas" }));
-    await user.click(screen.getByRole("button", { name: /Aluno Plano/ }));
+    await user.click(screen.getByRole("button", { name: /Aluno Respostas/ }));
     await user.click(screen.getByRole("button", { name: /Alertas/ }));
     expect(screen.getByText("custom")).toBeInTheDocument();
   });
