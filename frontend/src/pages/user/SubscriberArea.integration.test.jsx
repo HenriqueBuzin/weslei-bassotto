@@ -76,6 +76,14 @@ describe("SubscriberArea", () => {
     expect(await screen.findByText("Objetivo")).toBeInTheDocument();
   });
 
+  it("shows a generic save error", async () => {
+    api.patch.mockRejectedValueOnce(new Error("offline"));
+    render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Salvar respostas" }));
+    expect(await screen.findByText(/Não foi possível salvar suas respostas/)).toBeInTheDocument();
+  });
+
   it("shows an empty state and load failures", async () => {
     api.get.mockResolvedValue({ data: [] });
     const view = render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
