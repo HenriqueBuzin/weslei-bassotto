@@ -83,10 +83,10 @@ describe("Dashboard", () => {
     render(<Dashboard />);
     const user = userEvent.setup();
     const status = await screen.findByDisplayValue("Ativo");
-    await user.selectOptions(status, "finished");
-    expect(api.patch).toHaveBeenCalledWith("/consultancy/admin/submissions/s1", { status: "finished" });
     await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
     expect(api.post).toHaveBeenCalledWith("/consultancy/admin/submissions/s1/answers/seen");
+    await user.selectOptions(status, "finished");
+    expect(api.patch).toHaveBeenCalledWith("/consultancy/admin/submissions/s1", { status: "finished" });
   });
 
   it("shows a load error", async () => {
