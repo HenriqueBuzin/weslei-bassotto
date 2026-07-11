@@ -83,6 +83,18 @@ async def test_payment_api_reports_invalid_ids_missing_contracts_and_gateway_err
     assert (await client.post(f"/api/v1/payments/me/renewals/{ObjectId()}", json=payload, headers=headers)).status_code == 404
     assert (await client.get("/api/v1/payments/invalid/status", params={"token": "x"})).status_code == 404
 
+    submission_id = ObjectId()
+    await client._transport.app.state.db.consultancy_submissions.insert_one({"_id": submission_id, "customer": {"email": user["email"]}})
+    assert (await client.post(f"/api/v1/payments/me/renewals/{submission_id}", json=payload, headers=headers)).status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_basic_admin_and_profile_routes(client, user_factory, auth_headers):
+    admin = await user_factory("admin@example.com", roles=["admin"])
+    headers = auth_headers(admin)
+    assert (await client.get("/api/v1/admin/secret", headers=headers)).json()["ok"] is True
+    assert (await client.get("/api/v1/me", headers=headers)).json()["email"] == "admin@example.com"
+
 
 @pytest.mark.asyncio
 async def test_webhook_unknown_gateway_and_legacy_route(client, monkeypatch):
