@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { router } from "./index";
 
@@ -9,5 +9,14 @@ describe("application routes", () => {
       "/", "/checkout", "/questionario", "/login", "/cadastro", "/recuperar",
       "/redefinir-senha", "/assinante", "/app", "*",
     ]));
+  });
+
+  it("uses root as the basename fallback", async () => {
+    vi.resetModules();
+    vi.stubEnv("BASE_URL", "");
+    const { router: fallbackRouter } = await import("./index.jsx");
+    expect(fallbackRouter.basename).toBe("/");
+    fallbackRouter.dispose();
+    vi.unstubAllEnvs();
   });
 });
