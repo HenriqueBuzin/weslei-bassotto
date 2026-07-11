@@ -70,7 +70,6 @@ export default function SubscriberArea() {
 
   async function saveAnswers(event) {
     event.preventDefault();
-    if (!selected) return;
     setBusy(true);
     setError("");
     setNotice("");
@@ -92,7 +91,6 @@ export default function SubscriberArea() {
   }
 
   function renewPlan(planSlug) {
-    if (!selected) return;
     setError("");
     setNotice("");
     navigate(`/checkout?plano=${planSlug}&renew=${selected.id}`);
