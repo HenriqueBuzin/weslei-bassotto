@@ -93,6 +93,7 @@ describe("SubscriberArea", () => {
     ];
     const second = { ...submission, id: "s2", plan: { ...submission.plan, name: "Plano Semestral" }, answers: [{ question_id: "text", value: "" }] };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.includes("questions") ? questions : [submission, second] }));
+    api.patch.mockResolvedValue({ data: { ...second, answers: [] } });
     render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: /Plano Semestral/ }));
@@ -100,6 +101,7 @@ describe("SubscriberArea", () => {
     await user.type(screen.getByLabelText("Área"), "Detalhes");
     await user.selectOptions(screen.getByLabelText("Seleção"), "A");
     await user.selectOptions(screen.getByLabelText("Booleano"), "Sim");
+    await user.click(screen.getByRole("button", { name: "Salvar respostas" }));
     expect(screen.getByLabelText("Texto")).toHaveValue("Resposta");
   });
 
