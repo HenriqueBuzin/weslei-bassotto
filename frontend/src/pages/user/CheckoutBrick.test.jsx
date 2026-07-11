@@ -142,9 +142,10 @@ describe("CheckoutBrick", () => {
   });
 
   it("uses the generic SDK error when the failure has no message", async () => {
+    state.authenticated = true;
     window.MercadoPago = class { constructor() { throw {}; } };
 
-    renderCheckout();
+    render(<MemoryRouter initialEntries={["/checkout"]}><CheckoutBrick /></MemoryRouter>);
 
     expect(await screen.findByText("Não foi possível carregar o Checkout Bricks do Mercado Pago.")).toBeInTheDocument();
   });
