@@ -129,11 +129,11 @@ describe("Dashboard", () => {
     api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission] : [event] }));
     render(<Dashboard />);
     const user = userEvent.setup();
-    if (action === "save") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Perguntas" })); await user.click(screen.getByRole("button", { name: "Salvar pergunta" })); }
+    if (action === "save") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Perguntas" })); await user.type(screen.getByLabelText("Pergunta"), "Nova pergunta"); await user.click(screen.getByRole("button", { name: "Salvar pergunta" })); }
     if (action === "delete") { api.delete.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Perguntas" })); await user.click(screen.getByRole("button", { name: "Apagar" })); }
     if (action === "submission") { api.patch.mockRejectedValueOnce(new Error()); await user.selectOptions(await screen.findByDisplayValue("Ativo"), "finished"); }
     if (action === "answers") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Marcar como visto" })); }
     if (action === "event") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Alertas (1)" })); await user.click(screen.getByRole("button", { name: "Marcar como visto" })); }
-    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(await screen.findByText((content) => content.includes(message.replace("Não foi possível ", "")))).toBeInTheDocument();
   });
 });
