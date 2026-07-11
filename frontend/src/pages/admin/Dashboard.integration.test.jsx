@@ -94,4 +94,46 @@ describe("Dashboard", () => {
     render(<Dashboard />);
     expect(await screen.findByText(/Não foi possível carregar o painel/)).toBeInTheDocument();
   });
+
+  it("renders recurrence issues, renewal history and answers", async () => {
+    const detailed = { ...submission, recurrence_status: "failed", recurrence_issue: "Cartão recusado", renewal_count: 1,
+      renewals: [{ plan_name: "Plano Semestral", start_date: "2026-04-01", end_date: "2026-10-01", created_at: "2026-01-01" }],
+      answers: [{ question_id: "q1", label: "Doenças", value: "Nenhuma" }], answers_seen_at: "2026-01-02T01:00:00Z" };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/submissions") ? [detailed] : [] }));
+    render(<Dashboard />);
+    expect(await screen.findByText(/Problema na recorrência/)).toBeInTheDocument();
+    expect(screen.getByText(/Cartão recusado/)).toBeInTheDocument();
+    expect(screen.getByText("Histórico de renovação")).toBeInTheDocument();
+    expect(screen.getByText("Nenhuma")).toBeInTheDocument();
+  });
+
+  it("cancels question editing", async () => {
+    const question = { id: "q1", label: "Pergunta teste", type: "text", options: [], required: false, active: false, order: 0 };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : [] }));
+    render(<Dashboard />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("button", { name: "Editar" }));
+    await user.click(screen.getByRole("button", { name: /Cancelar edição/ }));
+    expect(screen.getByRole("heading", { name: "Nova pergunta" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["save", "Não foi possível salvar a pergunta"],
+    ["delete", "Não foi possível apagar a pergunta"],
+    ["submission", "Não foi possível atualizar o aluno"],
+    ["answers", "Não foi possível marcar as respostas como vistas"],
+    ["event", "Não foi possível marcar o alerta como visto"],
+  ])("shows the %s action error", async (action, message) => {
+    const question = { id: "q1", label: "Pergunta teste", type: "text", options: [], required: true, active: true, order: 0 };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission] : [event] }));
+    render(<Dashboard />);
+    const user = userEvent.setup();
+    if (action === "save") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Perguntas" })); await user.click(screen.getByRole("button", { name: "Salvar pergunta" })); }
+    if (action === "delete") { api.delete.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Perguntas" })); await user.click(screen.getByRole("button", { name: "Apagar" })); }
+    if (action === "submission") { api.patch.mockRejectedValueOnce(new Error()); await user.selectOptions(await screen.findByDisplayValue("Ativo"), "finished"); }
+    if (action === "answers") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Marcar como visto" })); }
+    if (action === "event") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Alertas (1)" })); await user.click(screen.getByRole("button", { name: "Marcar como visto" })); }
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
 });
