@@ -16,13 +16,13 @@ export function storageGet(storage, key) {
 
 export function storageSet(storage, key, value) {
   try {
-    storage?.setItem(key, value);
+    if (storage) storage.setItem(key, value);
   } catch {}
 }
 
 export function storageRemove(storage, key) {
   try {
-    storage?.removeItem(key);
+    if (storage) storage.removeItem(key);
   } catch {}
 }
 
