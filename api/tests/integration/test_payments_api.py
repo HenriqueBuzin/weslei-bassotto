@@ -7,6 +7,7 @@ from bson import ObjectId
 
 from app.payments.contracts import ChargeResult, PaymentStatus
 from app.payments.registry import GatewayRegistry
+from app.payments.mercado_pago import GatewayUnavailable
 
 
 class FakeGateway:
@@ -68,3 +69,30 @@ async def test_mercado_pago_webhook_rejects_bad_signature(client):
         headers={"x-signature": "ts=1,v1=bad", "x-request-id": "req"},
     )
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_payment_api_reports_invalid_ids_missing_contracts_and_gateway_errors(client, user_factory, auth_headers, monkeypatch):
+    user = await user_factory()
+    headers = auth_headers(user)
+    empty = GatewayRegistry([], [])
+    monkeypatch.setattr("app.routers.payments.build_gateway_registry", lambda: empty)
+    payload = {"plan_slug": "trimestral", "payer_email": "card@example.com", "card_token_id": "token", "payment_mode": "cash"}
+    assert (await client.post("/api/v1/payments/card-subscription", json=payload, headers=headers)).status_code == 502
+    assert (await client.post("/api/v1/payments/me/renewals/invalid", json=payload, headers=headers)).status_code == 400
+    assert (await client.post(f"/api/v1/payments/me/renewals/{ObjectId()}", json=payload, headers=headers)).status_code == 404
+    assert (await client.get("/api/v1/payments/invalid/status", params={"token": "x"})).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_webhook_unknown_gateway_and_legacy_route(client, monkeypatch):
+    unknown = await client.post("/api/v1/payments/webhooks/unknown", json={})
+    assert unknown.status_code == 400
+    monkeypatch.setattr("app.routers.payments.verify_webhook_signature", lambda **kwargs: True)
+    monkeypatch.setattr("app.routers.payments.apply_webhook", lambda *args: _processed())
+    legacy = await client.post("/api/v1/payments/webhook/mercado-pago", json={"data": {"id": "1"}})
+    assert legacy.json() == {"ok": True, "processed": True}
+
+
+async def _processed():
+    return True
