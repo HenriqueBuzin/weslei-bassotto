@@ -139,3 +139,10 @@ async def test_reset_rejects_token_whose_user_was_removed(client, db):
         "created_at": datetime.now(UTC), "expires_at": datetime.now(UTC) + timedelta(minutes=1),
     })
     assert (await client.post("/api/v1/auth/reset-password", json={"token": token, "password": "new-secret"})).status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_csrf_header_is_required_for_none_samesite(client, monkeypatch):
+    monkeypatch.setattr("app.routers.auth.settings.cookie_samesite", "none")
+    assert (await client.post("/api/v1/auth/logout")).status_code == 400
+    assert (await client.post("/api/v1/auth/logout", headers={"x-requested-with": "XMLHttpRequest"})).status_code == 204
