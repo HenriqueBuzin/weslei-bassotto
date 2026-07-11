@@ -29,4 +29,15 @@ describe("Register", () => {
     await user.click(screen.getByRole("button", { name: "Criar conta" }));
     expect(register).toHaveBeenCalledWith("user@example.com", "secret123");
   });
+
+  it("shows registration API errors", async () => {
+    register.mockRejectedValueOnce({ response: { data: { detail: "E-mail já cadastrado" } } });
+    render(<MemoryRouter><Register /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("E-mail"), "user@example.com");
+    await user.type(screen.getByLabelText("Senha"), "secret123");
+    await user.type(screen.getByLabelText("Confirmar senha"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+    expect(await screen.findByText("E-mail já cadastrado")).toBeInTheDocument();
+  });
 });
