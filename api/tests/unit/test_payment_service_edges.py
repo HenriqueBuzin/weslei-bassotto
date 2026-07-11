@@ -64,6 +64,11 @@ async def test_webhook_none_unmatched_failed_renewal_and_already_approved(db):
     assert await apply_webhook(db, GatewayRegistry([failed], ["fake"]), "fake", {}) is True
     assert (await db.consultancy_submissions.find_one({"_id": submission_id}))["recurrence_status"] == "failed"
 
+    plain_id = ObjectId()
+    await db.payments.insert_one({"_id": plain_id, "gateway": "fake", "external_id": "plain-failed", "status": "pending"})
+    plain_failed = Gateway(event=WebhookEvent("plain-failed", "plain-failed", PaymentStatus.FAILED))
+    assert await apply_webhook(db, GatewayRegistry([plain_failed], ["fake"]), "fake", {}) is True
+
     approved_id = ObjectId()
     await db.payments.insert_one({"_id": approved_id, "gateway": "fake", "external_id": "already",
         "status": "approved", "plan_slug": "trimestral"})
