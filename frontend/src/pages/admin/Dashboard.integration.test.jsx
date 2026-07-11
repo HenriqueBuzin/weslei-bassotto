@@ -175,4 +175,21 @@ describe("Dashboard", () => {
     await user.click(screen.getByRole("button", { name: "Alertas (0)" }));
     expect(screen.getByText(/Nenhum alerta registrado/)).toBeInTheDocument();
   });
+
+  it("normalizes missing question options and preserves unrelated rows during updates", async () => {
+    const second = { ...submission, id: "s2", customer: { ...submission.customer, name: "Segundo" }, answers_changed_at: null };
+    const question = { id: "q1", label: "Sem opções", type: "select", required: true, active: true, order: 0 };
+    const secondEvent = { ...event, id: "e2", seen_at: "2026-01-04" };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission, second] : [event, secondEvent] }));
+    api.post.mockImplementation((url) => Promise.resolve({ data: url.includes("answers/seen") ? { ...submission, answers_seen_at: "2026-01-05" } : { ok: true } }));
+    render(<Dashboard />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Marcar como visto" }));
+    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("button", { name: "Editar" }));
+    expect(screen.getByLabelText(/Opções/)).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: /Alertas/ }));
+    await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
+    expect(screen.getByText(/Falha no pagamento/)).toBeInTheDocument();
+  });
 });
