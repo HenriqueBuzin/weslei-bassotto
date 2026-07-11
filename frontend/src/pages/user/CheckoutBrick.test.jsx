@@ -140,4 +140,12 @@ describe("CheckoutBrick", () => {
     await act(async () => {});
     append.mockRestore();
   });
+
+  it("uses the generic SDK error when the failure has no message", async () => {
+    window.MercadoPago = class { constructor() { throw {}; } };
+
+    renderCheckout();
+
+    expect(await screen.findByText("Não foi possível carregar o Checkout Bricks do Mercado Pago.")).toBeInTheDocument();
+  });
 });
