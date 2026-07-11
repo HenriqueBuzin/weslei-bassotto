@@ -105,7 +105,7 @@ describe("AuthContext", () => {
   });
 
   it("covers storage and non-browser helper fallbacks", () => {
-    expect(storageGet(undefined, "x")).toBeNull();
+    expect(storageGet(undefined, "x")).toBeUndefined();
     expect(() => storageSet(undefined, "x", "1")).not.toThrow();
     expect(() => storageRemove(undefined, "x")).not.toThrow();
     const original = globalThis.window;
