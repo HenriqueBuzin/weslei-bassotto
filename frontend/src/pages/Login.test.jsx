@@ -29,4 +29,20 @@ describe("Login", () => {
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(await screen.findByText("Credenciais inválidas")).toBeInTheDocument();
   });
+
+  it.each([
+    [{ response: { data: { message: "Conta bloqueada" } } }, "Conta bloqueada"],
+    [new Error("Sem conexão"), "Sem conexão"],
+    [{}, "Falha no login"],
+  ])("uses every login error fallback", async (failure, expected) => {
+    login.mockRejectedValueOnce(failure);
+    render(<MemoryRouter><Login /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("E-mail"), "user@example.com");
+    await user.type(screen.getByLabelText("Senha"), "wrong123");
+    await user.click(screen.getByRole("button", { name: "Mostrar senha" }));
+    expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "text");
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+    expect(await screen.findByText(expected)).toBeInTheDocument();
+  });
 });
