@@ -20,4 +20,11 @@ describe("API clients", () => {
     const secured = api.interceptor({ headers: {} });
     expect(secured.headers.Authorization).toBe("Bearer access-token");
   });
+
+  it("fails fast without an API base URL", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_API_BASE", "");
+    await expect(import("./api.js")).rejects.toThrow(/VITE_API_BASE/);
+    vi.unstubAllEnvs();
+  });
 });
