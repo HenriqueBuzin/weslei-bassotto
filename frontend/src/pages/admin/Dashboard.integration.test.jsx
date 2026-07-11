@@ -190,6 +190,6 @@ describe("Dashboard", () => {
     expect(screen.getByLabelText(/Opções/)).toHaveValue("");
     await user.click(screen.getByRole("button", { name: /Alertas/ }));
     await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
-    expect(screen.getByText(/Falha no pagamento/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Falha no pagamento/)).toHaveLength(2);
   });
 });
