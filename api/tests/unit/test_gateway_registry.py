@@ -1,6 +1,6 @@
 import pytest
 
-from app.payments.registry import GatewayRegistry
+from app.payments.registry import GatewayRegistry, build_gateway_registry
 
 
 class Gateway:
@@ -17,3 +17,10 @@ def test_registry_rejects_unknown_gateway():
     registry = GatewayRegistry([], [])
     with pytest.raises(ValueError):
         registry.get("missing")
+
+
+def test_registry_filters_unknown_names_and_builds_default():
+    registry = GatewayRegistry([Gateway("first")], ["missing", "first", "first"])
+    assert [item.name for item in registry.candidates("unknown")] == ["first"]
+    default = build_gateway_registry()
+    assert default.get("mercado_pago").name == "mercado_pago"
