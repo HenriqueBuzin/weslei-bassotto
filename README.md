@@ -68,7 +68,7 @@ npm run test:e2e
 npm run build
 ```
 
-O Jenkins executa testes unitários, de API, funcionais, regressão, integração, smoke, E2E em desktop/mobile e o build antes do deploy. O backend exige 100% incluindo branches. O frontend exige 100% de statements e linhas, 90% de branches e 85% de funções.
+O Jenkins executa testes unitários, de API, funcionais, regressão, integração, smoke, E2E em desktop/mobile e o build antes do deploy. Backend e frontend exigem 100% de statements, linhas, branches e funções.
 
 ## Administradores iniciais
 
