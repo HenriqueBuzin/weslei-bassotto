@@ -31,6 +31,14 @@ test = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+  "unit: testes unitarios isolados",
+  "integration: integracao entre servicos, banco e rotas",
+  "api: contrato HTTP da API",
+  "functional: regras funcionais completas",
+  "regression: cenarios de regressao",
+  "smoke: verificacoes rapidas de saude",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
