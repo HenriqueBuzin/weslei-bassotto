@@ -96,4 +96,11 @@ describe("AuthContext", () => {
     function Outside() { useAuth(); return null; }
     expect(() => render(<Outside />)).toThrow(/inside/);
   });
+
+  it("tolerates unavailable browser storage", () => {
+    const broken = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); }, removeItem: () => { throw new Error("denied"); } };
+    Object.defineProperty(window, "localStorage", { configurable: true, value: broken });
+    Object.defineProperty(window, "sessionStorage", { configurable: true, value: broken });
+    expect(() => render(<AuthProvider><Probe /></AuthProvider>)).not.toThrow();
+  });
 });
