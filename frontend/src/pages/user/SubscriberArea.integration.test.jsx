@@ -62,6 +62,20 @@ describe("SubscriberArea", () => {
     expect(await screen.findByText(/Pagamento em análise/)).toBeInTheDocument();
   });
 
+  it("reloads after an approved renewal", async () => {
+    render(<MemoryRouter initialEntries={["/assinante?pagamento=approved"]}><SubscriberArea /></MemoryRouter>);
+    expect(await screen.findByText(/Pagamento aprovado e renovação registrada/)).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledTimes(4);
+  });
+
+  it("shows required-question errors when saving", async () => {
+    api.patch.mockRejectedValue({ response: { data: { detail: { missing_questions: ["Objetivo"] } } } });
+    render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Salvar respostas" }));
+    expect(await screen.findByText("Objetivo")).toBeInTheDocument();
+  });
+
   it("shows an empty state and load failures", async () => {
     api.get.mockResolvedValue({ data: [] });
     const view = render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
