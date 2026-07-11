@@ -6,6 +6,47 @@ pipeline {
     }
 
     stages {
+        stage('Tests') {
+            parallel {
+                stage('Backend') {
+                    steps {
+                        sh '''
+                        set -e
+                        docker run --rm \
+                          -v "$WORKSPACE/api:/app" \
+                          -w /app \
+                          python:3.12-slim \
+                          sh -c "pip install -q -e '.[test]' && pytest --cov=app --cov-report=term --cov-fail-under=75 -q"
+                        '''
+                    }
+                }
+                stage('Frontend') {
+                    steps {
+                        sh '''
+                        set -e
+                        docker run --rm \
+                          -e VITE_API_BASE=/api/v1 \
+                          -v "$WORKSPACE/frontend:/app" \
+                          -w /app \
+                          node:22-bookworm-slim \
+                          sh -c "npm ci --no-audit --no-fund && npm run test:coverage && npm run build"
+                        '''
+                    }
+                }
+            }
+        }
+        stage('E2E') {
+            steps {
+                sh '''
+                set -e
+                docker run --rm --ipc=host \
+                  -v "$WORKSPACE/frontend:/app" \
+                  -w /app \
+                  mcr.microsoft.com/playwright:v1.61.1-noble \
+                  sh -c "npm ci --no-audit --no-fund && npm run test:e2e"
+                '''
+            }
+        }
         stage('Deploy') {
             steps {
                 script {

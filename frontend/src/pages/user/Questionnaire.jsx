@@ -13,17 +13,6 @@ function initialPlan(value) {
   return plans[value] ? value : "trimestral";
 }
 
-function readPaymentReference(params) {
-  return (
-    params.get("payment_id") ||
-    params.get("collection_id") ||
-    params.get("preference_id") ||
-    params.get("preapproval_id") ||
-    params.get("external_reference") ||
-    ""
-  );
-}
-
 function formatPhoneBR(value) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits;
@@ -38,11 +27,13 @@ export default function Questionnaire() {
   const [params] = useSearchParams();
   const planSlug = initialPlan(params.get("plano"));
   const plan = plans[planSlug];
-  const paymentReference = readPaymentReference(params);
-  const paymentConfirmed = Boolean(paymentReference);
+  const paymentId = params.get("payment_id") || "";
+  const paymentToken = params.get("payment_token") || "";
+  const [paymentStatus, setPaymentStatus] = useState("pending");
+  const paymentConfirmed = paymentStatus === "approved";
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
-  const [customer, setCustomer] = useState({ name: "", email: params.get("email") || "", phone: "" });
+  const [customer, setCustomer] = useState({ name: "", email: "", phone: "" });
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,10 +41,12 @@ export default function Questionnaire() {
 
   useEffect(() => {
     let alive = true;
-    api
-      .get("/consultancy/questions")
-      .then(({ data }) => {
-        if (alive) setQuestions(Array.isArray(data) ? data : []);
+    Promise.all([api.get("/consultancy/questions"), api.get("/me")])
+      .then(([questionResponse, userResponse]) => {
+        if (alive) {
+          setQuestions(Array.isArray(questionResponse.data) ? questionResponse.data : []);
+          setCustomer((current) => ({ ...current, email: userResponse.data.email || "" }));
+        }
       })
       .catch(() => {
         if (alive) setError("Não foi possível carregar as perguntas agora.");
@@ -65,6 +58,18 @@ export default function Questionnaire() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!paymentId || !paymentToken) {
+      setPaymentStatus("missing");
+      return;
+    }
+    let alive = true;
+    api.get(`/payments/${paymentId}/status`, { params: { token: paymentToken } })
+      .then(({ data }) => alive && setPaymentStatus(data.status))
+      .catch(() => alive && setPaymentStatus("missing"));
+    return () => { alive = false; };
+  }, [paymentId, paymentToken]);
 
   const canSubmit = useMemo(() => {
     const requiredAnswered = questions.every((q) => {
@@ -88,7 +93,8 @@ export default function Questionnaire() {
       const payload = {
         plan_slug: planSlug,
         customer,
-        payment_reference: paymentReference || null,
+        payment_id: paymentId,
+        payment_token: paymentToken,
         answers: Object.entries(answers).map(([question_id, value]) => ({ question_id, value })),
       };
       const { data } = await api.post("/consultancy/submissions", payload);
@@ -135,9 +141,9 @@ export default function Questionnaire() {
             <p className="eyebrow">Pagamento necessário</p>
             <h2>Anamnese liberada somente após pagamento confirmado.</h2>
             <p>
-              Para responder o questionário, finalize a compra pelo Mercado Pago. Depois do
-              pagamento confirmado, você será enviado para esta página com a referência da
-              transação.
+              {paymentStatus === "pending"
+                ? "Seu pagamento ainda está sendo confirmado. Atualize esta página em alguns instantes."
+                : "Para responder o questionário, finalize a compra e aguarde a confirmação do pagamento."}
             </p>
             <Link to="/#planos" className="btn btn-brand">
               Escolher plano
@@ -154,7 +160,7 @@ export default function Questionnaire() {
                   O período é definido pelo plano pago. No painel, o admin vê o aluno, o plano, a
                   data inicial, a data final e todas as respostas cadastradas.
                 </p>
-                {paymentReference && <small>Referência do pagamento: {paymentReference}</small>}
+                <small>Pagamento confirmado com segurança.</small>
               </div>
             </section>
 
@@ -174,7 +180,7 @@ export default function Questionnaire() {
                   <input
                     type="email"
                     value={customer.email}
-                    onChange={(e) => setCustomer((c) => ({ ...c, email: e.target.value }))}
+                    readOnly
                     required
                   />
                 </label>

@@ -58,8 +58,9 @@ export default function ResetPassword() {
 
                 <form onSubmit={onSubmit}>
                   <div className="mb-3">
-                    <label className="form-label text-white-50">Nova senha</label>
+                    <label className="form-label text-white-50" htmlFor="reset-password">Nova senha</label>
                     <input
+                      id="reset-password"
                       className="form-control form-control-lg"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -72,8 +73,9 @@ export default function ResetPassword() {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label text-white-50">Confirmar senha</label>
+                    <label className="form-label text-white-50" htmlFor="reset-confirmation">Confirmar senha</label>
                     <input
+                      id="reset-confirmation"
                       className="form-control form-control-lg"
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}

@@ -76,6 +76,11 @@ export function AuthProvider({ children }) {
     return data.access_token;
   }, []);
 
+  const register = useCallback(async (email, password) => {
+    await api.post("/auth/register", { email, password });
+    return login(email, password, false);
+  }, [login]);
+
   const logout = useCallback(async () => {
     try {
       await authApi.post("/auth/logout", null, { headers: { "X-Requested-With": "XMLHttpRequest" } });
@@ -134,8 +139,8 @@ export function AuthProvider({ children }) {
   }, [doRefresh]);
 
   const value = useMemo(
-    () => ({ accessToken, roles, isAuthenticated, login, logout, refresh: doRefresh }),
-    [accessToken, roles, isAuthenticated, login, logout, doRefresh]
+    () => ({ accessToken, roles, isAuthenticated, login, register, logout, refresh: doRefresh }),
+    [accessToken, roles, isAuthenticated, login, register, logout, doRefresh]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

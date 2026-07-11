@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from bson import ObjectId
@@ -6,24 +6,21 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.deps import get_current_user, role_required
 from app.db.mongo import get_db
+from app.domain.plans import contract_period, get_plan
 from app.schemas.consultancy import (
+    AnswersUpdateIn,
     QuestionIn,
     QuestionOut,
     QuestionPatch,
-    AnswersUpdateIn,
     RenewalIn,
     SubmissionIn,
     SubmissionOut,
     SubscriptionPatch,
 )
+from app.services.contracts import create_admin_event
+from app.services.payments import get_claimed_approved_payment
 
 router = APIRouter(prefix="/consultancy", tags=["consultancy"])
-
-PLANS = {
-    "trimestral": {"name": "Plano Trimestral", "months": 3},
-    "semestral": {"name": "Plano Semestral", "months": 6},
-    "anual": {"name": "Plano Anual", "months": 12},
-}
 
 
 def now() -> datetime:
@@ -36,44 +33,21 @@ def parse_object_id(value: str) -> ObjectId:
     return ObjectId(value)
 
 
-def add_months(source: date, months: int) -> date:
-    month = source.month - 1 + months
-    year = source.year + month // 12
-    month = month % 12 + 1
-    days_in_month = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    return source.replace(year=year, month=month, day=min(source.day, days_in_month[month - 1]))
-
-
 def question_out(doc: dict[str, Any]) -> QuestionOut:
-    return QuestionOut(
-        id=str(doc["_id"]),
-        label=doc["label"],
-        type=doc.get("type", "textarea"),
-        options=doc.get("options", []),
-        required=doc.get("required", True),
-        active=doc.get("active", True),
-        order=doc.get("order", 0),
-        created_at=doc["created_at"],
-        updated_at=doc["updated_at"],
-    )
+    return QuestionOut(id=str(doc["_id"]), **{key: doc[key] for key in ("label", "created_at", "updated_at")},
+        type=doc.get("type", "textarea"), options=doc.get("options", []), required=doc.get("required", True),
+        active=doc.get("active", True), order=doc.get("order", 0))
 
 
 def submission_out(doc: dict[str, Any]) -> SubmissionOut:
     return SubmissionOut(
-        id=str(doc["_id"]),
-        customer=doc["customer"],
-        plan=doc["plan"],
-        status=doc.get("status", "pending_payment"),
-        payment_reference=doc.get("payment_reference"),
-        answers=doc.get("answers", []),
-        answers_changed_at=doc.get("answers_changed_at"),
-        answers_seen_at=doc.get("answers_seen_at"),
-        renewal_count=doc.get("renewal_count", 0),
-        renewals=doc.get("renewals", []),
-        recurrence_status=doc.get("recurrence_status"),
-        recurrence_issue=doc.get("recurrence_issue"),
-        created_at=doc["created_at"],
-        updated_at=doc["updated_at"],
+        id=str(doc["_id"]), customer=doc["customer"], plan=doc["plan"], status=doc.get("status", "pending_payment"),
+        payment_reference=doc.get("payment_reference"), payment_gateway=doc.get("payment_gateway"),
+        answers=doc.get("answers", []), answer_revisions=doc.get("answer_revisions", []),
+        answers_changed_at=doc.get("answers_changed_at"), answers_seen_at=doc.get("answers_seen_at"),
+        renewal_count=doc.get("renewal_count", 0), renewals=doc.get("renewals", []),
+        recurrence_status=doc.get("recurrence_status"), recurrence_issue=doc.get("recurrence_issue"),
+        created_at=doc["created_at"], updated_at=doc["updated_at"],
     )
 
 
@@ -83,38 +57,19 @@ async def get_active_questions(db) -> list[dict[str, Any]]:
 
 async def build_answer_snapshot(db, answers_data) -> list[dict[str, Any]]:
     questions = await get_active_questions(db)
-    questions_by_id = {str(q["_id"]): q for q in questions}
-    answers_by_question = {answer.question_id: answer.value for answer in answers_data}
-
-    missing = [
-        q["label"]
-        for q in questions
-        if q.get("required", True)
-        and (str(q["_id"]) not in answers_by_question or answers_by_question[str(q["_id"])] in (None, ""))
-    ]
+    by_id = {str(question["_id"]): question for question in questions}
+    values = {answer.question_id: answer.value for answer in answers_data}
+    missing = [q["label"] for q in questions if q.get("required", True) and values.get(str(q["_id"])) in (None, "")]
     if missing:
         raise HTTPException(status_code=422, detail={"missing_questions": missing})
-
-    answers = []
-    for question_id, value in answers_by_question.items():
-        question = questions_by_id.get(question_id)
-        if not question:
-            continue
-        answers.append(
-            {
-                "question_id": question_id,
-                "label": question["label"],
-                "type": question.get("type", "textarea"),
-                "value": value,
-            }
-        )
-    return answers
+    return [{"question_id": qid, "label": by_id[qid]["label"], "type": by_id[qid].get("type", "textarea"), "value": value}
+            for qid, value in values.items() if qid in by_id]
 
 
 async def find_owned_submission(db, submission_id: str, user: dict[str, Any]) -> dict[str, Any]:
     doc = await db.consultancy_submissions.find_one({"_id": parse_object_id(submission_id)})
     if not doc:
-        raise HTTPException(status_code=404, detail="Resposta não encontrada")
+        raise HTTPException(status_code=404, detail="Contrato não encontrado")
     if doc.get("customer", {}).get("email", "").lower() != user.get("email", "").lower():
         raise HTTPException(status_code=403, detail="Sem permissão para alterar esta anamnese")
     return doc
@@ -122,230 +77,154 @@ async def find_owned_submission(db, submission_id: str, user: dict[str, Any]) ->
 
 @router.get("/questions", response_model=list[QuestionOut])
 async def list_public_questions(req: Request):
-    db = get_db(req)
-    questions = await get_active_questions(db)
-    return [question_out(q) for q in questions]
+    return [question_out(q) for q in await get_active_questions(get_db(req))]
 
 
 @router.post("/submissions", response_model=SubmissionOut, status_code=status.HTTP_201_CREATED)
-async def create_submission(req: Request, data: SubmissionIn):
-    if not data.payment_reference:
-        raise HTTPException(
-            status_code=402,
-            detail="Pagamento confirmado é obrigatório para responder a anamnese",
-        )
-
+async def create_submission(req: Request, data: SubmissionIn, user=Depends(get_current_user)):
     db = get_db(req)
-    answers = await build_answer_snapshot(db, data.answers)
+    payment = await get_claimed_approved_payment(db, data.payment_id, data.payment_token)
+    if not payment:
+        raise HTTPException(status_code=402, detail="Pagamento aprovado é obrigatório para responder à anamnese")
+    if payment["plan_slug"] != data.plan_slug or payment.get("renewal_submission_id"):
+        raise HTTPException(status_code=409, detail="O pagamento não corresponde a esta contratação")
+    if payment.get("account_email", "").lower() != user["email"].lower():
+        raise HTTPException(status_code=403, detail="Este pagamento pertence a outra conta")
+    if str(data.customer.email).lower() != user["email"].lower():
+        raise HTTPException(status_code=409, detail="Use o mesmo e-mail da sua conta nos dados do aluno")
+    if payment.get("claimed_submission_id"):
+        raise HTTPException(status_code=409, detail="Este pagamento já foi utilizado")
 
-    plan_base = PLANS[data.plan_slug]
-    start_date = date.today()
-    end_date = add_months(start_date, plan_base["months"])
+    answers = await build_answer_snapshot(db, data.answers)
+    plan = get_plan(payment["plan_slug"])
+    start_date, end_date = contract_period(plan.months)
     timestamp = now()
     doc = {
-        "customer": data.customer.model_dump(),
-        "plan": {
-            "slug": data.plan_slug,
-            "name": plan_base["name"],
-            "months": plan_base["months"],
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-        },
-        "status": "paid" if data.payment_reference else "pending_payment",
-        "payment_reference": data.payment_reference,
-        "answers": answers,
-        "answers_changed_at": timestamp,
-        "answers_seen_at": None,
-        "renewal_count": 0,
-        "renewals": [],
-        "recurrence_status": "active",
-        "recurrence_issue": None,
-        "created_at": timestamp,
-        "updated_at": timestamp,
+        "customer": {**data.customer.model_dump(), "email": str(data.customer.email).lower()},
+        "plan": {"slug": plan.slug, "name": plan.name, "months": plan.months, "start_date": start_date.isoformat(), "end_date": end_date.isoformat()},
+        "status": "active", "payment_id": data.payment_id, "payment_reference": payment.get("external_id"),
+        "payment_gateway": payment.get("gateway"), "answers": answers, "answer_revisions": [],
+        "answers_changed_at": timestamp, "answers_seen_at": None, "renewal_count": 0, "renewals": [],
+        "recurrence_status": payment["status"], "recurrence_issue": None, "created_at": timestamp, "updated_at": timestamp,
     }
-    res = await db.consultancy_submissions.insert_one(doc)
-    doc["_id"] = res.inserted_id
+    result = await db.consultancy_submissions.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    claimed = await db.payments.update_one(
+        {"_id": payment["_id"], "claimed_submission_id": {"$exists": False}},
+        {"$set": {"claimed_submission_id": str(result.inserted_id), "updated_at": timestamp}},
+    )
+    if claimed.modified_count != 1:
+        await db.consultancy_submissions.delete_one({"_id": result.inserted_id})
+        raise HTTPException(status_code=409, detail="Este pagamento já foi utilizado")
+    await create_admin_event(db, "new_contract", submission_id=result.inserted_id, payment_id=payment["_id"])
     return submission_out(doc)
 
 
 @router.get("/me/submissions", response_model=list[SubmissionOut])
 async def list_my_submissions(req: Request, user=Depends(get_current_user)):
-    db = get_db(req)
-    submissions = (
-        await db.consultancy_submissions.find({"customer.email": user["email"].lower()})
-        .sort("created_at", -1)
-        .to_list(100)
-    )
-    return [submission_out(s) for s in submissions]
+    docs = await get_db(req).consultancy_submissions.find({"customer.email": user["email"].lower()}).sort("created_at", -1).to_list(100)
+    return [submission_out(doc) for doc in docs]
 
 
 @router.patch("/me/submissions/{submission_id}/answers", response_model=SubmissionOut)
-async def update_my_answers(
-    submission_id: str,
-    req: Request,
-    data: AnswersUpdateIn,
-    user=Depends(get_current_user),
-):
+async def update_my_answers(submission_id: str, req: Request, data: AnswersUpdateIn, user=Depends(get_current_user)):
     db = get_db(req)
-    await find_owned_submission(db, submission_id, user)
+    current = await find_owned_submission(db, submission_id, user)
     timestamp = now()
     answers = await build_answer_snapshot(db, data.answers)
     await db.consultancy_submissions.update_one(
-        {"_id": parse_object_id(submission_id)},
-        {
-            "$set": {
-                "answers": answers,
-                "answers_changed_at": timestamp,
-                "answers_seen_at": None,
-                "updated_at": timestamp,
-            }
-        },
+        {"_id": current["_id"]},
+        {"$set": {"answers": answers, "answers_changed_at": timestamp, "answers_seen_at": None, "updated_at": timestamp},
+         "$push": {"answer_revisions": {"answers": current.get("answers", []), "changed_at": timestamp, "changed_by": "subscriber"}}},
     )
-    doc = await db.consultancy_submissions.find_one({"_id": parse_object_id(submission_id)})
-    return submission_out(doc)
+    await create_admin_event(db, "answers_changed", submission_id=current["_id"])
+    return submission_out(await db.consultancy_submissions.find_one({"_id": current["_id"]}))
 
 
 @router.post("/me/submissions/{submission_id}/renew", response_model=SubmissionOut)
-async def renew_my_plan(
-    submission_id: str,
-    req: Request,
-    data: RenewalIn,
-    user=Depends(get_current_user),
-):
-    if not data.payment_reference:
-        raise HTTPException(
-            status_code=402,
-            detail="Pagamento confirmado é obrigatório para renovar o plano",
-        )
-
-    db = get_db(req)
-    current = await find_owned_submission(db, submission_id, user)
-    plan_base = PLANS[data.plan_slug]
-    today = date.today()
-    current_end = date.fromisoformat(current["plan"]["end_date"])
-    start_date = current_end if current_end > today else today
-    end_date = add_months(start_date, plan_base["months"])
-    timestamp = now()
-    renewal = {
-        "plan_slug": data.plan_slug,
-        "plan_name": plan_base["name"],
-        "months": plan_base["months"],
-        "start_date": start_date.isoformat(),
-        "end_date": end_date.isoformat(),
-        "payment_reference": data.payment_reference,
-        "created_at": timestamp,
-    }
-    await db.consultancy_submissions.update_one(
-        {"_id": parse_object_id(submission_id)},
-        {
-            "$set": {
-                "plan": {
-                    "slug": data.plan_slug,
-                    "name": plan_base["name"],
-                    "months": plan_base["months"],
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
-                },
-                "status": "paid" if data.payment_reference else "pending_payment",
-                "payment_reference": data.payment_reference,
-                "recurrence_status": "active",
-                "recurrence_issue": None,
-                "last_renewed_at": timestamp,
-                "updated_at": timestamp,
-            },
-            "$inc": {"renewal_count": 1},
-            "$push": {"renewals": renewal},
-        },
-    )
-    doc = await db.consultancy_submissions.find_one({"_id": parse_object_id(submission_id)})
-    return submission_out(doc)
+async def deprecated_renewal(submission_id: str, req: Request, data: RenewalIn, user=Depends(get_current_user)):
+    await find_owned_submission(get_db(req), submission_id, user)
+    raise HTTPException(status_code=410, detail="Use o checkout de renovação; as datas são atualizadas pelo pagamento")
 
 
 @router.get("/admin/questions", response_model=list[QuestionOut])
 async def list_admin_questions(req: Request, _user=Depends(role_required("admin"))):
-    db = get_db(req)
-    questions = await db.consultancy_questions.find({}).sort([("order", 1), ("created_at", 1)]).to_list(200)
-    return [question_out(q) for q in questions]
+    docs = await get_db(req).consultancy_questions.find({}).sort([("order", 1), ("created_at", 1)]).to_list(200)
+    return [question_out(doc) for doc in docs]
 
 
-@router.post("/admin/questions", response_model=QuestionOut, status_code=status.HTTP_201_CREATED)
+@router.post("/admin/questions", response_model=QuestionOut, status_code=201)
 async def create_question(req: Request, data: QuestionIn, _user=Depends(role_required("admin"))):
-    db = get_db(req)
     timestamp = now()
-    doc = data.model_dump()
-    doc["created_at"] = timestamp
-    doc["updated_at"] = timestamp
-    res = await db.consultancy_questions.insert_one(doc)
-    doc["_id"] = res.inserted_id
+    doc = {**data.model_dump(), "created_at": timestamp, "updated_at": timestamp}
+    result = await get_db(req).consultancy_questions.insert_one(doc)
+    doc["_id"] = result.inserted_id
     return question_out(doc)
 
 
 @router.patch("/admin/questions/{question_id}", response_model=QuestionOut)
 async def update_question(question_id: str, req: Request, data: QuestionPatch, _user=Depends(role_required("admin"))):
-    db = get_db(req)
-    oid = parse_object_id(question_id)
-    patch = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
+    db, oid = get_db(req), parse_object_id(question_id)
+    patch = data.model_dump(exclude_unset=True)
     if patch:
-        patch["updated_at"] = now()
-        await db.consultancy_questions.update_one({"_id": oid}, {"$set": patch})
+        await db.consultancy_questions.update_one({"_id": oid}, {"$set": {**patch, "updated_at": now()}})
     doc = await db.consultancy_questions.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Pergunta não encontrada")
     return question_out(doc)
 
 
-@router.delete("/admin/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/admin/questions/{question_id}", status_code=204)
 async def delete_question(question_id: str, req: Request, _user=Depends(role_required("admin"))):
-    db = get_db(req)
-    res = await db.consultancy_questions.delete_one({"_id": parse_object_id(question_id)})
-    if res.deleted_count == 0:
+    if (await get_db(req).consultancy_questions.delete_one({"_id": parse_object_id(question_id)})).deleted_count == 0:
         raise HTTPException(status_code=404, detail="Pergunta não encontrada")
 
 
 @router.get("/admin/submissions", response_model=list[SubmissionOut])
 async def list_submissions(req: Request, _user=Depends(role_required("admin"))):
-    db = get_db(req)
-    submissions = await db.consultancy_submissions.find({}).sort("created_at", -1).to_list(500)
-    return [submission_out(s) for s in submissions]
+    docs = await get_db(req).consultancy_submissions.find({}).sort("created_at", -1).to_list(500)
+    return [submission_out(doc) for doc in docs]
 
 
 @router.patch("/admin/submissions/{submission_id}", response_model=SubmissionOut)
-async def update_submission(
-    submission_id: str,
-    req: Request,
-    data: SubscriptionPatch,
-    _user=Depends(role_required("admin")),
-):
-    db = get_db(req)
-    oid = parse_object_id(submission_id)
-    patch: dict[str, Any] = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
+async def update_submission(submission_id: str, req: Request, data: SubscriptionPatch, _user=Depends(role_required("admin"))):
+    db, oid = get_db(req), parse_object_id(submission_id)
+    patch = data.model_dump(exclude_unset=True)
     update: dict[str, Any] = {"updated_at": now()}
-
-    if "status" in patch:
-        update["status"] = patch["status"]
-    if "payment_reference" in patch:
-        update["payment_reference"] = patch["payment_reference"]
-    if "start_date" in patch:
-        update["plan.start_date"] = patch["start_date"].isoformat() if patch["start_date"] else None
-    if "end_date" in patch:
-        update["plan.end_date"] = patch["end_date"].isoformat() if patch["end_date"] else None
-
+    for key in ("status", "payment_reference"):
+        if key in patch:
+            update[key] = patch[key]
+    for key in ("start_date", "end_date"):
+        if key in patch:
+            update[f"plan.{key}"] = patch[key].isoformat() if patch[key] else None
     await db.consultancy_submissions.update_one({"_id": oid}, {"$set": update})
     doc = await db.consultancy_submissions.find_one({"_id": oid})
     if not doc:
-        raise HTTPException(status_code=404, detail="Resposta não encontrada")
+        raise HTTPException(status_code=404, detail="Contrato não encontrado")
     return submission_out(doc)
 
 
 @router.post("/admin/submissions/{submission_id}/answers/seen", response_model=SubmissionOut)
 async def mark_answers_seen(submission_id: str, req: Request, _user=Depends(role_required("admin"))):
-    db = get_db(req)
-    oid = parse_object_id(submission_id)
-    await db.consultancy_submissions.update_one(
-        {"_id": oid},
-        {"$set": {"answers_seen_at": now(), "updated_at": now()}},
-    )
+    db, oid = get_db(req), parse_object_id(submission_id)
+    await db.consultancy_submissions.update_one({"_id": oid}, {"$set": {"answers_seen_at": now(), "updated_at": now()}})
     doc = await db.consultancy_submissions.find_one({"_id": oid})
     if not doc:
-        raise HTTPException(status_code=404, detail="Resposta não encontrada")
+        raise HTTPException(status_code=404, detail="Contrato não encontrado")
+    await db.admin_events.update_many({"submission_id": oid, "type": "answers_changed", "seen_at": None}, {"$set": {"seen_at": now()}})
     return submission_out(doc)
+
+
+@router.get("/admin/events")
+async def list_admin_events(req: Request, _user=Depends(role_required("admin"))):
+    docs = await get_db(req).admin_events.find({}).sort("created_at", -1).to_list(500)
+    return [{**{key: value for key, value in doc.items() if key != "_id"}, "id": str(doc["_id"]),
+             "payment_id": str(doc.get("payment_id", "")), "submission_id": str(doc.get("submission_id", ""))} for doc in docs]
+
+
+@router.post("/admin/events/{event_id}/seen")
+async def mark_admin_event_seen(event_id: str, req: Request, _user=Depends(role_required("admin"))):
+    result = await get_db(req).admin_events.update_one({"_id": parse_object_id(event_id)}, {"$set": {"seen_at": now()}})
+    if result.matched_count != 1:
+        raise HTTPException(status_code=404, detail="Alerta não encontrado")
+    return {"ok": True}

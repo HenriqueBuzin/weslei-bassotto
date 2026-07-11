@@ -51,8 +51,9 @@ export default function ForgotPassword() {
 
                 <form onSubmit={onSubmit}>
                   <div className="mb-3">
-                    <label className="form-label text-white-50">E-mail</label>
+                    <label className="form-label text-white-50" htmlFor="forgot-email">E-mail</label>
                     <input
+                      id="forgot-email"
                       className="form-control form-control-lg"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}

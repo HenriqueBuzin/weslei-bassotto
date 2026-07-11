@@ -11,7 +11,7 @@ SubmissionStatus = Literal["pending_payment", "paid", "active", "finished", "can
 class QuestionIn(BaseModel):
     label: str = Field(min_length=3, max_length=220)
     type: QuestionType = "textarea"
-    options: list[str] = []
+    options: list[str] = Field(default_factory=list)
     required: bool = True
     active: bool = True
     order: int = 0
@@ -47,7 +47,8 @@ class SubmissionIn(BaseModel):
     plan_slug: PlanSlug
     customer: CustomerIn
     answers: list[AnswerIn]
-    payment_reference: str | None = None
+    payment_id: str
+    payment_token: str
 
 
 class AnswersUpdateIn(BaseModel):
@@ -57,6 +58,7 @@ class AnswersUpdateIn(BaseModel):
 class RenewalIn(BaseModel):
     plan_slug: PlanSlug
     payment_reference: str | None = None
+    payment_gateway: str | None = None
 
 
 class SubscriptionPatch(BaseModel):
@@ -76,7 +78,8 @@ class SubmissionOut(BaseModel):
     answers_changed_at: datetime | None = None
     answers_seen_at: datetime | None = None
     renewal_count: int = 0
-    renewals: list[dict[str, Any]] = []
+    renewals: list[dict[str, Any]] = Field(default_factory=list)
+    answer_revisions: list[dict[str, Any]] = Field(default_factory=list)
     recurrence_status: str | None = None
     recurrence_issue: str | None = None
     created_at: datetime

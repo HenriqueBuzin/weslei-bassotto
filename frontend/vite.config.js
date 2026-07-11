@@ -44,5 +44,23 @@ export default defineConfig(({ mode }) => {
       },
     },
     plugins: [react()],
+    test: {
+      environment: "jsdom",
+      setupFiles: "./src/test/setup.js",
+      clearMocks: true,
+      include: ["src/**/*.{test,spec}.{js,jsx}"],
+      exclude: ["e2e/**", "node_modules/**", "dist/**"],
+      coverage: {
+        reporter: ["text", "html"],
+        include: ["src/**/*.{js,jsx}"],
+        exclude: ["src/main.jsx", "src/**/*.test.{js,jsx}", "src/test/**"],
+        thresholds: {
+          statements: 75,
+          lines: 75,
+          branches: 60,
+          functions: 55,
+        },
+      },
+    },
   };
 });
