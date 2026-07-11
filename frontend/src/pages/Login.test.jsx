@@ -3,9 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
-const login = vi.hoisted(() => vi.fn());
+const state = vi.hoisted(() => ({ login: vi.fn(), roles: ["user"] }));
+const login = state.login;
 vi.mock("../context/AuthContext", () => ({ useAuth: () => ({ login }) }));
-vi.mock("../lib/jwt", () => ({ readRoles: () => ["user"] }));
+vi.mock("../lib/jwt", () => ({ readRoles: () => state.roles }));
 import Login from "./Login";
 
 describe("Login", () => {
@@ -44,5 +45,20 @@ describe("Login", () => {
     expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "text");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(await screen.findByText(expected)).toBeInTheDocument();
+  });
+
+  it("routes admins to the panel and users to the subscriber area", async () => {
+    login.mockResolvedValue("token");
+    state.roles = ["admin"];
+    const admin = render(<MemoryRouter><Login /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("E-mail"), "admin@example.com"); await user.type(screen.getByLabelText("Senha"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+    admin.unmount();
+    state.roles = ["user"];
+    render(<MemoryRouter><Login /></MemoryRouter>);
+    await user.type(screen.getByLabelText("E-mail"), "user@example.com"); await user.type(screen.getByLabelText("Senha"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+    expect(login).toHaveBeenCalledTimes(2);
   });
 });
