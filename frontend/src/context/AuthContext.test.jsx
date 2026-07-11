@@ -11,7 +11,7 @@ vi.mock("../lib/api", () => ({
   bindAccessTokenGetter: mocks.bind,
 }));
 vi.mock("../lib/jwt", () => ({ isExpired: (token) => !token, readRoles: (token) => token ? ["user"] : [] }));
-import { AuthProvider, useAuth } from "./AuthContext";
+import { AuthProvider, clearSessionMarker, markSession, shouldTryInitialRefresh, storageGet, storageRemove, storageSet, useAuth } from "./AuthContext";
 
 function Probe() {
   const auth = useAuth();
@@ -102,5 +102,17 @@ describe("AuthContext", () => {
     Object.defineProperty(window, "localStorage", { configurable: true, value: broken });
     Object.defineProperty(window, "sessionStorage", { configurable: true, value: broken });
     expect(() => render(<AuthProvider><Probe /></AuthProvider>)).not.toThrow();
+  });
+
+  it("covers storage and non-browser helper fallbacks", () => {
+    expect(storageGet(undefined, "x")).toBeNull();
+    expect(() => storageSet(undefined, "x", "1")).not.toThrow();
+    expect(() => storageRemove(undefined, "x")).not.toThrow();
+    const original = globalThis.window;
+    vi.stubGlobal("window", undefined);
+    expect(shouldTryInitialRefresh()).toBe(false);
+    expect(() => markSession()).not.toThrow();
+    expect(() => clearSessionMarker()).not.toThrow();
+    vi.stubGlobal("window", original);
   });
 });
