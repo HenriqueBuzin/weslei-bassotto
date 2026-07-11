@@ -2,7 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 from bson import ObjectId
+from fastapi import HTTPException
+from types import SimpleNamespace
 
+from app.routers.consultancy import create_submission
+from app.schemas.consultancy import SubmissionIn
 from app.services.payments import token_hash
 
 
@@ -142,22 +146,28 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
 
 
 @pytest.mark.asyncio
-async def test_submission_detects_payment_claim_race(client, db, user_factory, auth_headers, monkeypatch):
+async def test_submission_detects_payment_claim_race(db, user_factory, monkeypatch):
     user = await user_factory()
     question = await seed_question(db)
     payment = await seed_payment(db, user)
-    real_update = db.payments.update_one
-
-    async def lose_claim(filter, update, **kwargs):
-        if "claimed_submission_id" in filter:
-            return type("Result", (), {"modified_count": 0})()
-        return await real_update(filter, update, **kwargs)
-
-    monkeypatch.setattr(db.payments, "update_one", lose_claim)
-    response = await client.post("/api/v1/consultancy/submissions", json={
+    class Payments:
+        async def update_one(self, *args, **kwargs):
+            return SimpleNamespace(modified_count=0)
+    proxy = SimpleNamespace(
+        payments=Payments(), consultancy_questions=db.consultancy_questions,
+        consultancy_submissions=db.consultancy_submissions, admin_events=db.admin_events,
+    )
+    monkeypatch.setattr("app.routers.consultancy.get_claimed_approved_payment", lambda *args: _payment_async(payment))
+    data = SubmissionIn(**{
         "plan_slug": "trimestral", "payment_id": str(payment["_id"]), "payment_token": "claim-secret",
         "customer": {"name": "Aluno", "email": user["email"], "phone": "54999990000"},
         "answers": [{"question_id": str(question["_id"]), "value": "Não"}],
-    }, headers=auth_headers(user))
-    assert response.status_code == 409
+    })
+    with pytest.raises(HTTPException) as error:
+        await create_submission(SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(db=proxy))), data, user)
+    assert error.value.status_code == 409
     assert await db.consultancy_submissions.count_documents({}) == 0
+
+
+async def _payment_async(payment):
+    return payment
