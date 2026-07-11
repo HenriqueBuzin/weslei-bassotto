@@ -60,4 +60,16 @@ describe("Questionnaire payment gate", () => {
     render(<MemoryRouter initialEntries={["/questionario?payment_id=p1&payment_token=secret"]}><Questionnaire /></MemoryRouter>);
     expect(await screen.findByText(/Não foi possível carregar/)).toBeInTheDocument();
   });
+
+  it("shows missing-question details returned by submission", async () => {
+    const question = { id: "q1", label: "Objetivo", type: "text", required: false };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.includes("/status") ? { status: "approved" } : url.includes("/me") ? { email: "user@example.com" } : [question] }));
+    api.post.mockRejectedValue({ response: { data: { detail: { missing_questions: ["Doenças"] } } } });
+    render(<MemoryRouter initialEntries={["/questionario?payment_id=p1&payment_token=secret"]}><Questionnaire /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText(/Nome completo/), "Aluno");
+    await user.type(screen.getByLabelText(/WhatsApp/), "54999990000");
+    await user.click(screen.getByRole("button", { name: /Enviar questionário/ }));
+    expect(await screen.findByText("Doenças")).toBeInTheDocument();
+  });
 });
