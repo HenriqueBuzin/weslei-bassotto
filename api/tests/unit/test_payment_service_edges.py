@@ -114,3 +114,26 @@ async def test_contract_activation_handles_replays_missing_contract_and_event_fa
 
 async def _raise_async(*args, **kwargs):
     raise RuntimeError("duplicate event")
+
+
+@pytest.mark.asyncio
+async def test_contract_event_insert_exception_is_ignored(db):
+    submission_id, payment_id = ObjectId(), ObjectId()
+    await db.consultancy_submissions.insert_one({
+        "_id": submission_id, "plan": {"end_date": "2026-08-01"}, "renewal_count": 0, "renewals": []
+    })
+    await db.payments.insert_one({"_id": payment_id})
+
+    class BrokenEvents:
+        async def find_one(self, query): return None
+        async def insert_one(self, doc): raise RuntimeError("duplicate")
+
+    class DbProxy:
+        payments = db.payments
+        consultancy_submissions = db.consultancy_submissions
+        contract_events = BrokenEvents()
+        admin_events = db.admin_events
+
+    payment = {"_id": payment_id, "plan_slug": "trimestral", "gateway": "fake", "external_id": "charge",
+               "status": "approved", "renewal_submission_id": str(submission_id)}
+    assert await activate_contract(DbProxy(), payment) is not None
