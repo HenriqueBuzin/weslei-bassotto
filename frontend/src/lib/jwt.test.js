@@ -21,5 +21,8 @@ describe("jwt helpers", () => {
     expect(isExpired("invalid")).toBe(true);
     expect(readRoles("invalid")).toEqual([]);
     expect(isExpired(token({ exp: 1 }))).toBe(true);
+    expect(isExpired(token({ roles: [] }))).toBe(true);
+    expect(readRoles()).toEqual([]);
+    expect(readRoles(token({ roles: "admin" }))).toEqual([]);
   });
 });
