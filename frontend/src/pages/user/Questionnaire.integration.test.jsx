@@ -73,14 +73,20 @@ describe("Questionnaire payment gate", () => {
     expect(await screen.findByText("Doenças")).toBeInTheDocument();
   });
 
-  it("handles missing profile email, missing select options and generic submission errors", async () => {
+  it("handles missing profile email and missing select options", async () => {
     const question = { id: "q1", label: "Escolha", type: "select", required: false };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.includes("/status") ? { status: "approved" } : url.includes("/me") ? {} : [question] }));
+    render(<MemoryRouter initialEntries={["/questionario?payment_id=p1&payment_token=secret"]}><Questionnaire /></MemoryRouter>);
+    expect(await screen.findByLabelText("E-mail")).toHaveValue("");
+    expect(screen.getByLabelText("Escolha").options).toHaveLength(1);
+  });
+
+  it("shows a generic submission error", async () => {
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.includes("/status") ? { status: "approved" } : url.includes("/me") ? { email: "user@example.com" } : [] }));
     api.post.mockRejectedValueOnce(new Error("offline"));
     render(<MemoryRouter initialEntries={["/questionario?payment_id=p1&payment_token=secret"]}><Questionnaire /></MemoryRouter>);
     const user = userEvent.setup();
-    expect(await screen.findByLabelText("E-mail")).toHaveValue("");
-    await user.type(screen.getByLabelText(/Nome completo/), "Aluno");
+    await user.type(await screen.findByLabelText(/Nome completo/), "Aluno");
     await user.type(screen.getByLabelText(/WhatsApp/), "54999990000");
     await user.click(screen.getByRole("button", { name: /Enviar questionário/ }));
     expect(await screen.findByText(/Não foi possível enviar suas respostas/)).toBeInTheDocument();
