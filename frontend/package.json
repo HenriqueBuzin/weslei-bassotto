@@ -10,6 +10,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run src/lib src/auth src/context",
+    "test:integration": "vitest run src/pages",
+    "test:functional": "vitest run src/pages",
+    "test:regression": "vitest run",
+    "test:smoke": "vitest run src/pages/user/Home.test.jsx src/pages/NotFound.test.jsx src/routes/index.test.jsx",
+    "test:api": "vitest run src/lib/api.test.js",
     "test:e2e": "playwright test"
   },
   "dependencies": {
