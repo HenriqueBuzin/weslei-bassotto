@@ -126,4 +126,18 @@ describe("CheckoutBrick", () => {
     await act(async () => {});
     append.mockRestore();
   });
+
+  it("ignores SDK load errors after unmounting", async () => {
+    state.authenticated = true;
+    let rejectScript;
+    const append = vi.spyOn(document.body, "appendChild").mockImplementation((script) => {
+      if (script.tagName === "SCRIPT") rejectScript = script.onerror;
+      return script;
+    });
+    const view = render(<MemoryRouter><CheckoutBrick /></MemoryRouter>);
+    view.unmount();
+    rejectScript?.(new Error("late failure"));
+    await act(async () => {});
+    append.mockRestore();
+  });
 });
