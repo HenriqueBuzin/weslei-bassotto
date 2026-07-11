@@ -16,7 +16,7 @@ pipeline {
                           -v "$WORKSPACE/api:/app" \
                           -w /app \
                           python:3.12-slim \
-                          sh -c "pip install -q -e '.[test]' && pytest --cov=app --cov-report=term --cov-fail-under=75 -q"
+                          sh -c "pip install -q -e '.[test]' && pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100 -q"
                         '''
                     }
                 }
