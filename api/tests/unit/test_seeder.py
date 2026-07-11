@@ -39,3 +39,23 @@ async def test_seed_ignores_existing_index_errors_and_seed_all_calls_both(db, mo
     await seed_admin(db)
     assert await db.users.find_one({"email": "admin@example.com"})
     await seed_all(db)
+
+
+@pytest.mark.asyncio
+async def test_seed_index_exception_handlers():
+    class Collection:
+        async def create_index(self, *args, **kwargs): raise RuntimeError("exists")
+        async def update_one(self, *args, **kwargs): return None
+    db = SimpleNamespace(roles=Collection(), users=Collection())
+    await seed_roles(db)
+    original = __import__("app.seeder.seed", fromlist=["settings"]).settings
+    old_accounts = original.admin_accounts
+    old_email, old_password = original.admin_email, original.admin_password
+    try:
+        original.admin_accounts = []
+        original.admin_email = "admin@example.com"
+        original.admin_password = "secret123"
+        await seed_admin(db)
+    finally:
+        original.admin_accounts = old_accounts
+        original.admin_email, original.admin_password = old_email, old_password
