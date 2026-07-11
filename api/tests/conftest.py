@@ -20,12 +20,27 @@ os.environ.setdefault("REFRESH_COOKIE_PATH", "/api/v1/auth")
 
 import httpx
 import pytest_asyncio
+import pytest
 from bson import ObjectId
 from fastapi import FastAPI
 from mongomock_motor import AsyncMongoMockClient
 
 from app.core.security import create_access_token, hash_password
 from app.routers import ROUTERS
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        path = str(item.path).replace("\\", "/")
+        if "/unit/" in path:
+            item.add_marker(pytest.mark.unit)
+        if "/integration/" in path:
+            item.add_marker(pytest.mark.integration)
+            item.add_marker(pytest.mark.api)
+            item.add_marker(pytest.mark.functional)
+        if "/smoke/" in path:
+            item.add_marker(pytest.mark.smoke)
+        item.add_marker(pytest.mark.regression)
 
 
 @pytest_asyncio.fixture
