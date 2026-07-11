@@ -32,4 +32,12 @@ describe("ProtectedRoute", () => {
     renderRoute(["admin"]);
     expect(screen.getByText("Private page")).toBeInTheDocument();
   });
+
+  it("renders an outlet when used as a route element", () => {
+    auth.value = { isAuthenticated: true, roles: ["user"] };
+    render(<MemoryRouter initialEntries={["/inside"]}><Routes>
+      <Route element={<ProtectedRoute />}><Route path="/inside" element={<p>Outlet content</p>} /></Route>
+    </Routes></MemoryRouter>);
+    expect(screen.getByText("Outlet content")).toBeInTheDocument();
+  });
 });
