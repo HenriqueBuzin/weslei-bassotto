@@ -41,4 +41,57 @@ describe("Dashboard", () => {
     expect(api.post).toHaveBeenCalledWith("/consultancy/admin/events/e1/seen");
     expect(screen.getByRole("button", { name: "Alertas (0)" })).toBeInTheDocument();
   });
+
+  it("creates, edits and deletes questionnaire questions", async () => {
+    const question = { id: "q1", label: "Frequência semanal", type: "select", options: ["3", "4"], required: true, active: true, order: 2 };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : [] }));
+    api.post.mockResolvedValue({ data: question });
+    api.patch.mockResolvedValue({ data: question });
+    api.delete.mockResolvedValue({});
+    render(<Dashboard />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("button", { name: "Editar" }));
+    expect(screen.getByRole("heading", { name: "Editar pergunta" })).toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Pergunta"));
+    await user.type(screen.getByLabelText("Pergunta"), "Nova frequência");
+    await user.click(screen.getByRole("button", { name: "Salvar pergunta" }));
+    expect(api.patch).toHaveBeenCalledWith("/consultancy/admin/questions/q1", expect.objectContaining({ label: "Nova frequência" }));
+    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("button", { name: "Apagar" }));
+    expect(api.delete).toHaveBeenCalledWith("/consultancy/admin/questions/q1");
+  });
+
+  it("creates a new select question with normalized options", async () => {
+    api.get.mockResolvedValue({ data: [] });
+    api.post.mockResolvedValue({ data: {} });
+    render(<Dashboard />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+    await user.type(screen.getByLabelText("Pergunta"), "Qual seu nível?");
+    await user.selectOptions(screen.getByLabelText("Tipo"), "select");
+    await user.type(screen.getByLabelText(/Opções/), "Iniciante\nAvançado");
+    await user.click(screen.getByRole("button", { name: "Salvar pergunta" }));
+    expect(api.post).toHaveBeenCalledWith("/consultancy/admin/questions", expect.objectContaining({
+      options: ["Iniciante", "Avançado"], type: "select",
+    }));
+  });
+
+  it("updates contract fields and marks changed answers as seen", async () => {
+    api.patch.mockResolvedValue({ data: { ...submission, status: "finished", answers_seen_at: "2026-01-03" } });
+    api.post.mockResolvedValue({ data: { ...submission, answers_seen_at: "2026-01-03" } });
+    render(<Dashboard />);
+    const user = userEvent.setup();
+    const status = await screen.findByDisplayValue("Ativo");
+    await user.selectOptions(status, "finished");
+    expect(api.patch).toHaveBeenCalledWith("/consultancy/admin/submissions/s1", { status: "finished" });
+    await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
+    expect(api.post).toHaveBeenCalledWith("/consultancy/admin/submissions/s1/answers/seen");
+  });
+
+  it("shows a load error", async () => {
+    api.get.mockRejectedValue(new Error("offline"));
+    render(<Dashboard />);
+    expect(await screen.findByText(/Não foi possível carregar o painel/)).toBeInTheDocument();
+  });
 });
