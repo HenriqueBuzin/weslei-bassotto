@@ -80,12 +80,14 @@ def test_invalid_security_settings_are_rejected(override, message):
         valid_settings(**override)
 
 
-def test_parsers_accept_json_wildcard_empty_and_fallback_values():
+def test_parsers_accept_json_wildcard_empty_and_fallback_values(monkeypatch):
     assert Settings._split_or_parse_origins('["https://one.test"]') == ["https://one.test"]
     assert Settings._split_or_parse_origins("*") == ["*"]
     assert Settings._split_or_parse_origins("") == []
     assert Settings._split_or_parse_origins("[broken") == ["[broken"]
     assert Settings._split_or_parse_origins('{"origin":"https://one.test"}') == ['{"origin":"https://one.test"}']
+    monkeypatch.setattr("app.core.settings.json.loads", lambda value: {"not": "a list"})
+    assert Settings._split_or_parse_origins("[valid-looking]") == ["[valid-looking]"]
     assert Settings._parse_gateway_order(None) == ["mercado_pago"]
     assert Settings._normalize_api_base("") == "/"
     assert Settings._norm_cookie_path("") == "/"
