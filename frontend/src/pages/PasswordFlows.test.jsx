@@ -41,4 +41,42 @@ describe("password flows", () => {
     expect(await screen.findByText(/Senha alterada com sucesso/i)).toBeInTheDocument();
     expect(post).toHaveBeenCalledWith("/auth/reset-password", { token: "abc", password: "secret123" });
   });
+
+  it("shows the generic forgot-password response and development link", async () => {
+    post.mockResolvedValue({ data: { email_sent: false, reset_url: `${window.location.origin}/redefinir-senha?token=dev` } });
+    render(<MemoryRouter><ForgotPassword /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("E-mail"), "user@example.com");
+    await user.click(screen.getByRole("button", { name: "Enviar link" }));
+    expect(await screen.findByText(/Se este e-mail estiver cadastrado/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "abrir link" })).toBeInTheDocument();
+  });
+
+  it("shows forgot-password API errors", async () => {
+    post.mockRejectedValue({ response: { data: { detail: "SMTP indisponível" } } });
+    render(<MemoryRouter><ForgotPassword /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("E-mail"), "user@example.com");
+    await user.click(screen.getByRole("button", { name: "Enviar link" }));
+    expect(await screen.findByText("SMTP indisponível")).toBeInTheDocument();
+  });
+
+  it("rejects a reset URL without token", async () => {
+    render(<MemoryRouter initialEntries={["/redefinir-senha"]}><ResetPassword /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Nova senha"), "secret123");
+    await user.type(screen.getByLabelText("Confirmar senha"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Alterar senha" }));
+    expect(screen.getByText(/Link inválido/)).toBeInTheDocument();
+  });
+
+  it("shows reset API errors", async () => {
+    post.mockRejectedValue({ response: { data: { detail: "Link expirado" } } });
+    render(<MemoryRouter initialEntries={["/redefinir-senha?token=abc"]}><ResetPassword /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Nova senha"), "secret123");
+    await user.type(screen.getByLabelText("Confirmar senha"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Alterar senha" }));
+    expect(await screen.findByText("Link expirado")).toBeInTheDocument();
+  });
 });
