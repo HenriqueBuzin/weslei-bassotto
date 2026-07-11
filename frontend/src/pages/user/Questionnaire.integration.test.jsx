@@ -91,4 +91,15 @@ describe("Questionnaire payment gate", () => {
     await user.click(screen.getByRole("button", { name: /Enviar questionário/ }));
     expect(await screen.findByText(/Não foi possível enviar suas respostas/)).toBeInTheDocument();
   });
+
+  it("normalizes invalid question data and shows a textual API detail", async () => {
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.includes("/status") ? { status: "approved" } : url.includes("/me") ? { email: "user@example.com" } : {} }));
+    api.post.mockRejectedValueOnce({ response: { data: { detail: "Pagamento já utilizado" } } });
+    render(<MemoryRouter initialEntries={["/questionario?payment_id=p1&payment_token=secret"]}><Questionnaire /></MemoryRouter>);
+    const user = userEvent.setup();
+    expect(await screen.findByText(/admin ainda não cadastrou perguntas/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Nome completo/), "Aluno"); await user.type(screen.getByLabelText(/WhatsApp/), "54999990000");
+    await user.click(screen.getByRole("button", { name: /Enviar questionário/ }));
+    expect(await screen.findByText("Pagamento já utilizado")).toBeInTheDocument();
+  });
 });
