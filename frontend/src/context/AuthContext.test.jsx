@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   authPost: vi.fn(), apiPost: vi.fn(), bind: vi.fn(), responseUse: vi.fn(() => 1), responseEject: vi.fn(),
@@ -20,10 +20,26 @@ function Probe() {
     <button onClick={() => auth.login("user@example.com", "secret123", true)}>login</button>
     <button onClick={() => auth.register("new@example.com", "secret123")}>register</button>
     <button onClick={auth.logout}>logout</button>
+    <button onClick={auth.refresh}>refresh</button>
   </div>;
 }
 
 describe("AuthContext", () => {
+  beforeEach(() => {
+    const values = new Map();
+    const storage = {
+      getItem: vi.fn((key) => values.get(key) ?? null),
+      setItem: vi.fn((key, value) => values.set(key, String(value))),
+      removeItem: vi.fn((key) => values.delete(key)),
+      clear: vi.fn(() => values.clear()),
+    };
+    Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+    Object.defineProperty(window, "sessionStorage", { configurable: true, value: { ...storage } });
+    mocks.authPost.mockReset();
+    mocks.apiPost.mockReset();
+    mocks.responseUse.mockReset();
+    mocks.responseUse.mockReturnValue(1);
+  });
   it("logs in, registers and logs out", async () => {
     mocks.authPost.mockImplementation((url) => {
       if (url === "/auth/login") return Promise.resolve({ data: { access_token: "token" } });
@@ -40,5 +56,40 @@ describe("AuthContext", () => {
     await user.click(screen.getByRole("button", { name: "register" }));
     expect(mocks.apiPost).toHaveBeenCalledWith("/auth/register", { email: "new@example.com", password: "secret123" });
     expect(mocks.authPost).toHaveBeenCalledWith("/auth/logout", null, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+  });
+
+  it("refreshes a remembered session on startup", async () => {
+    window.localStorage.setItem("wb_auth_remember_session", "1");
+    mocks.authPost.mockResolvedValue({ data: { access_token: "restored" } });
+    render(<AuthProvider><Probe /></AuthProvider>);
+    expect(await screen.findByText("authenticated")).toBeInTheDocument();
+    expect(mocks.authPost).toHaveBeenCalledWith("/auth/refresh", null, {
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+
+  it("clears markers when initial refresh fails", async () => {
+    window.sessionStorage.setItem("wb_auth_active_session", "1");
+    mocks.authPost.mockRejectedValue(new Error("offline"));
+    render(<AuthProvider><Probe /></AuthProvider>);
+    await vi.waitFor(() => expect(window.sessionStorage.getItem("wb_auth_active_session")).toBeNull());
+    expect(screen.getByText("anonymous")).toBeInTheDocument();
+  });
+
+  it("exposes a response interceptor that retries one unauthorized request", async () => {
+    let rejected;
+    mocks.responseUse.mockImplementation((_ok, fail) => { rejected = fail; return 9; });
+    mocks.authPost.mockResolvedValue({ data: { access_token: "refreshed" } });
+    render(<AuthProvider><Probe /></AuthProvider>);
+    await vi.waitFor(() => expect(rejected).toBeTypeOf("function"));
+    await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeTruthy();
+    await expect(rejected({ response: { status: 401 }, config: { _retry: true } })).rejects.toBeTruthy();
+  });
+
+  it("requires the provider", () => {
+    function Outside() { useAuth(); return null; }
+    expect(() => render(<Outside />)).toThrow(/inside/);
   });
 });
