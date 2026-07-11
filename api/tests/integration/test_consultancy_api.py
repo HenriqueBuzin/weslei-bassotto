@@ -139,3 +139,25 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
     assert (await client.get("/api/v1/consultancy/admin/events", headers=admin_headers)).status_code == 200
     assert (await client.post(f"/api/v1/consultancy/admin/events/{event['_id']}/seen", headers=admin_headers)).json() == {"ok": True}
     assert (await client.post(f"/api/v1/consultancy/admin/events/{ObjectId()}/seen", headers=admin_headers)).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_submission_detects_payment_claim_race(client, db, user_factory, auth_headers, monkeypatch):
+    user = await user_factory()
+    question = await seed_question(db)
+    payment = await seed_payment(db, user)
+    real_update = db.payments.update_one
+
+    async def lose_claim(filter, update, **kwargs):
+        if "claimed_submission_id" in filter:
+            return type("Result", (), {"modified_count": 0})()
+        return await real_update(filter, update, **kwargs)
+
+    monkeypatch.setattr(db.payments, "update_one", lose_claim)
+    response = await client.post("/api/v1/consultancy/submissions", json={
+        "plan_slug": "trimestral", "payment_id": str(payment["_id"]), "payment_token": "claim-secret",
+        "customer": {"name": "Aluno", "email": user["email"], "phone": "54999990000"},
+        "answers": [{"question_id": str(question["_id"]), "value": "Não"}],
+    }, headers=auth_headers(user))
+    assert response.status_code == 409
+    assert await db.consultancy_submissions.count_documents({}) == 0
