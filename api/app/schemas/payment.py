@@ -15,6 +15,7 @@ class CardSubscriptionIn(CheckoutIn):
     card_token_id: str
     payment_method_id: str | None = None
     payment_mode: PaymentMode = "subscription"
+    gateway: str | None = None
 
 
 class RenewalCheckoutIn(CheckoutIn):
@@ -28,4 +29,12 @@ class CheckoutOut(BaseModel):
 
 class SubscriptionOut(BaseModel):
     preapproval_id: str
+    status: str
+
+
+class PaymentOut(BaseModel):
+    payment_id: str
+    payment_token: str
+    gateway: str
+    external_id: str | None = None
     status: str

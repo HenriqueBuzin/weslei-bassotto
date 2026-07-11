@@ -1,7 +1,8 @@
 # app/core/settings.py
 
 from datetime import timedelta
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Annotated
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from pydantic import (
     Field,
     field_validator,
@@ -24,6 +25,9 @@ class Settings(BaseSettings):
     jwt_alg: str = Field(validation_alias="JWT_ALG")  # HS256 | RS256 | ES256
     jwt_secret: str = Field(validation_alias="JWT_SECRET")
     access_token_expires_minutes: int = Field(validation_alias="ACCESS_TOKEN_EXPIRES_MINUTES")
+    login_max_attempts: int = Field(default=5, gt=0, validation_alias="LOGIN_MAX_ATTEMPTS")
+    login_attempt_window_minutes: int = Field(default=15, gt=0, validation_alias="LOGIN_ATTEMPT_WINDOW_MINUTES")
+    login_lock_minutes: int = Field(default=15, gt=0, validation_alias="LOGIN_LOCK_MINUTES")
 
     # --- Refresh curto/long (sem legado) ---
     refresh_token_expires_short_hours: int = Field(validation_alias="REFRESH_TOKEN_EXPIRES_SHORT_HOURS")
@@ -46,7 +50,11 @@ class Settings(BaseSettings):
 
     # --- Mercado Pago / Checkout Pro ---
     mercado_pago_access_token: str = Field(default="", validation_alias="MERCADO_PAGO_ACCESS_TOKEN")
+    mercado_pago_webhook_secret: str = Field(default="", validation_alias="MERCADO_PAGO_WEBHOOK_SECRET")
     app_public_url: str = Field(default="http://localhost:8080", validation_alias="APP_PUBLIC_URL")
+    payment_gateway_order: Annotated[list[str], NoDecode] = Field(
+        default=["mercado_pago"], validation_alias="PAYMENT_GATEWAY_ORDER"
+    )
 
     # --- Recuperação de senha / Gmail SMTP ---
     frontend_public_url: str = Field(default="http://localhost:5173", validation_alias="FRONTEND_PUBLIC_URL")
@@ -95,6 +103,13 @@ class Settings(BaseSettings):
             except Exception:
                 pass
         return [o.strip() for o in s.split(",") if o.strip()]
+
+    @field_validator("payment_gateway_order", mode="before")
+    @classmethod
+    def _parse_gateway_order(cls, v):
+        if isinstance(v, list):
+            return v
+        return [item.strip() for item in str(v or "mercado_pago").split(",") if item.strip()]
 
     @field_validator("jwt_alg", mode="before")
     @classmethod

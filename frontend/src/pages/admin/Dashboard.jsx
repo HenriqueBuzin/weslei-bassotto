@@ -20,6 +20,13 @@ const statusLabels = {
   cancelled: "Cancelado",
 };
 
+const eventLabels = {
+  new_contract: "Novo contrato aprovado",
+  renewal_approved: "Renovação aprovada",
+  answers_changed: "Respostas alteradas",
+  payment_failed: "Falha no pagamento",
+};
+
 function hasUnseenAnswers(submission) {
   if (!submission?.answers_changed_at) return false;
   if (!submission.answers_seen_at) return true;
@@ -56,6 +63,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState("submissions");
   const [questions, setQuestions] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [events, setEvents] = useState([]);
   const [questionForm, setQuestionForm] = useState(emptyQuestion);
   const [editingId, setEditingId] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -70,12 +78,14 @@ export default function Dashboard() {
   async function loadAll() {
     setError("");
     try {
-      const [questionRes, submissionRes] = await Promise.all([
+      const [questionRes, submissionRes, eventRes] = await Promise.all([
         api.get("/consultancy/admin/questions"),
         api.get("/consultancy/admin/submissions"),
+        api.get("/consultancy/admin/events"),
       ]);
       setQuestions(questionRes.data);
       setSubmissions(submissionRes.data);
+      setEvents(eventRes.data);
       setSelectedSubmissionId((current) => current || submissionRes.data[0]?.id || null);
     } catch {
       setError("Não foi possível carregar o painel administrativo.");
@@ -150,6 +160,15 @@ export default function Dashboard() {
     }
   }
 
+  async function markEventSeen(id) {
+    try {
+      await api.post(`/consultancy/admin/events/${id}/seen`);
+      setEvents((items) => items.map((item) => (item.id === id ? { ...item, seen_at: new Date().toISOString() } : item)));
+    } catch {
+      setError("Não foi possível marcar o alerta como visto.");
+    }
+  }
+
   return (
     <main className="admin-page">
       <aside className="admin-sidebar">
@@ -163,6 +182,9 @@ export default function Dashboard() {
           </button>
           <button className={tab === "questions" ? "active" : ""} onClick={() => setTab("questions")}>
             Perguntas
+          </button>
+          <button className={tab === "events" ? "active" : ""} onClick={() => setTab("events")}>
+            Alertas ({events.filter((event) => !event.seen_at).length})
           </button>
         </nav>
         <button className="admin-logout" onClick={logout}>
@@ -409,6 +431,27 @@ export default function Dashboard() {
               </div>
             </section>
           </div>
+        )}
+
+        {tab === "events" && (
+          <section className="admin-panel">
+            <div className="panel-heading">
+              <h2>Alertas e ocorrências</h2>
+              <span>{events.filter((event) => !event.seen_at).length} não vistos</span>
+            </div>
+            <div className="questions-list">
+              {events.map((event) => (
+                <article key={event.id}>
+                  <div>
+                    <strong>{eventLabels[event.type] || event.type}</strong>
+                    <span>{new Date(event.created_at).toLocaleString("pt-BR")}</span>
+                  </div>
+                  {!event.seen_at && <button onClick={() => markEventSeen(event.id)}>Marcar como visto</button>}
+                </article>
+              ))}
+              {events.length === 0 && <p className="muted">Nenhum alerta registrado.</p>}
+            </div>
+          </section>
         )}
       </section>
     </main>

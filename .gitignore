@@ -40,6 +40,9 @@ htmlcov/
 .nox/
 .cache
 coverage.xml
+playwright-report/
+test-results/
+frontend/coverage/
 *.cover
 *.py,cover
 cover/

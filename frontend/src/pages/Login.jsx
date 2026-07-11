@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { readRoles } from "../lib/jwt";
 import "./Login.css";
 
 export default function Login() {
   const nav = useNavigate();
   const { login } = useAuth();
+  const [params] = useSearchParams();
 
   const appName = import.meta.env.VITE_APP_NAME;
   const year = new Date().getFullYear();
@@ -27,7 +28,7 @@ export default function Login() {
     try {
       const token = await login(email, password, remember);
       const roles = readRoles(token);
-      nav(roles.includes("admin") ? "/app" : "/assinante");
+      nav(roles.includes("admin") ? "/app" : (params.get("returnTo") || "/assinante"));
     } catch (e) {
       const msg =
         e?.response?.data?.detail ||
@@ -58,8 +59,9 @@ export default function Login() {
 
                 <form onSubmit={onSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label text-white-50">E-mail</label>
+                    <label className="form-label text-white-50" htmlFor="login-email">E-mail</label>
                     <input
+                      id="login-email"
                       className={`form-control form-control-lg ${
                         err ? "is-invalid" : ""
                       }`}
@@ -73,9 +75,10 @@ export default function Login() {
                   </div>
 
                   <div className="mb-2 position-relative">
-                    <label className="form-label text-white-50">Senha</label>
+                    <label className="form-label text-white-50" htmlFor="login-password">Senha</label>
                     <div className="input-group input-group-lg">
                       <input
+                        id="login-password"
                         className={`form-control ${err ? "is-invalid" : ""}`}
                         value={password}
                         onChange={(e) => setPwd(e.target.value)}
@@ -127,6 +130,10 @@ export default function Login() {
                     )}
                   </button>
                 </form>
+
+                <p className="text-center text-white-50 small mt-3 mb-0">
+                  Ainda não possui conta? <Link className="link-light" to="/cadastro">Criar conta</Link>
+                </p>
 
               </div>
             </div>

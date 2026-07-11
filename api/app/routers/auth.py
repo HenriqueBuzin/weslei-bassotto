@@ -90,6 +90,12 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
 def _reset_url(token: str) -> str:
     return f"{settings.frontend_public_url.rstrip('/')}/redefinir-senha?token={token}"
 
@@ -134,10 +140,27 @@ async def login(
 ):
     db = get_db(request)
     email = form.username.strip().lower()
+    login_now = datetime.now(UTC)
+    security = await db.login_security.find_one({"email": email})
+    locked_until = _as_utc(security.get("locked_until")) if security else None
+    if locked_until and locked_until > login_now:
+        raise HTTPException(status_code=429, detail="Muitas tentativas. Aguarde alguns minutos e tente novamente")
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(form.password, user["password_hash"]):
+        window = timedelta(minutes=settings.login_attempt_window_minutes)
+        started_at = _as_utc(security.get("started_at")) if security else None
+        attempts = (security.get("attempts", 0) + 1) if started_at and started_at > login_now - window else 1
+        locked_until = login_now + timedelta(minutes=settings.login_lock_minutes) if attempts >= settings.login_max_attempts else None
+        await db.login_security.update_one(
+            {"email": email},
+            {"$set": {"attempts": attempts, "started_at": started_at if attempts > 1 else login_now,
+                      "locked_until": locked_until,
+                      "expires_at": login_now + window + timedelta(minutes=settings.login_lock_minutes)}},
+            upsert=True,
+        )
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
+    await db.login_security.delete_one({"email": email})
     sub = str(user["_id"])
     access = create_access_token(sub, user.get("roles", []))
 

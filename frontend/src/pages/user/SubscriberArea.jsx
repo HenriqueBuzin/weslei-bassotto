@@ -14,17 +14,6 @@ function answersToMap(submission) {
   return Object.fromEntries((submission?.answers || []).map((answer) => [answer.question_id, answer.value || ""]));
 }
 
-function readPaymentReference(params) {
-  return (
-    params.get("payment_id") ||
-    params.get("collection_id") ||
-    params.get("preference_id") ||
-    params.get("preapproval_id") ||
-    params.get("external_reference") ||
-    ""
-  );
-}
-
 export default function SubscriberArea() {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -36,7 +25,6 @@ export default function SubscriberArea() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [handledReturn, setHandledReturn] = useState(false);
 
   const selected = useMemo(
     () => submissions.find((submission) => submission.id === selectedId) || submissions[0],
@@ -64,38 +52,17 @@ export default function SubscriberArea() {
   }, []);
 
   useEffect(() => {
-    if (params.get("renovacao") === "ok") {
-      setNotice("Renovação registrada. As datas do plano foram atualizadas.");
+    if (params.get("pagamento") === "approved") {
+      setNotice("Pagamento aprovado e renovação registrada. As datas do plano foram atualizadas.");
+      loadAll();
+    } else if (params.get("pagamento") === "pending") {
+      setNotice("Pagamento em análise. A renovação será aplicada automaticamente após a confirmação.");
     }
   }, [params]);
 
   useEffect(() => {
     setAnswers(answersToMap(selected));
   }, [selected?.id]);
-
-  useEffect(() => {
-    const paymentReference = readPaymentReference(params);
-    const planSlug = params.get("plano");
-    const targetId = params.get("renew") || selected?.id;
-    if (handledReturn || !paymentReference || !planSlug || !targetId || !plans.some((plan) => plan.slug === planSlug)) {
-      return;
-    }
-
-    setHandledReturn(true);
-    setBusy(true);
-    api
-      .post(`/consultancy/me/submissions/${targetId}/renew`, {
-        plan_slug: planSlug,
-        payment_reference: paymentReference,
-      })
-      .then(({ data }) => {
-        setSubmissions((items) => items.map((item) => (item.id === data.id ? data : item)));
-        setSelectedId(data.id);
-        setNotice("Pagamento confirmado e renovação registrada. As datas foram atualizadas.");
-      })
-      .catch(() => setError("Não foi possível confirmar a renovação automaticamente."))
-      .finally(() => setBusy(false));
-  }, [handledReturn, params, selected?.id]);
 
   function setAnswer(questionId, value) {
     setAnswers((current) => ({ ...current, [questionId]: value }));

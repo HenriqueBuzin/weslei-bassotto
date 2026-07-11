@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 
 const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
 
@@ -35,6 +36,7 @@ function safeUnmountBrick(controller) {
 }
 
 export default function CheckoutBrick() {
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const planSlug = plans[params.get("plano")] ? params.get("plano") : "trimestral";
@@ -55,6 +57,7 @@ export default function CheckoutBrick() {
     let mounted = true;
 
     async function mountBrick() {
+      if (!isAuthenticated) return;
       if (!publicKey) {
         setError("VITE_MP_PUBLIC_KEY não configurada.");
         return;
@@ -95,8 +98,11 @@ export default function CheckoutBrick() {
 
                 setBusy(true);
                 setError("");
+                const endpoint = renewId
+                  ? `/payments/me/renewals/${renewId}`
+                  : "/payments/card-subscription";
                 api
-                  .post("/payments/card-subscription", {
+                  .post(endpoint, {
                     plan_slug: planSlug,
                     payer_email: payerEmail,
                     card_token_id: token,
@@ -106,16 +112,12 @@ export default function CheckoutBrick() {
                   .then(({ data }) => {
                     resolve();
                     if (renewId) {
-                      return api
-                        .post(`/consultancy/me/submissions/${renewId}/renew`, {
-                          plan_slug: planSlug,
-                          payment_reference: data.preapproval_id,
-                        })
-                        .then(() => navigate("/assinante?renovacao=ok"));
+                      navigate(`/assinante?pagamento=${data.status}`);
+                      return;
                     }
                     navigate(
-                      `/questionario?plano=${planSlug}&preapproval_id=${data.preapproval_id}&email=${encodeURIComponent(
-                        payerEmail
+                      `/questionario?plano=${planSlug}&payment_id=${data.payment_id}&payment_token=${encodeURIComponent(
+                        data.payment_token
                       )}`
                     );
                   })
@@ -146,7 +148,20 @@ export default function CheckoutBrick() {
       mounted = false;
       safeUnmountBrick(controllerRef.current);
     };
-  }, [amount, navigate, paymentMode, planSlug, renewId]);
+  }, [amount, isAuthenticated, navigate, paymentMode, planSlug, renewId]);
+
+  if (!isAuthenticated) {
+    const returnTo = `/checkout?plano=${planSlug}${renewId ? `&renew=${renewId}` : ""}`;
+    return (
+      <main className="questionnaire-page"><div className="questionnaire-shell"><section className="success-panel">
+        <p className="eyebrow">Área do assinante</p>
+        <h1>Entre ou crie sua conta para assinar.</h1>
+        <p>O e-mail da conta identifica o aluno. No cartão, o titular poderá informar outro e-mail.</p>
+        <Link className="btn btn-brand" to={`/cadastro?returnTo=${encodeURIComponent(returnTo)}`}>Criar conta</Link>
+        <Link className="btn btn-outline-light" to={`/login?returnTo=${encodeURIComponent(returnTo)}`}>Entrar</Link>
+      </section></div></main>
+    );
+  }
 
   return (
     <main className="questionnaire-page">

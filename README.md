@@ -32,3 +32,39 @@ docker compose --profile prod logs -f
 # parar/remover
 docker compose --profile prod down
 ```
+
+## Arquitetura de pagamentos
+
+- A home permanece isolada das regras de pagamento.
+- Planos e períodos ficam em `api/app/domain`.
+- Gateways implementam `PaymentGateway`, definido em `api/app/payments/contracts.py`.
+- O serviço de pagamentos seleciona o adapter, registra tentativas e processa webhooks com idempotência.
+- Contratos, renovações, revisões da anamnese e alertas são persistidos no MongoDB.
+
+Para adicionar outro gateway, implemente `PaymentGateway`, registre-o em `build_gateway_registry()` e inclua seu nome em `PAYMENT_GATEWAY_ORDER`. O fallback só ocorre quando o adapter informa indisponibilidade antes de uma cobrança ser aceita. Recusas ou respostas ambíguas não são reenviadas automaticamente, evitando cobrança duplicada.
+
+## Testes
+
+```bash
+cd api
+python -m pip install -e ".[test]"
+pytest --cov=app --cov-report=term --cov-fail-under=75
+
+cd ../frontend
+npm ci
+npm run test:coverage
+npm run test:e2e
+npm run build
+```
+
+O Jenkins executa testes unitários, integração, E2E em desktop/mobile e o build antes do deploy. Os limites mínimos são 75% de linhas no frontend e 75% de cobertura total no backend.
+
+## Webhook do Mercado Pago
+
+Configure no painel do Mercado Pago:
+
+```text
+https://SEU_DOMINIO/api/v1/payments/webhooks/mercado_pago
+```
+
+Salve a assinatura secreta em `MERCADO_PAGO_WEBHOOK_SECRET`, com valores diferentes em desenvolvimento e produção. Consulte `.env.example` para a lista completa de variáveis.

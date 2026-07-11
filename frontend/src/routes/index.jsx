@@ -9,6 +9,7 @@ const Home = lazy(() => import("../pages/user/Home.jsx"));
 const Login = lazy(() => import("../pages/Login.jsx"));
 const ForgotPassword = lazy(() => import("../pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
+const Register = lazy(() => import("../pages/Register.jsx"));
 const Dashboard = lazy(() => import("../pages/admin/Dashboard.jsx"));
 const Questionnaire = lazy(() => import("../pages/user/Questionnaire.jsx"));
 const SubscriberArea = lazy(() => import("../pages/user/SubscriberArea.jsx"));
@@ -18,8 +19,9 @@ const NotFound = lazy(() => import("../pages/NotFound.jsx"));
 const routes = [
   { path: "/", element: <Home /> },
   { path: "/checkout", element: <CheckoutBrick /> },
-  { path: "/questionario", element: <Questionnaire /> },
+  { path: "/questionario", element: <ProtectedRoute><Questionnaire /></ProtectedRoute> },
   { path: "/login", element: <Login /> },
+  { path: "/cadastro", element: <Register /> },
   { path: "/recuperar", element: <ForgotPassword /> },
   { path: "/redefinir-senha", element: <ResetPassword /> },
   {
