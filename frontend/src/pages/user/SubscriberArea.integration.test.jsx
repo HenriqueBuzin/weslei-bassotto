@@ -84,6 +84,25 @@ describe("SubscriberArea", () => {
     expect(await screen.findByText(/Não foi possível salvar suas respostas/)).toBeInTheDocument();
   });
 
+  it("switches contracts and edits every answer control", async () => {
+    const questions = [
+      { id: "text", label: "Texto", type: "text", required: false, options: [] },
+      { id: "area", label: "Área", type: "textarea", required: false, options: [] },
+      { id: "select", label: "Seleção", type: "select", required: false, options: ["A"] },
+      { id: "bool", label: "Booleano", type: "boolean", required: false, options: [] },
+    ];
+    const second = { ...submission, id: "s2", plan: { ...submission.plan, name: "Plano Semestral" }, answers: [{ question_id: "text", value: "" }] };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.includes("questions") ? questions : [submission, second] }));
+    render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Plano Semestral/ }));
+    await user.type(screen.getByLabelText("Texto"), "Resposta");
+    await user.type(screen.getByLabelText("Área"), "Detalhes");
+    await user.selectOptions(screen.getByLabelText("Seleção"), "A");
+    await user.selectOptions(screen.getByLabelText("Booleano"), "Sim");
+    expect(screen.getByLabelText("Texto")).toHaveValue("Resposta");
+  });
+
   it("shows an empty state and load failures", async () => {
     api.get.mockResolvedValue({ data: [] });
     const view = render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
