@@ -69,4 +69,26 @@ describe("CheckoutBrick", () => {
     await act(() => state.brickOptions.callbacks.onSubmit({ payer: { email: "card@example.com" }, token: "token" }));
     expect(state.post).toHaveBeenCalledWith("/payments/me/renewals/s1", expect.any(Object));
   });
+
+  it("loads the Mercado Pago script when the SDK is absent", async () => {
+    state.authenticated = true;
+    const append = vi.spyOn(document.body, "appendChild").mockImplementation((script) => {
+      if (script.tagName !== "SCRIPT") return script;
+      window.MercadoPago = class { bricks() { return { create: async (_type, _container, options) => { state.brickOptions = options; return { unmount: vi.fn(() => { throw new Error("already removed"); }) }; } }; } };
+      queueMicrotask(() => script.onload?.());
+      return script;
+    });
+    const view = render(<MemoryRouter initialEntries={["/checkout"]}><CheckoutBrick /></MemoryRouter>);
+    await waitFor(() => expect(state.brickOptions).not.toBeNull());
+    expect(append).toHaveBeenCalled();
+    view.unmount();
+    append.mockRestore();
+  });
+
+  it("shows SDK initialization failures", async () => {
+    state.authenticated = true;
+    window.MercadoPago = class { constructor() { throw new Error("SDK inválido"); } };
+    render(<MemoryRouter initialEntries={["/checkout"]}><CheckoutBrick /></MemoryRouter>);
+    expect(await screen.findByText("SDK inválido")).toBeInTheDocument();
+  });
 });
