@@ -8,5 +8,6 @@ describe("formatDateBR", () => {
 
   it("keeps invalid values readable", () => {
     expect(formatDateBR("unknown")).toBe("unknown");
+    expect(formatDateBR(null)).toBe("");
   });
 });
