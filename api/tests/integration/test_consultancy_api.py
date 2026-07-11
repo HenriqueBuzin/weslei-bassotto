@@ -126,6 +126,7 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
     assert (await client.patch(f"/api/v1/consultancy/admin/questions/{ObjectId()}", json={}, headers=admin_headers)).status_code == 404
     assert (await client.delete(f"/api/v1/consultancy/admin/questions/{ObjectId()}", headers=admin_headers)).status_code == 404
     assert (await client.get("/api/v1/consultancy/admin/submissions", headers=admin_headers)).status_code == 200
+    assert (await client.get("/api/v1/consultancy/admin/questions", headers=admin_headers)).status_code == 200
     updated = await client.patch(f"/api/v1/consultancy/admin/submissions/{submission['_id']}",
         json={"status": "finished", "payment_reference": "ref", "start_date": "2026-02-01", "end_date": None}, headers=admin_headers)
     assert updated.status_code == 200 and updated.json()["status"] == "finished"
