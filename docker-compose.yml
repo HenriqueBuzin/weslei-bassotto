@@ -40,6 +40,7 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
+      - ADMIN_ACCOUNTS=${ADMIN_ACCOUNTS}
     depends_on:
       - mongodb
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}"
@@ -96,6 +97,7 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
+      - ADMIN_ACCOUNTS=${ADMIN_ACCOUNTS}
     volumes:
       - ./api:/app
     depends_on:
