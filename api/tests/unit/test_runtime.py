@@ -69,6 +69,19 @@ async def test_lifespan_connects_seeds_and_disconnects(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_lifespan_skips_seed_when_disabled(monkeypatch):
+    events = []
+    app = SimpleNamespace(state=SimpleNamespace(db="database"))
+    monkeypatch.setattr("app.main.connect", lambda target: _record_async(events, "connect"))
+    monkeypatch.setattr("app.main.seed_all", lambda db: _record_async(events, "seed"))
+    monkeypatch.setattr("app.main.disconnect", lambda target: _record_async(events, "disconnect"))
+    monkeypatch.setattr("app.main.settings.seed_on_start", False)
+    async with lifespan(app):
+        pass
+    assert events == ["connect", "disconnect"]
+
+
+@pytest.mark.asyncio
 async def test_health_reports_even_when_database_is_down():
     application = create_app()
 
