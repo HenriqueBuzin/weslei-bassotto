@@ -3,10 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  authPost: vi.fn(), apiPost: vi.fn(), bind: vi.fn(), responseUse: vi.fn(() => 1), responseEject: vi.fn(),
+  authPost: vi.fn(), apiPost: vi.fn(), apiCall: vi.fn(), bind: vi.fn(), responseUse: vi.fn(() => 1), responseEject: vi.fn(),
 }));
 vi.mock("../lib/api", () => ({
-  api: Object.assign(vi.fn(), { post: mocks.apiPost, interceptors: { response: { use: mocks.responseUse, eject: mocks.responseEject } } }),
+  api: Object.assign(mocks.apiCall, { post: mocks.apiPost, interceptors: { response: { use: mocks.responseUse, eject: mocks.responseEject } } }),
   authApi: { defaults: {}, post: mocks.authPost },
   bindAccessTokenGetter: mocks.bind,
 }));
@@ -86,6 +86,10 @@ describe("AuthContext", () => {
     await vi.waitFor(() => expect(rejected).toBeTypeOf("function"));
     await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeTruthy();
     await expect(rejected({ response: { status: 401 }, config: { _retry: true } })).rejects.toBeTruthy();
+    mocks.apiCall.mockResolvedValue({ data: "retried" });
+    await expect(rejected({ response: { status: 401 }, config: { url: "/protected" } })).resolves.toEqual({ data: "retried" });
+    mocks.authPost.mockRejectedValueOnce(new Error("refresh failed"));
+    await expect(rejected({ response: { status: 401 }, config: { url: "/again" } })).rejects.toThrow("refresh failed");
   });
 
   it("requires the provider", () => {
