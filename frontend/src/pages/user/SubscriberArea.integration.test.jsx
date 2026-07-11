@@ -39,4 +39,36 @@ describe("SubscriberArea", () => {
     });
     expect(await screen.findByText(/admin será sinalizado/i)).toBeInTheDocument();
   });
+
+  it("renders all editable types and starts a renewal", async () => {
+    const allQuestions = [
+      { id: "t", label: "Texto", type: "text", required: false, options: [] },
+      { id: "a", label: "Detalhes", type: "textarea", required: false, options: [] },
+      { id: "s", label: "Nível", type: "select", required: false, options: ["Alto"] },
+      { id: "b", label: "Fuma", type: "boolean", required: false, options: [] },
+    ];
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.includes("questions") ? allQuestions : [submission] }));
+    render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
+    const user = userEvent.setup();
+    expect(await screen.findByLabelText("Texto")).toBeInTheDocument();
+    expect(screen.getByLabelText("Detalhes")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nível")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fuma")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Renovar" })[1]);
+  });
+
+  it("shows approved and pending renewal notices", async () => {
+    render(<MemoryRouter initialEntries={["/assinante?pagamento=pending"]}><SubscriberArea /></MemoryRouter>);
+    expect(await screen.findByText(/Pagamento em análise/)).toBeInTheDocument();
+  });
+
+  it("shows an empty state and load failures", async () => {
+    api.get.mockResolvedValue({ data: [] });
+    const view = render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
+    expect(await screen.findByText("Nenhum plano encontrado")).toBeInTheDocument();
+    view.unmount();
+    api.get.mockRejectedValue(new Error("offline"));
+    render(<MemoryRouter><SubscriberArea /></MemoryRouter>);
+    expect(await screen.findByText(/Não foi possível carregar sua área/)).toBeInTheDocument();
+  });
 });
