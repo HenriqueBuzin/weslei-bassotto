@@ -38,6 +38,18 @@ async def test_cash_payload_and_rejected_response():
     assert b'"installments":1' in captured["body"]
 
 
+@pytest.mark.asyncio
+async def test_subscription_without_payment_method_and_internal_client(monkeypatch):
+    class Client:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): return None
+        async def request(self, method, url, **kwargs):
+            return httpx.Response(201, json={"id": "pre-1", "status": "pending"})
+    monkeypatch.setattr("app.payments.mercado_pago.httpx.AsyncClient", lambda **kwargs: Client())
+    result = await MercadoPagoGateway("token", "https://example.com").create_charge(request("subscription"))
+    assert result.status == PaymentStatus.PENDING
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [("authorized", PaymentStatus.APPROVED), ("cancelled", PaymentStatus.CANCELLED),
