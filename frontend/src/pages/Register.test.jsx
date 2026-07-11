@@ -40,4 +40,15 @@ describe("Register", () => {
     await user.click(screen.getByRole("button", { name: "Criar conta" }));
     expect(await screen.findByText("E-mail já cadastrado")).toBeInTheDocument();
   });
+
+  it("uses the generic registration error", async () => {
+    register.mockRejectedValueOnce(new Error("offline"));
+    render(<MemoryRouter><Register /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("E-mail"), "user@example.com");
+    await user.type(screen.getByLabelText("Senha"), "secret123");
+    await user.type(screen.getByLabelText("Confirmar senha"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+    expect(await screen.findByText(/Não foi possível criar sua conta/)).toBeInTheDocument();
+  });
 });
