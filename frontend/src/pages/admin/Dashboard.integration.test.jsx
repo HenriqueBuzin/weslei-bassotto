@@ -136,4 +136,42 @@ describe("Dashboard", () => {
     if (action === "event") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Alertas (1)" })); await user.click(screen.getByRole("button", { name: "Marcar como visto" })); }
     expect(await screen.findByText((content) => content.includes(message.replace("Não foi possível ", "")))).toBeInTheDocument();
   });
+
+  it("exercises selection, contract fields and every question control", async () => {
+    const second = { ...submission, id: "s2", customer: { ...submission.customer, name: "Segundo aluno", email: "second@example.com" },
+      answers_changed_at: null, answers_seen_at: null, answers: [{ question_id: "q-empty", label: "Resposta vazia", value: "" }] };
+    const question = { id: "q1", label: "Pergunta teste", type: "select", options: ["A"], required: false, active: false, order: 3 };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission, second] : [{ ...event, id: "e2", type: "custom", seen_at: "2026-01-01" }] }));
+    api.patch.mockImplementation((url, patch) => Promise.resolve({ data: { ...(url.includes("s2") ? second : submission), ...patch } }));
+    render(<Dashboard />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Segundo aluno/ }));
+    expect(screen.getByText("Sem resposta")).toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Início")); await user.type(screen.getByLabelText("Início"), "2026-02-01");
+    await user.clear(screen.getByLabelText("Fim")); await user.type(screen.getByLabelText("Fim"), "2026-05-01");
+    await user.type(screen.getByLabelText("Referência Mercado Pago"), "ref-2");
+    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("button", { name: "Editar" }));
+    await user.clear(screen.getByLabelText("Ordem")); await user.type(screen.getByLabelText("Ordem"), "5");
+    await user.click(screen.getByLabelText("Obrigatória"));
+    await user.click(screen.getByLabelText("Ativa"));
+    expect(screen.getByLabelText("Obrigatória")).toBeChecked();
+    expect(screen.getByLabelText("Ativa")).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Alunos e respostas" }));
+    await user.click(screen.getByRole("button", { name: /Aluno Plano/ }));
+    await user.click(screen.getByRole("button", { name: /Alertas/ }));
+    expect(screen.getByText("custom")).toBeInTheDocument();
+  });
+
+  it("renders empty lists and recurrence without a detail", async () => {
+    const recurrence = { ...submission, recurrence_status: "failed", recurrence_issue: "", answers_changed_at: null };
+    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/submissions") ? [recurrence] : [] }));
+    render(<Dashboard />);
+    expect(await screen.findByText(/Recorrência com atenção: failed/)).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    expect(screen.getByText(/Cadastre a primeira pergunta/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Alertas (0)" }));
+    expect(screen.getByText(/Nenhum alerta registrado/)).toBeInTheDocument();
+  });
 });
