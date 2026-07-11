@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Annotated
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from pydantic import (
+    BaseModel,
     Field,
     field_validator,
     computed_field,
@@ -13,6 +14,11 @@ from pydantic import (
 )
 import json
 import re
+
+
+class AdminAccount(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
 
 
 class Settings(BaseSettings):
@@ -40,6 +46,7 @@ class Settings(BaseSettings):
     seed_on_start: bool = Field(validation_alias="SEED_ON_START")
     admin_email: EmailStr | None = Field(validation_alias="ADMIN_EMAIL")
     admin_password: str | None = Field(validation_alias="ADMIN_PASSWORD")
+    admin_accounts: list[AdminAccount] = Field(default_factory=list, validation_alias="ADMIN_ACCOUNTS")
 
     # --- Cookies (refresh em HttpOnly) ---
     cookie_domain: str | None = Field(validation_alias="COOKIE_DOMAIN")
@@ -186,6 +193,13 @@ class Settings(BaseSettings):
             )
         return self
 
+    @model_validator(mode="after")
+    def _check_admin_accounts(self):
+        accounts = self.configured_admin_accounts
+        if self.is_prod and len(accounts) != 2:
+            raise ValueError("Produção exige exatamente dois administradores em ADMIN_ACCOUNTS")
+        return self
+
     # ---------- Derivados ----------
     @computed_field
     @property
@@ -217,6 +231,15 @@ class Settings(BaseSettings):
     @property
     def is_prod(self) -> bool:
         return self.app_env == "prod"
+
+    @computed_field
+    @property
+    def configured_admin_accounts(self) -> list[dict[str, str]]:
+        if self.admin_accounts:
+            return [{"email": str(account.email).lower(), "password": account.password} for account in self.admin_accounts]
+        if self.admin_email and self.admin_password:
+            return [{"email": str(self.admin_email).lower(), "password": self.admin_password}]
+        return []
 
 
 settings = Settings()
