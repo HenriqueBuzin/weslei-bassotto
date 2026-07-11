@@ -6,7 +6,7 @@ const Ctx = createContext(null);
 const REMEMBER_SESSION_KEY = "wb_auth_remember_session";
 const ACTIVE_SESSION_KEY = "wb_auth_active_session";
 
-function storageGet(storage, key) {
+export function storageGet(storage, key) {
   try {
     return storage?.getItem(key);
   } catch {
@@ -14,19 +14,19 @@ function storageGet(storage, key) {
   }
 }
 
-function storageSet(storage, key, value) {
+export function storageSet(storage, key, value) {
   try {
     storage?.setItem(key, value);
   } catch {}
 }
 
-function storageRemove(storage, key) {
+export function storageRemove(storage, key) {
   try {
     storage?.removeItem(key);
   } catch {}
 }
 
-function shouldTryInitialRefresh() {
+export function shouldTryInitialRefresh() {
   if (typeof window === "undefined") return false;
   return (
     storageGet(window.sessionStorage, ACTIVE_SESSION_KEY) === "1" ||
@@ -34,7 +34,7 @@ function shouldTryInitialRefresh() {
   );
 }
 
-function markSession(remember = false) {
+export function markSession(remember = false) {
   if (typeof window === "undefined") return;
   storageSet(window.sessionStorage, ACTIVE_SESSION_KEY, "1");
   if (remember) {
@@ -44,7 +44,7 @@ function markSession(remember = false) {
   }
 }
 
-function clearSessionMarker() {
+export function clearSessionMarker() {
   if (typeof window === "undefined") return;
   storageRemove(window.sessionStorage, ACTIVE_SESSION_KEY);
   storageRemove(window.localStorage, REMEMBER_SESSION_KEY);
