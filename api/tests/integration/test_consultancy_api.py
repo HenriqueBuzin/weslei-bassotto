@@ -89,3 +89,52 @@ async def test_admin_question_crud_and_permissions(client, user_factory, auth_he
     assert updated.json()["label"] == "Quantos dias treina?"
     deleted = await client.delete(f"/api/v1/consultancy/admin/questions/{question_id}", headers=auth_headers(admin))
     assert deleted.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_question_and_submission_edge_cases(client, db, user_factory, auth_headers):
+    user = await user_factory()
+    other = await user_factory("other@example.com")
+    admin = await user_factory("admin@example.com", roles=["admin"])
+    user_headers, other_headers, admin_headers = auth_headers(user), auth_headers(other), auth_headers(admin)
+    question = await seed_question(db)
+    assert (await client.get("/api/v1/consultancy/questions")).status_code == 200
+
+    payment = await seed_payment(db, user)
+    base = {"plan_slug": "semestral", "payment_id": str(payment["_id"]), "payment_token": "claim-secret",
+            "customer": {"name": "Aluno", "email": user["email"], "phone": "54999990000"}, "answers": []}
+    assert (await client.post("/api/v1/consultancy/submissions", json=base, headers=user_headers)).status_code == 409
+    base["plan_slug"] = "trimestral"
+    assert (await client.post("/api/v1/consultancy/submissions", json=base, headers=user_headers)).status_code == 422
+    base["answers"] = [{"question_id": str(question["_id"]), "value": "Não"}]
+    base["customer"]["email"] = other["email"]
+    assert (await client.post("/api/v1/consultancy/submissions", json=base, headers=user_headers)).status_code == 409
+
+    invalid = "/api/v1/consultancy/me/submissions/not-an-id/answers"
+    assert (await client.patch(invalid, json={"answers": []}, headers=user_headers)).status_code == 400
+    missing_id = ObjectId()
+    assert (await client.patch(f"/api/v1/consultancy/me/submissions/{missing_id}/answers", json={"answers": []}, headers=user_headers)).status_code == 404
+
+    submission = {"_id": ObjectId(), "customer": {"email": user["email"]},
+                  "plan": {"slug": "trimestral", "name": "Plano", "months": 3, "start_date": "2026-01-01", "end_date": "2026-04-01"},
+                  "status": "active", "answers": [], "created_at": datetime.now(UTC), "updated_at": datetime.now(UTC)}
+    await db.consultancy_submissions.insert_one(submission)
+    assert (await client.patch(f"/api/v1/consultancy/me/submissions/{submission['_id']}/answers", json={"answers": []}, headers=other_headers)).status_code == 403
+    assert (await client.post(f"/api/v1/consultancy/me/submissions/{submission['_id']}/renew", json={"plan_slug": "anual"}, headers=user_headers)).status_code == 410
+    assert (await client.get("/api/v1/consultancy/me/submissions", headers=user_headers)).status_code == 200
+
+    assert (await client.patch(f"/api/v1/consultancy/admin/questions/{ObjectId()}", json={}, headers=admin_headers)).status_code == 404
+    assert (await client.delete(f"/api/v1/consultancy/admin/questions/{ObjectId()}", headers=admin_headers)).status_code == 404
+    assert (await client.get("/api/v1/consultancy/admin/submissions", headers=admin_headers)).status_code == 200
+    updated = await client.patch(f"/api/v1/consultancy/admin/submissions/{submission['_id']}",
+        json={"status": "finished", "payment_reference": "ref", "start_date": "2026-02-01", "end_date": None}, headers=admin_headers)
+    assert updated.status_code == 200 and updated.json()["status"] == "finished"
+    assert (await client.patch(f"/api/v1/consultancy/admin/submissions/{ObjectId()}", json={}, headers=admin_headers)).status_code == 404
+    assert (await client.post(f"/api/v1/consultancy/admin/submissions/{submission['_id']}/answers/seen", headers=admin_headers)).status_code == 200
+    assert (await client.post(f"/api/v1/consultancy/admin/submissions/{ObjectId()}/answers/seen", headers=admin_headers)).status_code == 404
+
+    event = {"_id": ObjectId(), "type": "test", "seen_at": None, "created_at": datetime.now(UTC)}
+    await db.admin_events.insert_one(event)
+    assert (await client.get("/api/v1/consultancy/admin/events", headers=admin_headers)).status_code == 200
+    assert (await client.post(f"/api/v1/consultancy/admin/events/{event['_id']}/seen", headers=admin_headers)).json() == {"ok": True}
+    assert (await client.post(f"/api/v1/consultancy/admin/events/{ObjectId()}/seen", headers=admin_headers)).status_code == 404
