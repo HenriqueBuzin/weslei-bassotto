@@ -57,4 +57,16 @@ describe("CheckoutBrick", () => {
     expect(await screen.findByText("Cartão recusado")).toBeInTheDocument();
     expect(state.post).toHaveBeenCalledWith("/payments/me/renewals/s1", expect.objectContaining({ payment_mode: "cash" }));
   });
+
+  it("navigates after a successful renewal and reports Brick callback errors", async () => {
+    state.authenticated = true;
+    state.post.mockResolvedValue({ data: { status: "approved" } });
+    window.MercadoPago = class { bricks() { return { create: async (_type, _container, options) => { state.brickOptions = options; return { unmount: vi.fn() }; } }; } };
+    render(<MemoryRouter initialEntries={["/checkout?plano=semestral&renew=s1"]}><CheckoutBrick /></MemoryRouter>);
+    await waitFor(() => expect(state.brickOptions).not.toBeNull());
+    act(() => state.brickOptions.callbacks.onError({ message: "Brick indisponível" }));
+    expect(screen.getByText("Brick indisponível")).toBeInTheDocument();
+    await act(() => state.brickOptions.callbacks.onSubmit({ payer: { email: "card@example.com" }, token: "token" }));
+    expect(state.post).toHaveBeenCalledWith("/payments/me/renewals/s1", expect.any(Object));
+  });
 });
