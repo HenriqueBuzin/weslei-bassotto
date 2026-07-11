@@ -79,11 +79,13 @@ describe("AuthContext", () => {
   });
 
   it("exposes a response interceptor that retries one unauthorized request", async () => {
-    let rejected;
-    mocks.responseUse.mockImplementation((_ok, fail) => { rejected = fail; return 9; });
+    let accepted, rejected;
+    mocks.responseUse.mockImplementation((ok, fail) => { accepted = ok; rejected = fail; return 9; });
     mocks.authPost.mockResolvedValue({ data: { access_token: "refreshed" } });
     render(<AuthProvider><Probe /></AuthProvider>);
     await vi.waitFor(() => expect(rejected).toBeTypeOf("function"));
+    expect(accepted({ data: "ok" })).toEqual({ data: "ok" });
+    await expect(rejected({ response: { status: 500 } })).rejects.toBeTruthy();
     await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeTruthy();
     await expect(rejected({ response: { status: 401 }, config: { _retry: true } })).rejects.toBeTruthy();
     mocks.apiCall.mockResolvedValue({ data: "retried" });
