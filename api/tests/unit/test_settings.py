@@ -1,4 +1,3 @@
-from copy import deepcopy
 import importlib
 
 import pytest
@@ -59,7 +58,8 @@ def test_admin_accounts_array_takes_precedence_and_prod_requires_two():
     settings = valid_settings(APP_ENV="prod", ADMIN_ACCOUNTS=accounts)
     assert settings.is_prod and not settings.is_dev
     assert [item["email"] for item in settings.configured_admin_accounts] == [
-        "admin1@example.com", "admin2@example.com"
+        "admin1@example.com",
+        "admin2@example.com",
     ]
     with pytest.raises(ValidationError, match="exatamente dois administradores"):
         valid_settings(APP_ENV="prod", ADMIN_ACCOUNTS=accounts[:1])

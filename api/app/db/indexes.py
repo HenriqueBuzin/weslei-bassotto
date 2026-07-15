@@ -1,7 +1,7 @@
 # app/db/indexes.py
 
-from pymongo import ASCENDING, IndexModel
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo import ASCENDING, IndexModel
 
 USERS_INDEXES = [
     IndexModel([("email", ASCENDING)], unique=True, name="uniq_email"),
@@ -28,7 +28,12 @@ PASSWORD_RESET_TOKEN_INDEXES = [
 ]
 
 PAYMENT_INDEXES = [
-    IndexModel([("gateway", ASCENDING), ("external_id", ASCENDING)], unique=True, sparse=True, name="uniq_payment_gateway_external"),
+    IndexModel(
+        [("gateway", ASCENDING), ("external_id", ASCENDING)],
+        unique=True,
+        sparse=True,
+        name="uniq_payment_gateway_external",
+    ),
     IndexModel([("claim_token_hash", ASCENDING)], unique=True, name="uniq_payment_claim_token"),
     IndexModel([("status", ASCENDING), ("created_at", ASCENDING)], name="idx_payment_status_created"),
 ]
@@ -50,6 +55,7 @@ LOGIN_SECURITY_INDEXES = [
     IndexModel([("email", ASCENDING)], unique=True, name="uniq_login_security_email"),
     IndexModel([("expires_at", ASCENDING)], expireAfterSeconds=0, name="ttl_login_security_expires"),
 ]
+
 
 async def ensure_all(db: AsyncIOMotorDatabase) -> None:
     await db.users.create_indexes(USERS_INDEXES)

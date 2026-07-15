@@ -1,8 +1,10 @@
 # app/seeder/seed.py
 
-from app.core.settings import settings
 from datetime import datetime, timezone
+
 from app.core.security import hash_password
+from app.core.settings import settings
+
 
 async def seed_roles(db):
     # índice único em roles.name (idempotente)
@@ -17,6 +19,7 @@ async def seed_roles(db):
             {"$setOnInsert": {"name": name, "description": desc}},
             upsert=True,
         )
+
 
 async def seed_admin(db):
     accounts = settings.configured_admin_accounts
@@ -34,12 +37,19 @@ async def seed_admin(db):
         email, password = account["email"], account["password"]
         await db.users.update_one(
             {"email": email},
-            {"$setOnInsert": {"email": email, "password_hash": hash_password(password), "roles": [],
-                              "created_at": datetime.now(timezone.utc)}},
+            {
+                "$setOnInsert": {
+                    "email": email,
+                    "password_hash": hash_password(password),
+                    "roles": [],
+                    "created_at": datetime.now(timezone.utc),
+                }
+            },
             upsert=True,
         )
         await db.users.update_one({"email": email}, {"$addToSet": {"roles": "admin"}})
         print(f"[SEED] Admin garantido: {email}")
+
 
 async def seed_all(db):
     await seed_roles(db)

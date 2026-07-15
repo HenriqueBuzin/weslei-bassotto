@@ -15,11 +15,18 @@ async def test_subscription_has_a_fixed_end_date():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         gateway = MercadoPagoGateway("token", "https://example.com", client=client)
-        result = await gateway.create_charge(ChargeRequest(
-            reference="payment:1", description="Plano", amount=__import__("decimal").Decimal("182.23"),
-            payer_email="card@example.com", card_token="card-token", payment_method_id="master",
-            mode="subscription", installments=6,
-        ))
+        result = await gateway.create_charge(
+            ChargeRequest(
+                reference="payment:1",
+                description="Plano",
+                amount=__import__("decimal").Decimal("182.23"),
+                payer_email="card@example.com",
+                card_token="card-token",
+                payment_method_id="master",
+                mode="subscription",
+                installments=6,
+            )
+        )
 
     assert result.status == "approved"
     assert captured["auto_recurring"]["end_date"] > captured["auto_recurring"]["start_date"]
@@ -32,7 +39,9 @@ async def test_authorized_payment_webhook_maps_back_to_subscription():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         gateway = MercadoPagoGateway("token", "https://example.com", client=client)
-        event = await gateway.parse_webhook({"id": "evt", "type": "subscription_authorized_payment", "data": {"id": "invoice-1"}})
+        event = await gateway.parse_webhook(
+            {"id": "evt", "type": "subscription_authorized_payment", "data": {"id": "invoice-1"}}
+        )
 
     assert event.external_id == "pre-1"
     assert event.status == "failed"

@@ -8,7 +8,9 @@ export default function NotFound() {
     <div className="container mt-5">
       <h1>NotFound</h1>
       <p>NotFound.</p>
-      <Link className="btn btn-brand" to="/">Voltar ao início</Link>
+      <Link className="btn btn-brand" to="/">
+        Voltar ao início
+      </Link>
     </div>
   );
 }

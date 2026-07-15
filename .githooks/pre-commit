@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+ROOT="$(git rev-parse --show-toplevel)"
+VENV="C:/Users/henri/Documents/Projects/venv/weslei-bassotto"
+PYTHON="$VENV/Scripts/python.exe"
+
+if [ ! -f "$PYTHON" ]; then
+  echo "Dedicated environment not found at $VENV" >&2
+  exit 1
+fi
+
+export PATH="$VENV/Scripts:$PATH"
+export VIRTUAL_ENV="$VENV"
+export POETRY_VIRTUALENVS_CREATE=false
+cd "$ROOT"
+
+exec "$PYTHON" -m pre_commit run --config .pre-commit-config.yaml --hook-stage pre-commit

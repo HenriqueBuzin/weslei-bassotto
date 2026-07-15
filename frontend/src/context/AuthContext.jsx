@@ -76,10 +76,13 @@ export function AuthProvider({ children }) {
     return data.access_token;
   }, []);
 
-  const register = useCallback(async (email, password) => {
-    await api.post("/auth/register", { email, password });
-    return login(email, password, false);
-  }, [login]);
+  const register = useCallback(
+    async (email, password) => {
+      await api.post("/auth/register", { email, password });
+      return login(email, password, false);
+    },
+    [login],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -133,14 +136,14 @@ export function AuthProvider({ children }) {
           setAT(undefined);
           return Promise.reject(e);
         }
-      }
+      },
     );
     return () => api.interceptors.response.eject(id);
   }, [doRefresh]);
 
   const value = useMemo(
     () => ({ accessToken, roles, isAuthenticated, login, register, logout, refresh: doRefresh }),
-    [accessToken, roles, isAuthenticated, login, register, logout, doRefresh]
+    [accessToken, roles, isAuthenticated, login, register, logout, doRefresh],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

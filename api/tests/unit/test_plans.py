@@ -15,5 +15,6 @@ def test_add_months_handles_last_day_and_leap_year():
 
 def test_renewal_starts_after_active_contract():
     assert contract_period(3, today=date(2026, 5, 1), current_end=date(2026, 7, 1)) == (
-        date(2026, 7, 1), date(2026, 10, 1)
+        date(2026, 7, 1),
+        date(2026, 10, 1),
     )

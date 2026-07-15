@@ -25,13 +25,17 @@ async def _empty_lifespan():
 @pytest.mark.asyncio
 async def test_application_lifespan_connects_seeds_and_disconnects(monkeypatch):
     calls = []
+
     async def connect(app):
         app.state.db = object()
         calls.append("connect")
+
     async def seed(db):
         calls.append("seed")
+
     async def disconnect(app):
         calls.append("disconnect")
+
     monkeypatch.setattr(main, "connect", connect)
     monkeypatch.setattr(main, "seed_all", seed)
     monkeypatch.setattr(main, "disconnect", disconnect)

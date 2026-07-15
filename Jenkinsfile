@@ -15,8 +15,8 @@ pipeline {
                         docker run --rm \
                           -v "$WORKSPACE/api:/app" \
                           -w /app \
-                          python:3.12-slim \
-                          sh -c "pip install -q -e '.[test]' && pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100 -q"
+                          python:3.14-slim \
+                          sh -c "pip install -q poetry==2.4.1 && poetry config virtualenvs.create false && poetry install --no-interaction && poetry run black --check . && poetry run isort --check-only . && poetry run flake8 . && poetry run pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100 -q"
                         '''
                     }
                 }
@@ -28,8 +28,8 @@ pipeline {
                           -e VITE_API_BASE=/api/v1 \
                           -v "$WORKSPACE/frontend:/app" \
                           -w /app \
-                          node:22-bookworm-slim \
-                          sh -c "npm ci --no-audit --no-fund && npm run test:coverage && npm run build"
+                          node:24-bookworm-slim \
+                          sh -c "npm ci --no-audit --no-fund && npm run format:check && npm run lint && npm run test:coverage && npm run build"
                         '''
                     }
                 }

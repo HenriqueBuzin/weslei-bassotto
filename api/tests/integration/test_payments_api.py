@@ -1,5 +1,3 @@
-import hashlib
-import hmac
 from datetime import UTC, datetime
 
 import pytest
@@ -7,7 +5,6 @@ from bson import ObjectId
 
 from app.payments.contracts import ChargeResult, PaymentStatus
 from app.payments.registry import GatewayRegistry
-from app.payments.mercado_pago import GatewayUnavailable
 
 
 class FakeGateway:
@@ -25,10 +22,18 @@ async def test_card_payment_and_secret_status_endpoint(client, db, user_factory,
     user = await user_factory()
     registry = GatewayRegistry([FakeGateway()], ["fake"])
     monkeypatch.setattr("app.routers.payments.build_gateway_registry", lambda: registry)
-    created = await client.post("/api/v1/payments/card-subscription", json={
-        "plan_slug": "trimestral", "payer_email": "card@example.com", "card_token_id": "token",
-        "payment_method_id": "visa", "payment_mode": "cash", "gateway": "fake",
-    }, headers=auth_headers(user))
+    created = await client.post(
+        "/api/v1/payments/card-subscription",
+        json={
+            "plan_slug": "trimestral",
+            "payer_email": "card@example.com",
+            "card_token_id": "token",
+            "payment_method_id": "visa",
+            "payment_mode": "cash",
+            "gateway": "fake",
+        },
+        headers=auth_headers(user),
+    )
     assert created.status_code == 200
     data = created.json()
     assert data["status"] == "approved"
@@ -44,18 +49,41 @@ async def test_renewal_payment_enforces_contract_owner(client, db, user_factory,
     owner = await user_factory("owner@example.com")
     other = await user_factory("other@example.com")
     submission_id = ObjectId()
-    await db.consultancy_submissions.insert_one({
-        "_id": submission_id, "customer": {"email": owner["email"]},
-        "plan": {"slug": "trimestral", "name": "Plano Trimestral", "months": 3, "start_date": "2026-01-01", "end_date": "2026-04-01"},
-        "status": "active", "answers": [], "renewals": [], "renewal_count": 0,
-        "created_at": datetime.now(UTC), "updated_at": datetime.now(UTC),
-    })
+    await db.consultancy_submissions.insert_one(
+        {
+            "_id": submission_id,
+            "customer": {"email": owner["email"]},
+            "plan": {
+                "slug": "trimestral",
+                "name": "Plano Trimestral",
+                "months": 3,
+                "start_date": "2026-01-01",
+                "end_date": "2026-04-01",
+            },
+            "status": "active",
+            "answers": [],
+            "renewals": [],
+            "renewal_count": 0,
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+        }
+    )
     registry = GatewayRegistry([FakeGateway()], ["fake"])
     monkeypatch.setattr("app.routers.payments.build_gateway_registry", lambda: registry)
-    payload = {"plan_slug": "semestral", "payer_email": "card@example.com", "card_token_id": "token", "payment_mode": "subscription", "gateway": "fake"}
-    forbidden = await client.post(f"/api/v1/payments/me/renewals/{submission_id}", json=payload, headers=auth_headers(other))
+    payload = {
+        "plan_slug": "semestral",
+        "payer_email": "card@example.com",
+        "card_token_id": "token",
+        "payment_mode": "subscription",
+        "gateway": "fake",
+    }
+    forbidden = await client.post(
+        f"/api/v1/payments/me/renewals/{submission_id}", json=payload, headers=auth_headers(other)
+    )
     assert forbidden.status_code == 403
-    approved = await client.post(f"/api/v1/payments/me/renewals/{submission_id}", json=payload, headers=auth_headers(owner))
+    approved = await client.post(
+        f"/api/v1/payments/me/renewals/{submission_id}", json=payload, headers=auth_headers(owner)
+    )
     assert approved.status_code == 200
     renewed = await db.consultancy_submissions.find_one({"_id": submission_id})
     assert renewed["renewal_count"] == 1
@@ -72,20 +100,33 @@ async def test_mercado_pago_webhook_rejects_bad_signature(client):
 
 
 @pytest.mark.asyncio
-async def test_payment_api_reports_invalid_ids_missing_contracts_and_gateway_errors(client, user_factory, auth_headers, monkeypatch):
+async def test_payment_api_reports_invalid_ids_missing_contracts_and_gateway_errors(
+    client, user_factory, auth_headers, monkeypatch
+):
     user = await user_factory()
     headers = auth_headers(user)
     empty = GatewayRegistry([], [])
     monkeypatch.setattr("app.routers.payments.build_gateway_registry", lambda: empty)
-    payload = {"plan_slug": "trimestral", "payer_email": "card@example.com", "card_token_id": "token", "payment_mode": "cash"}
+    payload = {
+        "plan_slug": "trimestral",
+        "payer_email": "card@example.com",
+        "card_token_id": "token",
+        "payment_mode": "cash",
+    }
     assert (await client.post("/api/v1/payments/card-subscription", json=payload, headers=headers)).status_code == 502
     assert (await client.post("/api/v1/payments/me/renewals/invalid", json=payload, headers=headers)).status_code == 400
-    assert (await client.post(f"/api/v1/payments/me/renewals/{ObjectId()}", json=payload, headers=headers)).status_code == 404
+    assert (
+        await client.post(f"/api/v1/payments/me/renewals/{ObjectId()}", json=payload, headers=headers)
+    ).status_code == 404
     assert (await client.get("/api/v1/payments/invalid/status", params={"token": "x"})).status_code == 404
 
     submission_id = ObjectId()
-    await client._transport.app.state.db.consultancy_submissions.insert_one({"_id": submission_id, "customer": {"email": user["email"]}})
-    assert (await client.post(f"/api/v1/payments/me/renewals/{submission_id}", json=payload, headers=headers)).status_code == 502
+    await client._transport.app.state.db.consultancy_submissions.insert_one(
+        {"_id": submission_id, "customer": {"email": user["email"]}}
+    )
+    assert (
+        await client.post(f"/api/v1/payments/me/renewals/{submission_id}", json=payload, headers=headers)
+    ).status_code == 502
 
 
 @pytest.mark.asyncio

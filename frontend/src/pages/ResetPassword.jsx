@@ -48,17 +48,15 @@ export default function ResetPassword() {
             <div className="glass card border-0 shadow-lg rounded-4 overflow-hidden">
               <div className="card-body p-4 p-md-5">
                 <div className="text-center mb-4">
-                  <h1 className="h4 fw-bold text-white mb-1 text-uppercase tracking-1">
-                    Nova senha
-                  </h1>
-                  <p className="text-secondary-emphasis small mb-0">
-                    Crie uma nova senha para acessar sua conta
-                  </p>
+                  <h1 className="h4 fw-bold text-white mb-1 text-uppercase tracking-1">Nova senha</h1>
+                  <p className="text-secondary-emphasis small mb-0">Crie uma nova senha para acessar sua conta</p>
                 </div>
 
                 <form onSubmit={onSubmit}>
                   <div className="mb-3">
-                    <label className="form-label text-white-50" htmlFor="reset-password">Nova senha</label>
+                    <label className="form-label text-white-50" htmlFor="reset-password">
+                      Nova senha
+                    </label>
                     <input
                       id="reset-password"
                       className="form-control form-control-lg"
@@ -73,7 +71,9 @@ export default function ResetPassword() {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label text-white-50" htmlFor="reset-confirmation">Confirmar senha</label>
+                    <label className="form-label text-white-50" htmlFor="reset-confirmation">
+                      Confirmar senha
+                    </label>
                     <input
                       id="reset-confirmation"
                       className="form-control form-control-lg"

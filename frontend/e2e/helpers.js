@@ -4,9 +4,11 @@ export function jwt(roles = ["user"]) {
 }
 
 export async function mockLogin(page, roles = ["user"]) {
-  await page.route("**/api/v1/auth/login", (route) => route.fulfill({
-    status: 200,
-    contentType: "application/json",
-    body: JSON.stringify({ access_token: jwt(roles), token_type: "bearer" }),
-  }));
+  await page.route("**/api/v1/auth/login", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ access_token: jwt(roles), token_type: "bearer" }),
+    }),
+  );
 }

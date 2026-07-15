@@ -1,4 +1,3 @@
-from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -34,15 +33,26 @@ class Offline(Gateway):
 @pytest.mark.asyncio
 async def test_failed_result_creates_alert_and_all_offline_is_recorded(db):
     failed, _ = await create_payment(
-        db, GatewayRegistry([Gateway()], ["fake"]), plan_slug="trimestral", mode="subscription",
-        payer_email="CARD@example.com", card_token="token", payment_method_id=None, account_email=None,
+        db,
+        GatewayRegistry([Gateway()], ["fake"]),
+        plan_slug="trimestral",
+        mode="subscription",
+        payer_email="CARD@example.com",
+        card_token="token",
+        payment_method_id=None,
+        account_email=None,
     )
     assert failed["status"] == "failed"
     assert await db.admin_events.find_one({"payment_id": failed["_id"]})
     with pytest.raises(GatewayUnavailable):
         await create_payment(
-            db, GatewayRegistry([Offline()], ["fake"]), plan_slug="trimestral", mode="cash",
-            payer_email="card@example.com", card_token="token", payment_method_id=None,
+            db,
+            GatewayRegistry([Offline()], ["fake"]),
+            plan_slug="trimestral",
+            mode="cash",
+            payer_email="card@example.com",
+            card_token="token",
+            payment_method_id=None,
         )
     assert await db.payments.find_one({"status_detail": {"$regex": "offline"}})
     assert await get_claimed_approved_payment(db, "invalid", "") is None
@@ -58,20 +68,36 @@ async def test_webhook_none_unmatched_failed_renewal_and_already_approved(db):
 
     submission_id, payment_id = ObjectId(), ObjectId()
     await db.consultancy_submissions.insert_one({"_id": submission_id})
-    await db.payments.insert_one({"_id": payment_id, "gateway": "fake", "external_id": "charge-failed",
-        "status": "pending", "renewal_submission_id": str(submission_id)})
+    await db.payments.insert_one(
+        {
+            "_id": payment_id,
+            "gateway": "fake",
+            "external_id": "charge-failed",
+            "status": "pending",
+            "renewal_submission_id": str(submission_id),
+        }
+    )
     failed = Gateway(event=WebhookEvent("failed", "charge-failed", PaymentStatus.FAILED, "declined"))
     assert await apply_webhook(db, GatewayRegistry([failed], ["fake"]), "fake", {}) is True
     assert (await db.consultancy_submissions.find_one({"_id": submission_id}))["recurrence_status"] == "failed"
 
     plain_id = ObjectId()
-    await db.payments.insert_one({"_id": plain_id, "gateway": "fake", "external_id": "plain-failed", "status": "pending"})
+    await db.payments.insert_one(
+        {"_id": plain_id, "gateway": "fake", "external_id": "plain-failed", "status": "pending"}
+    )
     plain_failed = Gateway(event=WebhookEvent("plain-failed", "plain-failed", PaymentStatus.FAILED))
     assert await apply_webhook(db, GatewayRegistry([plain_failed], ["fake"]), "fake", {}) is True
 
     approved_id = ObjectId()
-    await db.payments.insert_one({"_id": approved_id, "gateway": "fake", "external_id": "already",
-        "status": "approved", "plan_slug": "trimestral"})
+    await db.payments.insert_one(
+        {
+            "_id": approved_id,
+            "gateway": "fake",
+            "external_id": "already",
+            "status": "approved",
+            "plan_slug": "trimestral",
+        }
+    )
     approved = Gateway(event=WebhookEvent("approved-again", "already", PaymentStatus.APPROVED))
     assert await apply_webhook(db, GatewayRegistry([approved], ["fake"]), "fake", {}) is True
 
@@ -79,10 +105,16 @@ async def test_webhook_none_unmatched_failed_renewal_and_already_approved(db):
 @pytest.mark.asyncio
 async def test_duplicate_webhook_insert_is_idempotent(monkeypatch):
     class Events:
-        async def find_one(self, query): return None
-        async def insert_one(self, doc): raise DuplicateKeyError("duplicate")
+        async def find_one(self, query):
+            return None
+
+        async def insert_one(self, doc):
+            raise DuplicateKeyError("duplicate")
+
     class Payments:
-        async def find_one(self, query): return {"_id": ObjectId(), "status": "pending"}
+        async def find_one(self, query):
+            return {"_id": ObjectId(), "status": "pending"}
+
     db = type("Db", (), {"payment_webhook_events": Events(), "payments": Payments()})()
     gateway = Gateway(event=WebhookEvent("duplicate", "charge", PaymentStatus.PENDING))
     assert await apply_webhook(db, GatewayRegistry([gateway], ["fake"]), "fake", {}) is False
@@ -91,8 +123,14 @@ async def test_duplicate_webhook_insert_is_idempotent(monkeypatch):
 @pytest.mark.asyncio
 async def test_contract_activation_handles_replays_missing_contract_and_event_failure(db, monkeypatch):
     payment_id, submission_id = ObjectId(), ObjectId()
-    payment = {"_id": payment_id, "plan_slug": "trimestral", "gateway": "fake", "external_id": "charge",
-               "status": "approved", "renewal_submission_id": str(submission_id)}
+    payment = {
+        "_id": payment_id,
+        "plan_slug": "trimestral",
+        "gateway": "fake",
+        "external_id": "charge",
+        "status": "approved",
+        "renewal_submission_id": str(submission_id),
+    }
     await db.payments.insert_one({**payment, "contract_activated_at": datetime.now(UTC)})
     assert await activate_contract(db, payment) is None
 
@@ -119,14 +157,17 @@ async def _raise_async(*args, **kwargs):
 @pytest.mark.asyncio
 async def test_contract_event_insert_exception_is_ignored(db):
     submission_id, payment_id = ObjectId(), ObjectId()
-    await db.consultancy_submissions.insert_one({
-        "_id": submission_id, "plan": {"end_date": "2026-08-01"}, "renewal_count": 0, "renewals": []
-    })
+    await db.consultancy_submissions.insert_one(
+        {"_id": submission_id, "plan": {"end_date": "2026-08-01"}, "renewal_count": 0, "renewals": []}
+    )
     await db.payments.insert_one({"_id": payment_id})
 
     class BrokenEvents:
-        async def find_one(self, query): return None
-        async def insert_one(self, doc): raise RuntimeError("duplicate")
+        async def find_one(self, query):
+            return None
+
+        async def insert_one(self, doc):
+            raise RuntimeError("duplicate")
 
     class DbProxy:
         payments = db.payments
@@ -134,6 +175,12 @@ async def test_contract_event_insert_exception_is_ignored(db):
         contract_events = BrokenEvents()
         admin_events = db.admin_events
 
-    payment = {"_id": payment_id, "plan_slug": "trimestral", "gateway": "fake", "external_id": "charge",
-               "status": "approved", "renewal_submission_id": str(submission_id)}
+    payment = {
+        "_id": payment_id,
+        "plan_slug": "trimestral",
+        "gateway": "fake",
+        "external_id": "charge",
+        "status": "approved",
+        "renewal_submission_id": str(submission_id),
+    }
     assert await activate_contract(DbProxy(), payment) is not None

@@ -1,19 +1,12 @@
 # app/core/settings.py
 
-from datetime import timedelta
-from typing import Annotated
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
-from pydantic import (
-    BaseModel,
-    Field,
-    field_validator,
-    computed_field,
-    ValidationInfo,
-    EmailStr,
-    model_validator,
-)
 import json
 import re
+from datetime import timedelta
+from typing import Annotated
+
+from pydantic import BaseModel, EmailStr, Field, ValidationInfo, computed_field, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class AdminAccount(BaseModel):
@@ -236,7 +229,9 @@ class Settings(BaseSettings):
     @property
     def configured_admin_accounts(self) -> list[dict[str, str]]:
         if self.admin_accounts:
-            return [{"email": str(account.email).lower(), "password": account.password} for account in self.admin_accounts]
+            return [
+                {"email": str(account.email).lower(), "password": account.password} for account in self.admin_accounts
+            ]
         if self.admin_email and self.admin_password:
             return [{"email": str(self.admin_email).lower(), "password": self.admin_password}]
         return []

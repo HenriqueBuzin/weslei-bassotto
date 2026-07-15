@@ -4,22 +4,41 @@ import { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "../auth/ProtectedRoute";
 
-// code-splitting
-const Home = lazy(() => import("../pages/user/Home.jsx"));
-const Login = lazy(() => import("../pages/Login.jsx"));
-const ForgotPassword = lazy(() => import("../pages/ForgotPassword.jsx"));
-const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
-const Register = lazy(() => import("../pages/Register.jsx"));
-const Dashboard = lazy(() => import("../pages/admin/Dashboard.jsx"));
-const Questionnaire = lazy(() => import("../pages/user/Questionnaire.jsx"));
-const SubscriberArea = lazy(() => import("../pages/user/SubscriberArea.jsx"));
-const CheckoutBrick = lazy(() => import("../pages/user/CheckoutBrick.jsx"));
-const NotFound = lazy(() => import("../pages/NotFound.jsx"));
+export const routeLoaders = {
+  home: () => import("../pages/user/Home.jsx"),
+  login: () => import("../pages/Login.jsx"),
+  forgotPassword: () => import("../pages/ForgotPassword.jsx"),
+  resetPassword: () => import("../pages/ResetPassword.jsx"),
+  register: () => import("../pages/Register.jsx"),
+  dashboard: () => import("../pages/admin/Dashboard.jsx"),
+  questionnaire: () => import("../pages/user/Questionnaire.jsx"),
+  subscriberArea: () => import("../pages/user/SubscriberArea.jsx"),
+  checkoutBrick: () => import("../pages/user/CheckoutBrick.jsx"),
+  notFound: () => import("../pages/NotFound.jsx"),
+};
+
+const Home = lazy(routeLoaders.home);
+const Login = lazy(routeLoaders.login);
+const ForgotPassword = lazy(routeLoaders.forgotPassword);
+const ResetPassword = lazy(routeLoaders.resetPassword);
+const Register = lazy(routeLoaders.register);
+const Dashboard = lazy(routeLoaders.dashboard);
+const Questionnaire = lazy(routeLoaders.questionnaire);
+const SubscriberArea = lazy(routeLoaders.subscriberArea);
+const CheckoutBrick = lazy(routeLoaders.checkoutBrick);
+const NotFound = lazy(routeLoaders.notFound);
 
 const routes = [
   { path: "/", element: <Home /> },
   { path: "/checkout", element: <CheckoutBrick /> },
-  { path: "/questionario", element: <ProtectedRoute><Questionnaire /></ProtectedRoute> },
+  {
+    path: "/questionario",
+    element: (
+      <ProtectedRoute>
+        <Questionnaire />
+      </ProtectedRoute>
+    ),
+  },
   { path: "/login", element: <Login /> },
   { path: "/cadastro", element: <Register /> },
   { path: "/recuperar", element: <ForgotPassword /> },

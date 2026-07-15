@@ -1,5 +1,5 @@
 # --- Stage 1: build do React ---
-FROM node:22-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /app
 
 # Vite lê VITE_* em tempo de build

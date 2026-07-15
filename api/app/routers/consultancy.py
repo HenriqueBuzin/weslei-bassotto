@@ -34,20 +34,35 @@ def parse_object_id(value: str) -> ObjectId:
 
 
 def question_out(doc: dict[str, Any]) -> QuestionOut:
-    return QuestionOut(id=str(doc["_id"]), **{key: doc[key] for key in ("label", "created_at", "updated_at")},
-        type=doc.get("type", "textarea"), options=doc.get("options", []), required=doc.get("required", True),
-        active=doc.get("active", True), order=doc.get("order", 0))
+    return QuestionOut(
+        id=str(doc["_id"]),
+        **{key: doc[key] for key in ("label", "created_at", "updated_at")},
+        type=doc.get("type", "textarea"),
+        options=doc.get("options", []),
+        required=doc.get("required", True),
+        active=doc.get("active", True),
+        order=doc.get("order", 0),
+    )
 
 
 def submission_out(doc: dict[str, Any]) -> SubmissionOut:
     return SubmissionOut(
-        id=str(doc["_id"]), customer=doc["customer"], plan=doc["plan"], status=doc.get("status", "pending_payment"),
-        payment_reference=doc.get("payment_reference"), payment_gateway=doc.get("payment_gateway"),
-        answers=doc.get("answers", []), answer_revisions=doc.get("answer_revisions", []),
-        answers_changed_at=doc.get("answers_changed_at"), answers_seen_at=doc.get("answers_seen_at"),
-        renewal_count=doc.get("renewal_count", 0), renewals=doc.get("renewals", []),
-        recurrence_status=doc.get("recurrence_status"), recurrence_issue=doc.get("recurrence_issue"),
-        created_at=doc["created_at"], updated_at=doc["updated_at"],
+        id=str(doc["_id"]),
+        customer=doc["customer"],
+        plan=doc["plan"],
+        status=doc.get("status", "pending_payment"),
+        payment_reference=doc.get("payment_reference"),
+        payment_gateway=doc.get("payment_gateway"),
+        answers=doc.get("answers", []),
+        answer_revisions=doc.get("answer_revisions", []),
+        answers_changed_at=doc.get("answers_changed_at"),
+        answers_seen_at=doc.get("answers_seen_at"),
+        renewal_count=doc.get("renewal_count", 0),
+        renewals=doc.get("renewals", []),
+        recurrence_status=doc.get("recurrence_status"),
+        recurrence_issue=doc.get("recurrence_issue"),
+        created_at=doc["created_at"],
+        updated_at=doc["updated_at"],
     )
 
 
@@ -62,8 +77,11 @@ async def build_answer_snapshot(db, answers_data) -> list[dict[str, Any]]:
     missing = [q["label"] for q in questions if q.get("required", True) and values.get(str(q["_id"])) in (None, "")]
     if missing:
         raise HTTPException(status_code=422, detail={"missing_questions": missing})
-    return [{"question_id": qid, "label": by_id[qid]["label"], "type": by_id[qid].get("type", "textarea"), "value": value}
-            for qid, value in values.items() if qid in by_id]
+    return [
+        {"question_id": qid, "label": by_id[qid]["label"], "type": by_id[qid].get("type", "textarea"), "value": value}
+        for qid, value in values.items()
+        if qid in by_id
+    ]
 
 
 async def find_owned_submission(db, submission_id: str, user: dict[str, Any]) -> dict[str, Any]:
@@ -101,11 +119,27 @@ async def create_submission(req: Request, data: SubmissionIn, user=Depends(get_c
     timestamp = now()
     doc = {
         "customer": {**data.customer.model_dump(), "email": str(data.customer.email).lower()},
-        "plan": {"slug": plan.slug, "name": plan.name, "months": plan.months, "start_date": start_date.isoformat(), "end_date": end_date.isoformat()},
-        "status": "active", "payment_id": data.payment_id, "payment_reference": payment.get("external_id"),
-        "payment_gateway": payment.get("gateway"), "answers": answers, "answer_revisions": [],
-        "answers_changed_at": timestamp, "answers_seen_at": None, "renewal_count": 0, "renewals": [],
-        "recurrence_status": payment["status"], "recurrence_issue": None, "created_at": timestamp, "updated_at": timestamp,
+        "plan": {
+            "slug": plan.slug,
+            "name": plan.name,
+            "months": plan.months,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        },
+        "status": "active",
+        "payment_id": data.payment_id,
+        "payment_reference": payment.get("external_id"),
+        "payment_gateway": payment.get("gateway"),
+        "answers": answers,
+        "answer_revisions": [],
+        "answers_changed_at": timestamp,
+        "answers_seen_at": None,
+        "renewal_count": 0,
+        "renewals": [],
+        "recurrence_status": payment["status"],
+        "recurrence_issue": None,
+        "created_at": timestamp,
+        "updated_at": timestamp,
     }
     result = await db.consultancy_submissions.insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -122,7 +156,12 @@ async def create_submission(req: Request, data: SubmissionIn, user=Depends(get_c
 
 @router.get("/me/submissions", response_model=list[SubmissionOut])
 async def list_my_submissions(req: Request, user=Depends(get_current_user)):
-    docs = await get_db(req).consultancy_submissions.find({"customer.email": user["email"].lower()}).sort("created_at", -1).to_list(100)
+    docs = (
+        await get_db(req)
+        .consultancy_submissions.find({"customer.email": user["email"].lower()})
+        .sort("created_at", -1)
+        .to_list(100)
+    )
     return [submission_out(doc) for doc in docs]
 
 
@@ -134,8 +173,21 @@ async def update_my_answers(submission_id: str, req: Request, data: AnswersUpdat
     answers = await build_answer_snapshot(db, data.answers)
     await db.consultancy_submissions.update_one(
         {"_id": current["_id"]},
-        {"$set": {"answers": answers, "answers_changed_at": timestamp, "answers_seen_at": None, "updated_at": timestamp},
-         "$push": {"answer_revisions": {"answers": current.get("answers", []), "changed_at": timestamp, "changed_by": "subscriber"}}},
+        {
+            "$set": {
+                "answers": answers,
+                "answers_changed_at": timestamp,
+                "answers_seen_at": None,
+                "updated_at": timestamp,
+            },
+            "$push": {
+                "answer_revisions": {
+                    "answers": current.get("answers", []),
+                    "changed_at": timestamp,
+                    "changed_by": "subscriber",
+                }
+            },
+        },
     )
     await create_admin_event(db, "answers_changed", submission_id=current["_id"])
     return submission_out(await db.consultancy_submissions.find_one({"_id": current["_id"]}))
@@ -187,7 +239,9 @@ async def list_submissions(req: Request, _user=Depends(role_required("admin"))):
 
 
 @router.patch("/admin/submissions/{submission_id}", response_model=SubmissionOut)
-async def update_submission(submission_id: str, req: Request, data: SubscriptionPatch, _user=Depends(role_required("admin"))):
+async def update_submission(
+    submission_id: str, req: Request, data: SubscriptionPatch, _user=Depends(role_required("admin"))
+):
     db, oid = get_db(req), parse_object_id(submission_id)
     patch = data.model_dump(exclude_unset=True)
     update: dict[str, Any] = {"updated_at": now()}
@@ -211,15 +265,24 @@ async def mark_answers_seen(submission_id: str, req: Request, _user=Depends(role
     doc = await db.consultancy_submissions.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Contrato não encontrado")
-    await db.admin_events.update_many({"submission_id": oid, "type": "answers_changed", "seen_at": None}, {"$set": {"seen_at": now()}})
+    await db.admin_events.update_many(
+        {"submission_id": oid, "type": "answers_changed", "seen_at": None}, {"$set": {"seen_at": now()}}
+    )
     return submission_out(doc)
 
 
 @router.get("/admin/events")
 async def list_admin_events(req: Request, _user=Depends(role_required("admin"))):
     docs = await get_db(req).admin_events.find({}).sort("created_at", -1).to_list(500)
-    return [{**{key: value for key, value in doc.items() if key != "_id"}, "id": str(doc["_id"]),
-             "payment_id": str(doc.get("payment_id", "")), "submission_id": str(doc.get("submission_id", ""))} for doc in docs]
+    return [
+        {
+            **{key: value for key, value in doc.items() if key != "_id"},
+            "id": str(doc["_id"]),
+            "payment_id": str(doc.get("payment_id", "")),
+            "submission_id": str(doc.get("submission_id", "")),
+        }
+        for doc in docs
+    ]
 
 
 @router.post("/admin/events/{event_id}/seen")

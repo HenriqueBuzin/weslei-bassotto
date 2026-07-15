@@ -28,13 +28,9 @@ export default function Login() {
     try {
       const token = await login(email, password, remember);
       const roles = readRoles(token);
-      nav(roles.includes("admin") ? "/app" : (params.get("returnTo") || "/assinante"));
+      nav(roles.includes("admin") ? "/app" : params.get("returnTo") || "/assinante");
     } catch (e) {
-      const msg =
-        e?.response?.data?.detail ||
-        e?.response?.data?.message ||
-        e?.message ||
-        "Falha no login";
+      const msg = e?.response?.data?.detail || e?.response?.data?.message || e?.message || "Falha no login";
       setErr(msg);
     } finally {
       setBusy(false);
@@ -49,22 +45,18 @@ export default function Login() {
             <div className="glass card border-0 shadow-lg rounded-4 overflow-hidden">
               <div className="card-body p-4 p-md-5">
                 <div className="text-center mb-4">
-                  <h1 className="h4 fw-bold text-white mb-1 text-uppercase tracking-1">
-                    Entrar
-                  </h1>
-                  <p className="text-secondary-emphasis small mb-0">
-                    Acesse sua conta para continuar
-                  </p>
+                  <h1 className="h4 fw-bold text-white mb-1 text-uppercase tracking-1">Entrar</h1>
+                  <p className="text-secondary-emphasis small mb-0">Acesse sua conta para continuar</p>
                 </div>
 
                 <form onSubmit={onSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label text-white-50" htmlFor="login-email">E-mail</label>
+                    <label className="form-label text-white-50" htmlFor="login-email">
+                      E-mail
+                    </label>
                     <input
                       id="login-email"
-                      className={`form-control form-control-lg ${
-                        err ? "is-invalid" : ""
-                      }`}
+                      className={`form-control form-control-lg ${err ? "is-invalid" : ""}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       type="email"
@@ -75,7 +67,9 @@ export default function Login() {
                   </div>
 
                   <div className="mb-2 position-relative">
-                    <label className="form-label text-white-50" htmlFor="login-password">Senha</label>
+                    <label className="form-label text-white-50" htmlFor="login-password">
+                      Senha
+                    </label>
                     <div className="input-group input-group-lg">
                       <input
                         id="login-password"
@@ -132,9 +126,11 @@ export default function Login() {
                 </form>
 
                 <p className="text-center text-white-50 small mt-3 mb-0">
-                  Ainda não possui conta? <Link className="link-light" to="/cadastro">Criar conta</Link>
+                  Ainda não possui conta?{" "}
+                  <Link className="link-light" to="/cadastro">
+                    Criar conta
+                  </Link>
                 </p>
-
               </div>
             </div>
 
