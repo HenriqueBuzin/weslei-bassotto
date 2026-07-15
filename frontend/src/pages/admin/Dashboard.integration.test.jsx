@@ -8,9 +8,15 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({ logout: vi.fn() 
 import Dashboard from "./Dashboard";
 
 const submission = {
-  id: "s1", customer: { name: "Aluno", email: "user@example.com", phone: "(54) 99999-0000" }, status: "active",
-  plan: { name: "Plano Trimestral", start_date: "2026-01-01", end_date: "2026-04-01" }, answers: [], renewals: [],
-  renewal_count: 0, answers_changed_at: "2026-01-02T00:00:00Z", answers_seen_at: null,
+  id: "s1",
+  customer: { name: "Aluno", email: "user@example.com", phone: "(54) 99999-0000" },
+  status: "active",
+  plan: { name: "Plano Trimestral", start_date: "2026-01-01", end_date: "2026-04-01" },
+  answers: [],
+  renewals: [],
+  renewal_count: 0,
+  answers_changed_at: "2026-01-02T00:00:00Z",
+  answers_seen_at: null,
 };
 const event = { id: "e1", type: "payment_failed", created_at: "2026-01-03T12:00:00Z", seen_at: null };
 
@@ -43,7 +49,15 @@ describe("Dashboard", () => {
   });
 
   it("creates, edits and deletes questionnaire questions", async () => {
-    const question = { id: "q1", label: "Frequência semanal", type: "select", options: ["3", "4"], required: true, active: true, order: 2 };
+    const question = {
+      id: "q1",
+      label: "Frequência semanal",
+      type: "select",
+      options: ["3", "4"],
+      required: true,
+      active: true,
+      order: 2,
+    };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : [] }));
     api.post.mockResolvedValue({ data: question });
     api.patch.mockResolvedValue({ data: question });
@@ -56,7 +70,10 @@ describe("Dashboard", () => {
     await user.clear(screen.getByLabelText("Pergunta"));
     await user.type(screen.getByLabelText("Pergunta"), "Nova frequência");
     await user.click(screen.getByRole("button", { name: "Salvar pergunta" }));
-    expect(api.patch).toHaveBeenCalledWith("/consultancy/admin/questions/q1", expect.objectContaining({ label: "Nova frequência" }));
+    expect(api.patch).toHaveBeenCalledWith(
+      "/consultancy/admin/questions/q1",
+      expect.objectContaining({ label: "Nova frequência" }),
+    );
     await user.click(screen.getByRole("button", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Apagar" }));
     expect(api.delete).toHaveBeenCalledWith("/consultancy/admin/questions/q1");
@@ -72,9 +89,13 @@ describe("Dashboard", () => {
     await user.selectOptions(screen.getByLabelText("Tipo"), "select");
     await user.type(screen.getByLabelText(/Opções/), "Iniciante\nAvançado");
     await user.click(screen.getByRole("button", { name: "Salvar pergunta" }));
-    expect(api.post).toHaveBeenCalledWith("/consultancy/admin/questions", expect.objectContaining({
-      options: ["Iniciante", "Avançado"], type: "select",
-    }));
+    expect(api.post).toHaveBeenCalledWith(
+      "/consultancy/admin/questions",
+      expect.objectContaining({
+        options: ["Iniciante", "Avançado"],
+        type: "select",
+      }),
+    );
   });
 
   it("updates contract fields and marks changed answers as seen", async () => {
@@ -96,9 +117,17 @@ describe("Dashboard", () => {
   });
 
   it("renders recurrence issues, renewal history and answers", async () => {
-    const detailed = { ...submission, recurrence_status: "failed", recurrence_issue: "Cartão recusado", renewal_count: 1,
-      renewals: [{ plan_name: "Plano Semestral", start_date: "2026-04-01", end_date: "2026-10-01", created_at: "2026-01-01" }],
-      answers: [{ question_id: "q1", label: "Doenças", value: "Nenhuma" }], answers_seen_at: "2026-01-02T01:00:00Z" };
+    const detailed = {
+      ...submission,
+      recurrence_status: "failed",
+      recurrence_issue: "Cartão recusado",
+      renewal_count: 1,
+      renewals: [
+        { plan_name: "Plano Semestral", start_date: "2026-04-01", end_date: "2026-10-01", created_at: "2026-01-01" },
+      ],
+      answers: [{ question_id: "q1", label: "Doenças", value: "Nenhuma" }],
+      answers_seen_at: "2026-01-02T01:00:00Z",
+    };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/submissions") ? [detailed] : [] }));
     render(<Dashboard />);
     expect(await screen.findByText(/Problema na recorrência/)).toBeInTheDocument();
@@ -108,7 +137,15 @@ describe("Dashboard", () => {
   });
 
   it("cancels question editing", async () => {
-    const question = { id: "q1", label: "Pergunta teste", type: "text", options: [], required: false, active: false, order: 0 };
+    const question = {
+      id: "q1",
+      label: "Pergunta teste",
+      type: "text",
+      options: [],
+      required: false,
+      active: false,
+      order: 0,
+    };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : [] }));
     render(<Dashboard />);
     const user = userEvent.setup();
@@ -125,24 +162,81 @@ describe("Dashboard", () => {
     ["answers", "Não foi possível marcar as respostas como vistas"],
     ["event", "Não foi possível marcar o alerta como visto"],
   ])("shows the %s action error", async (action, message) => {
-    const question = { id: "q1", label: "Pergunta teste", type: "text", options: [], required: true, active: true, order: 0 };
-    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission] : [event] }));
+    const question = {
+      id: "q1",
+      label: "Pergunta teste",
+      type: "text",
+      options: [],
+      required: true,
+      active: true,
+      order: 0,
+    };
+    api.get.mockImplementation((url) =>
+      Promise.resolve({
+        data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission] : [event],
+      }),
+    );
     render(<Dashboard />);
     const user = userEvent.setup();
-    if (action === "save") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Perguntas" })); await user.type(screen.getByLabelText("Pergunta"), "Nova pergunta"); await user.click(screen.getByRole("button", { name: "Salvar pergunta" })); }
-    if (action === "delete") { api.delete.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Perguntas" })); await user.click(screen.getByRole("button", { name: "Apagar" })); }
-    if (action === "submission") { api.patch.mockRejectedValueOnce(new Error()); await user.selectOptions(await screen.findByDisplayValue("Ativo"), "finished"); }
-    if (action === "answers") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Marcar como visto" })); }
-    if (action === "event") { api.post.mockRejectedValueOnce(new Error()); await user.click(await screen.findByRole("button", { name: "Alertas (1)" })); await user.click(screen.getByRole("button", { name: "Marcar como visto" })); }
-    expect(await screen.findByText((content) => content.includes(message.replace("Não foi possível ", "")))).toBeInTheDocument();
+    if (action === "save") {
+      api.post.mockRejectedValueOnce(new Error());
+      await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+      await user.type(screen.getByLabelText("Pergunta"), "Nova pergunta");
+      await user.click(screen.getByRole("button", { name: "Salvar pergunta" }));
+    }
+    if (action === "delete") {
+      api.delete.mockRejectedValueOnce(new Error());
+      await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+      await user.click(screen.getByRole("button", { name: "Apagar" }));
+    }
+    if (action === "submission") {
+      api.patch.mockRejectedValueOnce(new Error());
+      await user.selectOptions(await screen.findByDisplayValue("Ativo"), "finished");
+    }
+    if (action === "answers") {
+      api.post.mockRejectedValueOnce(new Error());
+      await user.click(await screen.findByRole("button", { name: "Marcar como visto" }));
+    }
+    if (action === "event") {
+      api.post.mockRejectedValueOnce(new Error());
+      await user.click(await screen.findByRole("button", { name: "Alertas (1)" }));
+      await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
+    }
+    expect(
+      await screen.findByText((content) => content.includes(message.replace("Não foi possível ", ""))),
+    ).toBeInTheDocument();
   });
 
   it("exercises selection, contract fields and every question control", async () => {
-    const second = { ...submission, id: "s2", customer: { ...submission.customer, name: "Segundo aluno", email: "second@example.com" },
-      answers_changed_at: null, answers_seen_at: null, answers: [{ question_id: "q-empty", label: "Resposta vazia", value: "" }] };
-    const question = { id: "q1", label: "Pergunta teste", type: "select", options: ["A"], required: false, active: false, order: 3 };
-    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission, second] : [{ ...event, id: "e2", type: "custom", seen_at: "2026-01-01" }] }));
-    api.patch.mockImplementation((url, patch) => Promise.resolve({ data: { ...(url.includes("s2") ? second : submission), ...patch } }));
+    const second = {
+      ...submission,
+      id: "s2",
+      customer: { ...submission.customer, name: "Segundo aluno", email: "second@example.com" },
+      answers_changed_at: null,
+      answers_seen_at: null,
+      answers: [{ question_id: "q-empty", label: "Resposta vazia", value: "" }],
+    };
+    const question = {
+      id: "q1",
+      label: "Pergunta teste",
+      type: "select",
+      options: ["A"],
+      required: false,
+      active: false,
+      order: 3,
+    };
+    api.get.mockImplementation((url) =>
+      Promise.resolve({
+        data: url.endsWith("/questions")
+          ? [question]
+          : url.endsWith("/submissions")
+            ? [submission, second]
+            : [{ ...event, id: "e2", type: "custom", seen_at: "2026-01-01" }],
+      }),
+    );
+    api.patch.mockImplementation((url, patch) =>
+      Promise.resolve({ data: { ...(url.includes("s2") ? second : submission), ...patch } }),
+    );
     render(<Dashboard />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: /Segundo aluno/ }));
@@ -153,13 +247,14 @@ describe("Dashboard", () => {
     await user.type(screen.getByLabelText("Referência Mercado Pago"), "ref-2");
     await user.click(screen.getByRole("button", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Editar" }));
-    await user.clear(screen.getByLabelText("Ordem")); await user.type(screen.getByLabelText("Ordem"), "5");
+    await user.clear(screen.getByLabelText("Ordem"));
+    await user.type(screen.getByLabelText("Ordem"), "5");
     await user.click(screen.getByLabelText("Obrigatória"));
     await user.click(screen.getByLabelText("Ativa"));
     expect(screen.getByLabelText("Obrigatória")).toBeChecked();
     expect(screen.getByLabelText("Ativa")).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Alunos e respostas" }));
-    await user.click(screen.getByRole("button", { name: /Aluno Respostas/ }));
+    await user.click(screen.getByRole("button", { name: /Aluno\s*Respostas/ }));
     await user.click(screen.getByRole("button", { name: /Alertas/ }));
     expect(screen.getByText("custom")).toBeInTheDocument();
   });
@@ -177,11 +272,28 @@ describe("Dashboard", () => {
   });
 
   it("normalizes missing question options and preserves unrelated rows during updates", async () => {
-    const second = { ...submission, id: "s2", customer: { ...submission.customer, name: "Segundo" }, answers_changed_at: null };
+    const second = {
+      ...submission,
+      id: "s2",
+      customer: { ...submission.customer, name: "Segundo" },
+      answers_changed_at: null,
+    };
     const question = { id: "q1", label: "Sem opções", type: "select", required: true, active: true, order: 0 };
     const secondEvent = { ...event, id: "e2", seen_at: "2026-01-04" };
-    api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission, second] : [event, secondEvent] }));
-    api.post.mockImplementation((url) => Promise.resolve({ data: url.includes("answers/seen") ? { ...submission, answers_seen_at: "2026-01-05" } : { ok: true } }));
+    api.get.mockImplementation((url) =>
+      Promise.resolve({
+        data: url.endsWith("/questions")
+          ? [question]
+          : url.endsWith("/submissions")
+            ? [submission, second]
+            : [event, secondEvent],
+      }),
+    );
+    api.post.mockImplementation((url) =>
+      Promise.resolve({
+        data: url.includes("answers/seen") ? { ...submission, answers_seen_at: "2026-01-05" } : { ok: true },
+      }),
+    );
     render(<Dashboard />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Marcar como visto" }));

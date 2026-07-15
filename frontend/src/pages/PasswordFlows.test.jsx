@@ -13,7 +13,11 @@ describe("password flows", () => {
 
   it("requests a password reset", async () => {
     post.mockResolvedValueOnce({ data: { email_sent: true } });
-    render(<MemoryRouter><ForgotPassword /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ForgotPassword />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.click(screen.getByRole("button", { name: "Enviar link" }));
@@ -22,7 +26,11 @@ describe("password flows", () => {
   });
 
   it("does not reset when confirmations differ", async () => {
-    render(<MemoryRouter initialEntries={["/redefinir-senha?token=abc"]}><ResetPassword /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/redefinir-senha?token=abc"]}>
+        <ResetPassword />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Nova senha"), "secret123");
     await user.type(screen.getByLabelText("Confirmar senha"), "different");
@@ -33,18 +41,29 @@ describe("password flows", () => {
 
   it("submits a valid new password", async () => {
     post.mockResolvedValueOnce({ data: { ok: true } });
-    render(<MemoryRouter initialEntries={["/redefinir-senha?token=abc"]}><ResetPassword /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/redefinir-senha?token=abc"]}>
+        <ResetPassword />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Nova senha"), "secret123");
     await user.type(screen.getByLabelText("Confirmar senha"), "secret123");
     await user.click(screen.getByRole("button", { name: "Alterar senha" }));
     expect(await screen.findByText(/Senha alterada com sucesso/i)).toBeInTheDocument();
     expect(post).toHaveBeenCalledWith("/auth/reset-password", { token: "abc", password: "secret123" });
+    await new Promise((resolve) => setTimeout(resolve, 1250));
   });
 
   it("shows the generic forgot-password response and development link", async () => {
-    post.mockResolvedValue({ data: { email_sent: false, reset_url: `${window.location.origin}/redefinir-senha?token=dev` } });
-    render(<MemoryRouter><ForgotPassword /></MemoryRouter>);
+    post.mockResolvedValue({
+      data: { email_sent: false, reset_url: `${window.location.origin}/redefinir-senha?token=dev` },
+    });
+    render(
+      <MemoryRouter>
+        <ForgotPassword />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.click(screen.getByRole("button", { name: "Enviar link" }));
@@ -53,12 +72,15 @@ describe("password flows", () => {
   });
 
   it("rejects a reset URL without token", async () => {
-    render(<MemoryRouter initialEntries={["/redefinir-senha"]}><ResetPassword /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/redefinir-senha"]}>
+        <ResetPassword />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Nova senha"), "secret123");
     await user.type(screen.getByLabelText("Confirmar senha"), "secret123");
     await user.click(screen.getByRole("button", { name: "Alterar senha" }));
     expect(screen.getByText(/Link inválido/)).toBeInTheDocument();
   });
-
 });

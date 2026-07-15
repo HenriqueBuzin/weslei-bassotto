@@ -65,10 +65,13 @@ export default function Questionnaire() {
       return;
     }
     let alive = true;
-    api.get(`/payments/${paymentId}/status`, { params: { token: paymentToken } })
+    api
+      .get(`/payments/${paymentId}/status`, { params: { token: paymentToken } })
       .then(({ data }) => alive && setPaymentStatus(data.status))
       .catch(() => alive && setPaymentStatus("missing"));
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [paymentId, paymentToken]);
 
   const canSubmit = useMemo(() => {
@@ -100,7 +103,11 @@ export default function Questionnaire() {
       const { data } = await api.post("/consultancy/submissions", payload);
       setSuccess(data);
     } catch (err) {
-      setError(err?.response?.data?.detail?.missing_questions?.join(", ") || err?.response?.data?.detail || "Não foi possível enviar suas respostas.");
+      setError(
+        err?.response?.data?.detail?.missing_questions?.join(", ") ||
+          err?.response?.data?.detail ||
+          "Não foi possível enviar suas respostas.",
+      );
     } finally {
       setBusy(false);
     }
@@ -117,9 +124,8 @@ export default function Questionnaire() {
           <p className="eyebrow">Anamnese da consultoria</p>
           <h1>Responda o questionário inicial.</h1>
           <p>
-            Essas informações ajudam o treinador a entender sua rotina, seus objetivos, possíveis
-            limitações, doenças, frequência de treino e tudo que for necessário para montar a
-            estratégia.
+            Essas informações ajudam o treinador a entender sua rotina, seus objetivos, possíveis limitações, doenças,
+            frequência de treino e tudo que for necessário para montar a estratégia.
           </p>
         </header>
 
@@ -129,8 +135,7 @@ export default function Questionnaire() {
             <h2>Questionário enviado com sucesso.</h2>
             <p>
               Seu plano ficou registrado como {success.plan.name}, de {formatDateBR(success.plan.start_date)} até{" "}
-              {formatDateBR(success.plan.end_date)}. O admin já consegue ver seu plano e todas as respostas no
-              painel.
+              {formatDateBR(success.plan.end_date)}. O admin já consegue ver seu plano e todas as respostas no painel.
             </p>
             <Link to="/" className="btn btn-brand">
               Voltar ao início
@@ -157,8 +162,8 @@ export default function Questionnaire() {
                 <strong>{plan.name}</strong>
                 <span>{plan.months} meses de acompanhamento</span>
                 <p>
-                  O período é definido pelo plano pago. No painel, o admin vê o aluno, o plano, a
-                  data inicial, a data final e todas as respostas cadastradas.
+                  O período é definido pelo plano pago. No painel, o admin vê o aluno, o plano, a data inicial, a data
+                  final e todas as respostas cadastradas.
                 </p>
                 <small>Pagamento confirmado com segurança.</small>
               </div>
@@ -177,12 +182,7 @@ export default function Questionnaire() {
                 </label>
                 <label>
                   E-mail
-                  <input
-                    type="email"
-                    value={customer.email}
-                    readOnly
-                    required
-                  />
+                  <input type="email" value={customer.email} readOnly required />
                 </label>
                 <label>
                   WhatsApp
@@ -201,9 +201,7 @@ export default function Questionnaire() {
             <section className="form-section">
               <h2>Perguntas da anamnese</h2>
               {loading && <p className="muted">Carregando perguntas...</p>}
-              {!loading && questions.length === 0 && (
-                <p className="muted">O admin ainda não cadastrou perguntas.</p>
-              )}
+              {!loading && questions.length === 0 && <p className="muted">O admin ainda não cadastrou perguntas.</p>}
               <div className="dynamic-questions">
                 {questions.map((question) => (
                   <label className="question-field" key={question.id}>

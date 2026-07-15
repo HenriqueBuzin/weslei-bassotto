@@ -1,7 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from jose import jwt
 
 from app.core.security import create_access_token, create_refresh_token
 from app.core.settings import settings
@@ -47,19 +46,29 @@ async def test_login_is_temporarily_locked_after_repeated_failures(client, user_
 async def test_password_reset_is_single_use_and_expires(client, db, user_factory):
     user = await user_factory()
     token = "reset-token"
-    await db.password_reset_tokens.insert_one({
-        "user_id": user["_id"], "token_hash": _token_hash(token), "used_at": None,
-        "created_at": datetime.now(UTC), "expires_at": datetime.now(UTC) + timedelta(minutes=30),
-    })
+    await db.password_reset_tokens.insert_one(
+        {
+            "user_id": user["_id"],
+            "token_hash": _token_hash(token),
+            "used_at": None,
+            "created_at": datetime.now(UTC),
+            "expires_at": datetime.now(UTC) + timedelta(minutes=30),
+        }
+    )
     first = await client.post("/api/v1/auth/reset-password", json={"token": token, "password": "new-secret"})
     assert first.status_code == 200
     reused = await client.post("/api/v1/auth/reset-password", json={"token": token, "password": "another-secret"})
     assert reused.status_code == 400
 
-    await db.password_reset_tokens.insert_one({
-        "user_id": user["_id"], "token_hash": _token_hash("expired"), "used_at": None,
-        "created_at": datetime.now(UTC) - timedelta(hours=2), "expires_at": datetime.now(UTC) - timedelta(minutes=1),
-    })
+    await db.password_reset_tokens.insert_one(
+        {
+            "user_id": user["_id"],
+            "token_hash": _token_hash("expired"),
+            "used_at": None,
+            "created_at": datetime.now(UTC) - timedelta(hours=2),
+            "expires_at": datetime.now(UTC) - timedelta(minutes=1),
+        }
+    )
     expired = await client.post("/api/v1/auth/reset-password", json={"token": "expired", "password": "new-secret"})
     assert expired.status_code == 400
 
@@ -110,11 +119,21 @@ def test_email_sender_supports_tls_and_ssl(monkeypatch):
         def __init__(self, *args, **kwargs):
             self.started_tls = False
             sessions.append(self)
-        def __enter__(self): return self
-        def __exit__(self, *args): return None
-        def starttls(self): self.started_tls = True
-        def login(self, *args): self.logged = args
-        def send_message(self, message): self.message = message
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def starttls(self):
+            self.started_tls = True
+
+        def login(self, *args):
+            self.logged = args
+
+        def send_message(self, message):
+            self.message = message
 
     monkeypatch.setattr("app.routers.auth.smtplib.SMTP", SMTP)
     monkeypatch.setattr("app.routers.auth.smtplib.SMTP_SSL", SMTP)
@@ -134,11 +153,18 @@ def test_email_sender_supports_tls_and_ssl(monkeypatch):
 @pytest.mark.asyncio
 async def test_reset_rejects_token_whose_user_was_removed(client, db):
     token = "orphan-token"
-    await db.password_reset_tokens.insert_one({
-        "user_id": __import__("bson").ObjectId(), "token_hash": _token_hash(token), "used_at": None,
-        "created_at": datetime.now(UTC), "expires_at": datetime.now(UTC) + timedelta(minutes=1),
-    })
-    assert (await client.post("/api/v1/auth/reset-password", json={"token": token, "password": "new-secret"})).status_code == 400
+    await db.password_reset_tokens.insert_one(
+        {
+            "user_id": __import__("bson").ObjectId(),
+            "token_hash": _token_hash(token),
+            "used_at": None,
+            "created_at": datetime.now(UTC),
+            "expires_at": datetime.now(UTC) + timedelta(minutes=1),
+        }
+    )
+    assert (
+        await client.post("/api/v1/auth/reset-password", json={"token": token, "password": "new-secret"})
+    ).status_code == 400
 
 
 @pytest.mark.asyncio

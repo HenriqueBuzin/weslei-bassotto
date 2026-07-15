@@ -5,8 +5,8 @@ from typing import Any
 
 import httpx
 
-from app.payments.contracts import ChargeRequest, ChargeResult, PaymentStatus, WebhookEvent
 from app.domain.plans import add_months
+from app.payments.contracts import ChargeRequest, ChargeResult, PaymentStatus, WebhookEvent
 
 
 class GatewayError(RuntimeError):
@@ -65,7 +65,9 @@ class MercadoPagoGateway:
             if request.payment_method_id:
                 payload["payment_method_id"] = request.payment_method_id
             headers = {**self.headers, "X-Idempotency-Key": request.reference}
-            response = await self._request("POST", "https://api.mercadopago.com/v1/payments", headers=headers, json=payload)
+            response = await self._request(
+                "POST", "https://api.mercadopago.com/v1/payments", headers=headers, json=payload
+            )
         else:
             payload = {
                 "reason": request.description,
@@ -89,7 +91,9 @@ class MercadoPagoGateway:
             }
             if request.payment_method_id:
                 payload["payment_method_id"] = request.payment_method_id
-            response = await self._request("POST", "https://api.mercadopago.com/preapproval", headers=self.headers, json=payload)
+            response = await self._request(
+                "POST", "https://api.mercadopago.com/preapproval", headers=self.headers, json=payload
+            )
         if response.status_code >= 400:
             raise GatewayRejected(f"Mercado Pago recusou a operação ({response.status_code}): {response.text}")
         data = response.json()

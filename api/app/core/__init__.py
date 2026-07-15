@@ -1,20 +1,8 @@
 # app/core/__init__.py
 
+from .deps import get_current_user, oauth2_scheme, role_required
+from .security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from .settings import Settings, settings
-
-from .security import (
-    decode_token,
-    hash_password,
-    verify_password,
-    create_access_token,
-    create_refresh_token
-)
-
-from .deps import (
-    role_required,
-    oauth2_scheme,
-    get_current_user
-)
 
 __all__ = [
     "Settings",
@@ -26,5 +14,5 @@ __all__ = [
     "verify_password",
     "get_current_user",
     "create_access_token",
-    "create_refresh_token"
+    "create_refresh_token",
 ]

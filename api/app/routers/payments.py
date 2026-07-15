@@ -85,9 +85,7 @@ async def renewal_payment(
 async def payment_status(payment_id: str, token: str, req: Request):
     if not ObjectId.is_valid(payment_id):
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
-    doc = await req.app.state.db.payments.find_one(
-        {"_id": ObjectId(payment_id), "claim_token_hash": token_hash(token)}
-    )
+    doc = await req.app.state.db.payments.find_one({"_id": ObjectId(payment_id), "claim_token_hash": token_hash(token)})
     if not doc:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
     return PaymentStatusOut(id=payment_id, status=doc["status"], status_detail=doc.get("status_detail"))
@@ -99,8 +97,10 @@ async def payment_webhook(gateway_name: str, req: Request):
     if gateway_name == "mercado_pago":
         data_id = str(req.query_params.get("data.id") or payload.get("data", {}).get("id") or "")
         if not verify_webhook_signature(
-            signature=req.headers.get("x-signature", ""), request_id=req.headers.get("x-request-id", ""),
-            data_id=data_id, secret=settings.mercado_pago_webhook_secret,
+            signature=req.headers.get("x-signature", ""),
+            request_id=req.headers.get("x-request-id", ""),
+            data_id=data_id,
+            secret=settings.mercado_pago_webhook_secret,
         ):
             raise HTTPException(status_code=401, detail="Assinatura do webhook inválida")
     try:

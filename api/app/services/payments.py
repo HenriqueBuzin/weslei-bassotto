@@ -8,7 +8,7 @@ from pymongo.errors import DuplicateKeyError
 
 from app.domain.plans import get_plan
 from app.payments.contracts import ChargeRequest, PaymentStatus
-from app.payments.mercado_pago import GatewayError, GatewayRejected, GatewayUnavailable
+from app.payments.mercado_pago import GatewayRejected, GatewayUnavailable
 from app.payments.registry import GatewayRegistry
 from app.services.contracts import activate_contract, create_admin_event
 
@@ -90,8 +90,17 @@ async def create_payment(
         except GatewayRejected as exc:
             await db.payments.update_one(
                 {"_id": payment_id},
-                {"$set": {"status": PaymentStatus.FAILED.value, "status_detail": str(exc), "updated_at": now()},
-                 "$push": {"attempts": {"gateway": gateway.name, "status": "rejected", "detail": str(exc), "created_at": now()}}},
+                {
+                    "$set": {"status": PaymentStatus.FAILED.value, "status_detail": str(exc), "updated_at": now()},
+                    "$push": {
+                        "attempts": {
+                            "gateway": gateway.name,
+                            "status": "rejected",
+                            "detail": str(exc),
+                            "created_at": now(),
+                        }
+                    },
+                },
             )
             await create_admin_event(db, "payment_failed", payment_id=payment_id)
             raise
@@ -99,10 +108,20 @@ async def create_payment(
             errors.append(f"{gateway.name}: {exc}")
             await db.payments.update_one(
                 {"_id": payment_id},
-                {"$push": {"attempts": {"gateway": gateway.name, "status": "unavailable", "detail": str(exc), "created_at": now()}}},
+                {
+                    "$push": {
+                        "attempts": {
+                            "gateway": gateway.name,
+                            "status": "unavailable",
+                            "detail": str(exc),
+                            "created_at": now(),
+                        }
+                    }
+                },
             )
     await db.payments.update_one(
-        {"_id": payment_id}, {"$set": {"status": PaymentStatus.FAILED.value, "status_detail": "; ".join(errors), "updated_at": now()}}
+        {"_id": payment_id},
+        {"$set": {"status": PaymentStatus.FAILED.value, "status_detail": "; ".join(errors), "updated_at": now()}},
     )
     await create_admin_event(db, "payment_failed", payment_id=payment_id)
     raise GatewayUnavailable("Nenhum gateway conseguiu iniciar a cobrança")
@@ -117,7 +136,13 @@ async def apply_webhook(db, registry: GatewayRegistry, gateway_name: str, payloa
     payment = await db.payments.find_one({"gateway": gateway_name, "external_id": event.external_id})
     try:
         await db.payment_webhook_events.insert_one(
-            {"gateway": gateway_name, "event_id": event.event_id, "external_id": event.external_id, "received_at": now(), "matched": bool(payment)}
+            {
+                "gateway": gateway_name,
+                "event_id": event.event_id,
+                "external_id": event.external_id,
+                "received_at": now(),
+                "matched": bool(payment),
+            }
         )
     except DuplicateKeyError:
         return False
@@ -136,7 +161,13 @@ async def apply_webhook(db, registry: GatewayRegistry, gateway_name: str, payloa
         if payment.get("renewal_submission_id"):
             await db.consultancy_submissions.update_one(
                 {"_id": ObjectId(payment["renewal_submission_id"])},
-                {"$set": {"recurrence_status": "failed", "recurrence_issue": event.status_detail or "Cobrança recusada", "updated_at": now()}},
+                {
+                    "$set": {
+                        "recurrence_status": "failed",
+                        "recurrence_issue": event.status_detail or "Cobrança recusada",
+                        "updated_at": now(),
+                    }
+                },
             )
     return True
 
@@ -145,5 +176,9 @@ async def get_claimed_approved_payment(db, payment_id: str, claim_token: str) ->
     if not ObjectId.is_valid(payment_id) or not claim_token:
         return None
     return await db.payments.find_one(
-        {"_id": ObjectId(payment_id), "claim_token_hash": token_hash(claim_token), "status": PaymentStatus.APPROVED.value}
+        {
+            "_id": ObjectId(payment_id),
+            "claim_token_hash": token_hash(claim_token),
+            "status": PaymentStatus.APPROVED.value,
+        }
     )

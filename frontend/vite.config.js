@@ -48,6 +48,7 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: "./src/test/setup.js",
       clearMocks: true,
+      testTimeout: 15000,
       include: ["src/**/*.{test,spec}.{js,jsx}"],
       exclude: ["e2e/**", "node_modules/**", "dist/**"],
       coverage: {

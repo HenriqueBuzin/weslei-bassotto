@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 test("password recovery and reset provide clear feedback", async ({ page }) => {
-  await page.route("**/api/v1/auth/forgot-password", (route) => route.fulfill({ json: { ok: true, email_sent: true } }));
+  await page.route("**/api/v1/auth/forgot-password", (route) =>
+    route.fulfill({ json: { ok: true, email_sent: true } }),
+  );
   await page.goto("/recuperar", { waitUntil: "domcontentloaded" });
   await page.getByLabel("E-mail").fill("user@example.com");
   await page.getByRole("button", { name: "Enviar link" }).click();

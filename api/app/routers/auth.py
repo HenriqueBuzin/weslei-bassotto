@@ -8,24 +8,19 @@ from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
 
 from bson import ObjectId
-from jose import JWTError
-from fastapi import APIRouter, HTTPException, status, Request, Depends, Response, Form
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
+from jose import JWTError
 from pydantic import BaseModel, EmailStr, Field
 from pymongo import ReturnDocument
 
-from app.db.mongo import get_db
+from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.core.settings import settings
-from app.core.security import (
-    hash_password,
-    verify_password,
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-)
+from app.db.mongo import get_db
 from app.schemas.user import UserCreate, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
 
 # ===== Helpers =====
 def set_refresh_cookie(response: Response, token: str, *, max_age: int | None) -> None:
@@ -40,10 +35,11 @@ def set_refresh_cookie(response: Response, token: str, *, max_age: int | None) -
         httponly=True,
         secure=bool(settings.cookie_secure),
         samesite=settings.cookie_samesite,  # normalizado
-        max_age=max_age,                    # <- agora vem de fora
+        max_age=max_age,  # <- agora vem de fora
         path=settings.refresh_cookie_path,
         domain=settings.cookie_domain or None,
     )
+
 
 def clear_refresh_cookie(response: Response) -> None:
     """Apaga o cookie de refresh."""
@@ -52,6 +48,7 @@ def clear_refresh_cookie(response: Response) -> None:
         path=settings.refresh_cookie_path,
         domain=settings.cookie_domain or None,
     )
+
 
 def _require_xhr_if_none_samesite(request: Request) -> None:
     """
@@ -62,8 +59,10 @@ def _require_xhr_if_none_samesite(request: Request) -> None:
         if request.headers.get("x-requested-with") != "XMLHttpRequest":
             raise HTTPException(status_code=400, detail="CSRF check falhou")
 
+
 def _user_out(doc) -> UserOut:
     return UserOut(id=str(doc["_id"]), email=doc["email"], roles=doc.get("roles", []))
+
 
 # ===== Schemas =====
 class TokenOut(BaseModel):
@@ -130,6 +129,7 @@ def _send_reset_email(to_email: str, reset_url: str) -> None:
         smtp.login(settings.smtp_user, settings.smtp_password)
         smtp.send_message(message)
 
+
 # ===== Endpoints =====
 @router.post("/login", response_model=TokenOut)
 async def login(
@@ -150,12 +150,21 @@ async def login(
         window = timedelta(minutes=settings.login_attempt_window_minutes)
         started_at = _as_utc(security.get("started_at")) if security else None
         attempts = (security.get("attempts", 0) + 1) if started_at and started_at > login_now - window else 1
-        locked_until = login_now + timedelta(minutes=settings.login_lock_minutes) if attempts >= settings.login_max_attempts else None
+        locked_until = (
+            login_now + timedelta(minutes=settings.login_lock_minutes)
+            if attempts >= settings.login_max_attempts
+            else None
+        )
         await db.login_security.update_one(
             {"email": email},
-            {"$set": {"attempts": attempts, "started_at": started_at if attempts > 1 else login_now,
-                      "locked_until": locked_until,
-                      "expires_at": login_now + window + timedelta(minutes=settings.login_lock_minutes)}},
+            {
+                "$set": {
+                    "attempts": attempts,
+                    "started_at": started_at if attempts > 1 else login_now,
+                    "locked_until": locked_until,
+                    "expires_at": login_now + window + timedelta(minutes=settings.login_lock_minutes),
+                }
+            },
             upsert=True,
         )
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
@@ -165,11 +174,7 @@ async def login(
     access = create_access_token(sub, user.get("roles", []))
 
     # expiração do refresh conforme "lembrar de mim"
-    rt_expires = (
-        settings.REFRESH_TOKEN_EXPIRES_LONG
-        if remember
-        else settings.REFRESH_TOKEN_EXPIRES_SHORT
-    )
+    rt_expires = settings.REFRESH_TOKEN_EXPIRES_LONG if remember else settings.REFRESH_TOKEN_EXPIRES_SHORT
 
     # IMPORTANTE: inclua um claim para sabermos depois se era "remember"
     # Ex.: rm = 1 (persistente) ou 0 (sessão)
@@ -179,6 +184,7 @@ async def login(
     max_age = int(rt_expires.total_seconds()) if remember else None
     set_refresh_cookie(response, refresh, max_age=max_age)
     return {"access_token": access}
+
 
 @router.post("/refresh", response_model=TokenOut)
 async def refresh(request: Request, response: Response):
@@ -207,11 +213,7 @@ async def refresh(request: Request, response: Response):
     access = create_access_token(str(user["_id"]), user.get("roles", []))
 
     # Rotaciona o refresh preservando a política remember
-    rt_expires = (
-        settings.REFRESH_TOKEN_EXPIRES_LONG
-        if remember
-        else settings.REFRESH_TOKEN_EXPIRES_SHORT
-    )
+    rt_expires = settings.REFRESH_TOKEN_EXPIRES_LONG if remember else settings.REFRESH_TOKEN_EXPIRES_SHORT
     new_rt = create_refresh_token(str(user["_id"]), expires_delta=rt_expires, claims={"rm": 1 if remember else 0})
 
     # Cookie: persistente se remember, sessão se não
@@ -219,6 +221,7 @@ async def refresh(request: Request, response: Response):
     set_refresh_cookie(response, new_rt, max_age=max_age)
 
     return {"access_token": access}
+
 
 @router.post("/logout", status_code=204)
 async def logout(response: Response, request: Request):
@@ -287,6 +290,7 @@ async def reset_password(req: Request, data: ResetPasswordIn):
         {"$set": {"used_at": now}},
     )
     return {"ok": True}
+
 
 @router.post("/register", response_model=UserOut, status_code=201)
 async def register(req: Request, data: UserCreate):

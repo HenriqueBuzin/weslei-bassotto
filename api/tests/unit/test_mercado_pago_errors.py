@@ -9,8 +9,14 @@ from app.payments.mercado_pago import GatewayError, GatewayRejected, GatewayUnav
 
 def request(mode="cash", method=None):
     return ChargeRequest(
-        reference="payment:1", description="Plano", amount=Decimal("100.00"), payer_email="card@example.com",
-        card_token="token", payment_method_id=method, mode=mode, installments=3,
+        reference="payment:1",
+        description="Plano",
+        amount=Decimal("100.00"),
+        payer_email="card@example.com",
+        card_token="token",
+        payment_method_id=method,
+        mode=mode,
+        installments=3,
     )
 
 
@@ -41,10 +47,15 @@ async def test_cash_payload_and_rejected_response():
 @pytest.mark.asyncio
 async def test_subscription_without_payment_method_and_internal_client(monkeypatch):
     class Client:
-        async def __aenter__(self): return self
-        async def __aexit__(self, *args): return None
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
         async def request(self, method, url, **kwargs):
             return httpx.Response(201, json={"id": "pre-1", "status": "pending"})
+
     monkeypatch.setattr("app.payments.mercado_pago.httpx.AsyncClient", lambda **kwargs: Client())
     result = await MercadoPagoGateway("token", "https://example.com").create_charge(request("subscription"))
     assert result.status == PaymentStatus.PENDING
@@ -52,8 +63,12 @@ async def test_subscription_without_payment_method_and_internal_client(monkeypat
 
 @pytest.mark.parametrize(
     ("value", "expected"),
-    [("authorized", PaymentStatus.APPROVED), ("cancelled", PaymentStatus.CANCELLED),
-     ("paused", PaymentStatus.FAILED), (None, PaymentStatus.PENDING)],
+    [
+        ("authorized", PaymentStatus.APPROVED),
+        ("cancelled", PaymentStatus.CANCELLED),
+        ("paused", PaymentStatus.FAILED),
+        (None, PaymentStatus.PENDING),
+    ],
 )
 def test_status_mapping(value, expected):
     assert MercadoPagoGateway._status(value) == expected

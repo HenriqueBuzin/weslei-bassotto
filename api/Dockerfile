@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7-labs
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -8,10 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # 1) Instala as deps a partir do pyproject (camada cacheável)
-COPY pyproject.toml /app/
+COPY pyproject.toml poetry.lock /app/
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -U pip && \
-    python -m pip install .
+    python -m pip install poetry==2.4.1 && \
+    poetry config virtualenvs.create false && \
+    poetry install --only main --no-root --no-interaction
 
 # 2) Copia o código
 COPY app /app/app

@@ -5,7 +5,11 @@ import NotFound from "./NotFound";
 
 describe("NotFound", () => {
   it("offers a route back to the site", () => {
-    render(<MemoryRouter><NotFound /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <NotFound />
+      </MemoryRouter>,
+    );
     expect(screen.getByRole("link")).toHaveAttribute("href", "/");
   });
 });

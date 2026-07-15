@@ -1,14 +1,16 @@
 # app/core/deps.py
 
-from jose import JWTError
 from bson import ObjectId
-from app.db.mongo import get_db
-from app.core.settings import settings
-from app.core.security import decode_token
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends, HTTPException, status, Request
+from jose import JWTError
+
+from app.core.security import decode_token
+from app.core.settings import settings
+from app.db.mongo import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_base}/auth/login")
+
 
 async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
     db = get_db(request)
@@ -48,10 +50,12 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
         )
     return user
 
+
 def role_required(*allowed_roles: str):
-    async def _dep(user = Depends(get_current_user)):
+    async def _dep(user=Depends(get_current_user)):
         roles = set(user.get("roles", []))
         if not roles.intersection(set(allowed_roles)):
             raise HTTPException(status_code=403, detail="Sem permissão")
         return user
+
     return _dep

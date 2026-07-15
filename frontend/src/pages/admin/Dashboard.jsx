@@ -72,7 +72,7 @@ export default function Dashboard() {
 
   const selectedSubmission = useMemo(
     () => submissions.find((item) => item.id === selectedSubmissionId) || submissions[0],
-    [selectedSubmissionId, submissions]
+    [selectedSubmissionId, submissions],
   );
 
   async function loadAll() {
@@ -163,7 +163,9 @@ export default function Dashboard() {
   async function markEventSeen(id) {
     try {
       await api.post(`/consultancy/admin/events/${id}/seen`);
-      setEvents((items) => items.map((item) => (item.id === id ? { ...item, seen_at: new Date().toISOString() } : item)));
+      setEvents((items) =>
+        items.map((item) => (item.id === id ? { ...item, seen_at: new Date().toISOString() } : item)),
+      );
     } catch {
       setError("Não foi possível marcar o alerta como visto.");
     }
@@ -229,7 +231,9 @@ export default function Dashboard() {
                   <div className="panel-heading">
                     <div>
                       <h2>{selectedSubmission.customer.name}</h2>
-                      <p>{selectedSubmission.customer.email} · {selectedSubmission.customer.phone}</p>
+                      <p>
+                        {selectedSubmission.customer.email} · {selectedSubmission.customer.phone}
+                      </p>
                     </div>
                     <select
                       value={selectedSubmission.status}
@@ -254,22 +258,22 @@ export default function Dashboard() {
                   <div className="subscription-editor">
                     <label>
                       Início
-                        <input
-                          type="date"
-                          value={selectedSubmission.plan.start_date}
-                          onChange={(e) => updateSubmission(selectedSubmission.id, { start_date: e.target.value })}
-                        />
-                        <small>{formatDateBR(selectedSubmission.plan.start_date)}</small>
-                      </label>
-                      <label>
-                        Fim
-                        <input
-                          type="date"
-                          value={selectedSubmission.plan.end_date}
-                          onChange={(e) => updateSubmission(selectedSubmission.id, { end_date: e.target.value })}
-                        />
-                        <small>{formatDateBR(selectedSubmission.plan.end_date)}</small>
-                      </label>
+                      <input
+                        type="date"
+                        value={selectedSubmission.plan.start_date}
+                        onChange={(e) => updateSubmission(selectedSubmission.id, { start_date: e.target.value })}
+                      />
+                      <small>{formatDateBR(selectedSubmission.plan.start_date)}</small>
+                    </label>
+                    <label>
+                      Fim
+                      <input
+                        type="date"
+                        value={selectedSubmission.plan.end_date}
+                        onChange={(e) => updateSubmission(selectedSubmission.id, { end_date: e.target.value })}
+                      />
+                      <small>{formatDateBR(selectedSubmission.plan.end_date)}</small>
+                    </label>
                     <label>
                       Referência Mercado Pago
                       <input

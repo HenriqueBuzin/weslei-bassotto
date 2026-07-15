@@ -1,0 +1,41 @@
+repos:
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe -m black --config api/pyproject.toml
+        language: system
+        types: [python]
+
+      - id: isort
+        name: isort
+        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe -m isort --settings-path api/pyproject.toml
+        language: system
+        types: [python]
+
+      - id: flake8
+        name: flake8
+        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe -m flake8 --config api/.flake8
+        language: system
+        types: [python]
+
+      - id: prettier
+        name: prettier frontend
+        entry: npm --prefix frontend run format
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: eslint
+        name: eslint frontend
+        entry: npm --prefix frontend run lint
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: quality-gates
+        name: full quality gates
+        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe scripts/validate.py
+        language: system
+        pass_filenames: false
+        always_run: true

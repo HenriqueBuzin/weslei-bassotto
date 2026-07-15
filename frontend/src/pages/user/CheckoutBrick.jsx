@@ -50,7 +50,7 @@ export default function CheckoutBrick() {
 
   const amount = useMemo(
     () => String(paymentMode === "cash" ? plan.cash : plan.monthly),
-    [paymentMode, plan.cash, plan.monthly]
+    [paymentMode, plan.cash, plan.monthly],
   );
 
   useEffect(() => {
@@ -98,9 +98,7 @@ export default function CheckoutBrick() {
 
                 setBusy(true);
                 setError("");
-                const endpoint = renewId
-                  ? `/payments/me/renewals/${renewId}`
-                  : "/payments/card-subscription";
+                const endpoint = renewId ? `/payments/me/renewals/${renewId}` : "/payments/card-subscription";
                 api
                   .post(endpoint, {
                     plan_slug: planSlug,
@@ -117,8 +115,8 @@ export default function CheckoutBrick() {
                     }
                     navigate(
                       `/questionario?plano=${planSlug}&payment_id=${data.payment_id}&payment_token=${encodeURIComponent(
-                        data.payment_token
-                      )}`
+                        data.payment_token,
+                      )}`,
                     );
                   })
                   .catch((err) => {
@@ -153,13 +151,21 @@ export default function CheckoutBrick() {
   if (!isAuthenticated) {
     const returnTo = `/checkout?plano=${planSlug}${renewId ? `&renew=${renewId}` : ""}`;
     return (
-      <main className="questionnaire-page"><div className="questionnaire-shell"><section className="success-panel">
-        <p className="eyebrow">Área do assinante</p>
-        <h1>Entre ou crie sua conta para assinar.</h1>
-        <p>O e-mail da conta identifica o aluno. No cartão, o titular poderá informar outro e-mail.</p>
-        <Link className="btn btn-brand" to={`/cadastro?returnTo=${encodeURIComponent(returnTo)}`}>Criar conta</Link>
-        <Link className="btn btn-outline-light" to={`/login?returnTo=${encodeURIComponent(returnTo)}`}>Entrar</Link>
-      </section></div></main>
+      <main className="questionnaire-page">
+        <div className="questionnaire-shell">
+          <section className="success-panel">
+            <p className="eyebrow">Área do assinante</p>
+            <h1>Entre ou crie sua conta para assinar.</h1>
+            <p>O e-mail da conta identifica o aluno. No cartão, o titular poderá informar outro e-mail.</p>
+            <Link className="btn btn-brand" to={`/cadastro?returnTo=${encodeURIComponent(returnTo)}`}>
+              Criar conta
+            </Link>
+            <Link className="btn btn-outline-light" to={`/login?returnTo=${encodeURIComponent(returnTo)}`}>
+              Entrar
+            </Link>
+          </section>
+        </div>
+      </main>
     );
   }
 
@@ -174,8 +180,8 @@ export default function CheckoutBrick() {
           <p className="eyebrow">Pagamento dentro do site</p>
           <h1>{plan.name}</h1>
           <p>
-            Escolha pagamento à vista ou assinatura mensal recorrente. O Mercado Pago processa os
-            dados do cartão com segurança.
+            Escolha pagamento à vista ou assinatura mensal recorrente. O Mercado Pago processa os dados do cartão com
+            segurança.
           </p>
           {renewId && <p className="muted">Renovação da sua consultoria atual.</p>}
         </header>
@@ -216,8 +222,8 @@ export default function CheckoutBrick() {
                   : `Cobranças mensais recorrentes por ${plan.months} meses.`}
               </p>
               <small>
-                O e-mail pedido no cartão é o e-mail do proprietário do cartão. Ele pode ser
-                diferente do e-mail da conta no site.
+                O e-mail pedido no cartão é o e-mail do proprietário do cartão. Ele pode ser diferente do e-mail da
+                conta no site.
               </small>
             </div>
           </div>

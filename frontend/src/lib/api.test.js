@@ -1,13 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ instances: [] }));
-vi.mock("axios", () => ({ default: {
-  create: vi.fn((config) => {
-    const instance = { config, interceptors: { request: { use: vi.fn((fn) => { instance.interceptor = fn; }) } } };
-    state.instances.push(instance);
-    return instance;
-  }),
-} }));
+vi.mock("axios", () => ({
+  default: {
+    create: vi.fn((config) => {
+      const instance = {
+        config,
+        interceptors: {
+          request: {
+            use: vi.fn((fn) => {
+              instance.interceptor = fn;
+            }),
+          },
+        },
+      };
+      state.instances.push(instance);
+      return instance;
+    }),
+  },
+}));
 
 describe("API clients", () => {
   it("normalizes the base URL and injects a bound access token", async () => {

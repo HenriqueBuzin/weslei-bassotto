@@ -90,5 +90,5 @@ async def test_health_reports_even_when_database_is_down():
             raise RuntimeError("offline")
 
     application.state.db = BrokenDb()
-    health = next(route.endpoint for route in application.routes if route.path == "/health")
+    health = next(route.endpoint for route in application.routes if getattr(route, "path", None) == "/health")
     assert await health() == {"status": "ok"}

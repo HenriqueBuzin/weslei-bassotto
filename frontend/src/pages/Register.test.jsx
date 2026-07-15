@@ -9,7 +9,11 @@ import Register from "./Register";
 
 describe("Register", () => {
   it("validates password confirmation before calling the API", async () => {
-    render(<MemoryRouter><Register /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Register />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "secret123");
@@ -21,7 +25,11 @@ describe("Register", () => {
 
   it("registers with matching credentials", async () => {
     register.mockResolvedValueOnce("token");
-    render(<MemoryRouter><Register /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Register />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "secret123");
@@ -32,7 +40,11 @@ describe("Register", () => {
 
   it("shows registration API errors", async () => {
     register.mockRejectedValueOnce({ response: { data: { detail: "E-mail já cadastrado" } } });
-    render(<MemoryRouter><Register /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Register />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "secret123");
@@ -43,7 +55,11 @@ describe("Register", () => {
 
   it("uses the generic registration error", async () => {
     register.mockRejectedValueOnce(new Error("offline"));
-    render(<MemoryRouter><Register /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Register />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "secret123");

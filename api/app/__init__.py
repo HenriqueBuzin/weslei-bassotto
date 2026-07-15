@@ -1,6 +1,6 @@
 # app/__init__.py
 
-from importlib.metadata import PackageNotFoundError, version, metadata
+from importlib.metadata import PackageNotFoundError, metadata, version
 
 try:
     __version__ = version("myapi")

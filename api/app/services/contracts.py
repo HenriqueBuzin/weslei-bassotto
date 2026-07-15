@@ -44,7 +44,13 @@ async def activate_contract(db, payment: dict[str, Any]) -> dict[str, Any] | Non
             {"_id": submission_id},
             {
                 "$set": {
-                    "plan": {"slug": plan.slug, "name": plan.name, "months": plan.months, "start_date": start.isoformat(), "end_date": end.isoformat()},
+                    "plan": {
+                        "slug": plan.slug,
+                        "name": plan.name,
+                        "months": plan.months,
+                        "start_date": start.isoformat(),
+                        "end_date": end.isoformat(),
+                    },
                     "status": "active",
                     "payment_reference": payment.get("external_id"),
                     "payment_id": str(payment["_id"]),
@@ -62,7 +68,12 @@ async def activate_contract(db, payment: dict[str, Any]) -> dict[str, Any] | Non
 
     try:
         await db.contract_events.insert_one(
-            {"payment_id": payment["_id"], "submission_id": submission_id, "type": "contract_activated", "created_at": timestamp}
+            {
+                "payment_id": payment["_id"],
+                "submission_id": submission_id,
+                "type": "contract_activated",
+                "created_at": timestamp,
+            }
         )
     except Exception:
         pass

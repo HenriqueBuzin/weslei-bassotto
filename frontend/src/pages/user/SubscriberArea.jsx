@@ -28,7 +28,7 @@ export default function SubscriberArea() {
 
   const selected = useMemo(
     () => submissions.find((submission) => submission.id === selectedId) || submissions[0],
-    [selectedId, submissions]
+    [selectedId, submissions],
   );
 
   async function loadAll() {
@@ -62,6 +62,8 @@ export default function SubscriberArea() {
 
   useEffect(() => {
     setAnswers(answersToMap(selected));
+    // Reseta o formulário apenas ao trocar de contrato, não ao atualizar o mesmo contrato.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
   function setAnswer(questionId, value) {
@@ -81,10 +83,7 @@ export default function SubscriberArea() {
       setSubmissions((items) => items.map((item) => (item.id === selected.id ? data : item)));
       setNotice("Respostas atualizadas. O admin será sinalizado até visualizar a alteração.");
     } catch (err) {
-      setError(
-        err?.response?.data?.detail?.missing_questions?.join(", ") ||
-          "Não foi possível salvar suas respostas."
-      );
+      setError(err?.response?.data?.detail?.missing_questions?.join(", ") || "Não foi possível salvar suas respostas.");
     } finally {
       setBusy(false);
     }
@@ -103,8 +102,8 @@ export default function SubscriberArea() {
           <p className="eyebrow">Área do assinante</p>
           <h1>Seu plano e sua anamnese.</h1>
           <p>
-            Aqui você acompanha o período contratado, renova a consultoria e atualiza suas respostas
-            quando algo mudar na rotina.
+            Aqui você acompanha o período contratado, renova a consultoria e atualiza suas respostas quando algo mudar
+            na rotina.
           </p>
         </div>
         <div className="subscriber-actions">
@@ -124,9 +123,7 @@ export default function SubscriberArea() {
         {submissions.length === 0 ? (
           <div className="admin-panel">
             <h2>Nenhum plano encontrado</h2>
-            <p className="muted">
-              Compre um plano pelo site e preencha o questionário para aparecer aqui.
-            </p>
+            <p className="muted">Compre um plano pelo site e preencha o questionário para aparecer aqui.</p>
             <Link className="btn btn-brand" to="/#planos">
               Ver planos
             </Link>

@@ -4,7 +4,10 @@ import { mockLogin } from "./helpers";
 test("approved home remains responsive without horizontal overflow", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /Weslei Bassotto/i })).toBeVisible();
-  const dimensions = await page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+  const dimensions = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
   expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
 });
 

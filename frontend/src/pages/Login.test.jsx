@@ -12,7 +12,11 @@ import Login from "./Login";
 describe("Login", () => {
   it("submits credentials and remember preference", async () => {
     login.mockResolvedValueOnce("token");
-    render(<MemoryRouter initialEntries={["/login?returnTo=%2Fcheckout%3Fplano%3Danual"]}><Login /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/login?returnTo=%2Fcheckout%3Fplano%3Danual"]}>
+        <Login />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "secret123");
@@ -23,7 +27,11 @@ describe("Login", () => {
 
   it("shows the API error", async () => {
     login.mockRejectedValueOnce({ response: { data: { detail: "Credenciais inválidas" } } });
-    render(<MemoryRouter><Login /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "wrong123");
@@ -37,7 +45,11 @@ describe("Login", () => {
     [{}, "Falha no login"],
   ])("uses every login error fallback", async (failure, expected) => {
     login.mockRejectedValueOnce(failure);
-    render(<MemoryRouter><Login /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "wrong123");
@@ -50,14 +62,24 @@ describe("Login", () => {
   it("routes admins to the panel and users to the subscriber area", async () => {
     login.mockResolvedValue("token");
     state.roles = ["admin"];
-    const admin = render(<MemoryRouter><Login /></MemoryRouter>);
+    const admin = render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText("E-mail"), "admin@example.com"); await user.type(screen.getByLabelText("Senha"), "secret123");
+    await user.type(screen.getByLabelText("E-mail"), "admin@example.com");
+    await user.type(screen.getByLabelText("Senha"), "secret123");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     admin.unmount();
     state.roles = ["user"];
-    render(<MemoryRouter><Login /></MemoryRouter>);
-    await user.type(screen.getByLabelText("E-mail"), "user@example.com"); await user.type(screen.getByLabelText("Senha"), "secret123");
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+    await user.type(screen.getByLabelText("E-mail"), "user@example.com");
+    await user.type(screen.getByLabelText("Senha"), "secret123");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(login).toHaveBeenCalledTimes(2);
   });

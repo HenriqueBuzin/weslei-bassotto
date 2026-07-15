@@ -1,14 +1,16 @@
 # app/main.py
 
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import __title__, __version__, __description__
+from app import __description__, __title__, __version__
 from app.core import settings
 from app.db import connect, disconnect
 from app.routers import ROUTERS
 from app.seeder import seed_all
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,6 +21,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await disconnect(app)
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -47,13 +50,11 @@ def create_app() -> FastAPI:
     async def health():
         try:
             await app.state.db.command("ping")
-            mongo = "ok"
         except Exception:
-            mongo = "down"
-        return {
-            "status": "ok"
-        }
+            pass
+        return {"status": "ok"}
 
     return app
+
 
 app = create_app()

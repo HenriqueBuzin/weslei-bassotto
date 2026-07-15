@@ -19,8 +19,8 @@ os.environ.setdefault("REFRESH_COOKIE_NAME", "rt")
 os.environ.setdefault("REFRESH_COOKIE_PATH", "/api/v1/auth")
 
 import httpx
-import pytest_asyncio
 import pytest
+import pytest_asyncio
 from bson import ObjectId
 from fastapi import FastAPI
 from mongomock_motor import AsyncMongoMockClient
@@ -75,6 +75,7 @@ async def user_factory(db):
         }
         await db.users.insert_one(doc)
         return doc
+
     return create
 
 
@@ -82,4 +83,5 @@ async def user_factory(db):
 async def auth_headers():
     def build(user):
         return {"Authorization": f"Bearer {create_access_token(str(user['_id']), user.get('roles', []))}"}
+
     return build

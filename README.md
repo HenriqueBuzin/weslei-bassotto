@@ -47,16 +47,22 @@ Para adicionar outro gateway, implemente `PaymentGateway`, registre-o em `build_
 
 ```bash
 cd api
-python -m pip install -e ".[test]"
-pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100
-pytest -m unit
-pytest -m "integration and api"
-pytest -m functional
-pytest -m regression
-pytest -m smoke
+poetry install
+poetry run black .
+poetry run isort .
+poetry run flake8 .
+poetry run pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100
+poetry run pytest -m unit
+poetry run pytest -m "integration and api"
+poetry run pytest -m functional
+poetry run pytest -m regression
+poetry run pytest -m smoke
 
 cd ../frontend
 npm ci
+npm run format
+npm run format:check
+npm run lint
 npm run test:coverage
 npm run test:unit
 npm run test:integration
@@ -69,6 +75,22 @@ npm run build
 ```
 
 O Jenkins executa testes unitários, de API, funcionais, regressão, integração, smoke, E2E em desktop/mobile e o build antes do deploy. Backend e frontend exigem 100% de statements, linhas, branches e funções.
+
+### Validação automática
+
+Execute todos os mesmos gates localmente com um único comando:
+
+```bash
+python scripts/validate.py
+```
+
+Ative uma vez o hook versionado para impedir commits quando qualquer teste, cobertura, build ou E2E falhar:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+O ambiente Poetry local deste projeto fica em `C:\Users\henri\Documents\Projects\venv\weslei-bassotto`. O hook `pre-commit` executa Black, isort e Flake8 no backend; Prettier e ESLint no frontend; e depois `scripts/validate.py`. O workflow `.github/workflows/quality.yml` repete as validações em todo push e pull request para `main` e `dev`, mesmo quando o hook local não estiver instalado. O Jenkins permanece responsável pela validação final e pelo deploy.
 
 ## Administradores iniciais
 

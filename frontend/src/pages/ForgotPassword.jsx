@@ -41,9 +41,7 @@ export default function ForgotPassword() {
             <div className="glass card border-0 shadow-lg rounded-4 overflow-hidden">
               <div className="card-body p-4 p-md-5">
                 <div className="text-center mb-4">
-                  <h1 className="h4 fw-bold text-white mb-1 text-uppercase tracking-1">
-                    Recuperar senha
-                  </h1>
+                  <h1 className="h4 fw-bold text-white mb-1 text-uppercase tracking-1">Recuperar senha</h1>
                   <p className="text-secondary-emphasis small mb-0">
                     Informe seu e-mail para receber o link de redefinição
                   </p>
@@ -51,7 +49,9 @@ export default function ForgotPassword() {
 
                 <form onSubmit={onSubmit}>
                   <div className="mb-3">
-                    <label className="form-label text-white-50" htmlFor="forgot-email">E-mail</label>
+                    <label className="form-label text-white-50" htmlFor="forgot-email">
+                      E-mail
+                    </label>
                     <input
                       id="forgot-email"
                       className="form-control form-control-lg"
