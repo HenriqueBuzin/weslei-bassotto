@@ -61,6 +61,8 @@ async def test_approved_payment_can_only_be_claimed_with_secret(db):
 
 
 @pytest.mark.asyncio
+@pytest.mark.functional
+@pytest.mark.regression
 async def test_webhook_is_idempotent_and_renews_once(db):
     gateway = FakeGateway()
     gateway.result = replace(gateway.result, status=PaymentStatus.PENDING)

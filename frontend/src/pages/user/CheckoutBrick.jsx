@@ -2,14 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { selectPlan, usePlanCatalog } from "../../hooks/usePlanCatalog";
 
 const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
-
-const plans = {
-  trimestral: { name: "Plano Trimestral", months: 3, cash: 597, subscriptionTotal: 638, monthly: 212.66 },
-  semestral: { name: "Plano Semestral", months: 6, cash: 997, subscriptionTotal: 1093, monthly: 182.23 },
-  anual: { name: "Plano Anual", months: 12, cash: 1597, subscriptionTotal: 1863, monthly: 155.25 },
-};
 
 function brl(value) {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
@@ -39,9 +34,12 @@ export default function CheckoutBrick() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const planSlug = plans[params.get("plano")] ? params.get("plano") : "trimestral";
+  const requestedPlanSlug = params.get("plano") || "trimestral";
+  const { plans, loading: plansLoading, error: plansError } = usePlanCatalog();
+  const plan = selectPlan(plans, requestedPlanSlug);
+  const hasPlan = Boolean(plan);
+  const planSlug = plan?.slug || requestedPlanSlug;
   const renewId = params.get("renew") || "";
-  const plan = plans[planSlug];
   const [paymentMode, setPaymentMode] = useState("subscription");
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -49,15 +47,15 @@ export default function CheckoutBrick() {
   const controllerRef = useRef(null);
 
   const amount = useMemo(
-    () => String(paymentMode === "cash" ? plan.cash : plan.monthly),
-    [paymentMode, plan.cash, plan.monthly],
+    () => (plan ? String(paymentMode === "cash" ? plan.cash : plan.monthly) : "0"),
+    [paymentMode, plan],
   );
 
   useEffect(() => {
     let mounted = true;
 
     async function mountBrick() {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated || !hasPlan) return;
       if (!publicKey) {
         setError("VITE_MP_PUBLIC_KEY não configurada.");
         return;
@@ -146,7 +144,7 @@ export default function CheckoutBrick() {
       mounted = false;
       safeUnmountBrick(controllerRef.current);
     };
-  }, [amount, isAuthenticated, navigate, paymentMode, planSlug, renewId]);
+  }, [amount, hasPlan, isAuthenticated, navigate, paymentMode, planSlug, renewId]);
 
   if (!isAuthenticated) {
     const returnTo = `/checkout?plano=${planSlug}${renewId ? `&renew=${renewId}` : ""}`;
@@ -163,6 +161,19 @@ export default function CheckoutBrick() {
             <Link className="btn btn-outline-light" to={`/login?returnTo=${encodeURIComponent(returnTo)}`}>
               Entrar
             </Link>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (plansLoading || !plan) {
+    return (
+      <main className="questionnaire-page">
+        <div className="questionnaire-shell">
+          <section className="success-panel">
+            <h1>{plansLoading ? "Carregando planos..." : "Planos indisponíveis"}</h1>
+            {plansError && <div className="form-alert">{plansError}</div>}
           </section>
         </div>
       </main>

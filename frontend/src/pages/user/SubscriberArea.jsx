@@ -3,12 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { formatDateBR } from "../../lib/date";
-
-const plans = [
-  { slug: "trimestral", name: "Plano Trimestral", months: 3 },
-  { slug: "semestral", name: "Plano Semestral", months: 6 },
-  { slug: "anual", name: "Plano Anual", months: 12 },
-];
+import { usePlanCatalog } from "../../hooks/usePlanCatalog";
+import QuestionField from "../../components/QuestionField";
 
 function answersToMap(submission) {
   return Object.fromEntries((submission?.answers || []).map((answer) => [answer.question_id, answer.value || ""]));
@@ -25,6 +21,8 @@ export default function SubscriberArea() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const { plans: plansBySlug, loading: plansLoading, error: plansError } = usePlanCatalog();
+  const plans = Object.values(plansBySlug);
 
   const selected = useMemo(
     () => submissions.find((submission) => submission.id === selectedId) || submissions[0],
@@ -117,7 +115,7 @@ export default function SubscriberArea() {
       </section>
 
       <section className="subscriber-shell">
-        {error && <div className="form-alert">{error}</div>}
+        {(error || plansError) && <div className="form-alert">{error || plansError}</div>}
         {notice && <div className="success-alert">{notice}</div>}
 
         {submissions.length === 0 ? (
@@ -166,6 +164,7 @@ export default function SubscriberArea() {
                   </div>
 
                   <div className="renewal-grid">
+                    {plansLoading && <p className="muted">Carregando opções de renovação...</p>}
                     {plans.map((plan) => (
                       <article key={plan.slug}>
                         <strong>{plan.name}</strong>
@@ -180,50 +179,12 @@ export default function SubscriberArea() {
                   <form className="admin-form subscriber-form" onSubmit={saveAnswers}>
                     <h2>Editar respostas</h2>
                     {questions.map((question) => (
-                      <label className="question-field" key={question.id}>
-                        {question.label}
-                        {question.required && <span> obrigatório</span>}
-                        {question.type === "textarea" && (
-                          <textarea
-                            value={answers[question.id] || ""}
-                            onChange={(e) => setAnswer(question.id, e.target.value)}
-                            required={question.required}
-                          />
-                        )}
-                        {question.type === "select" && (
-                          <select
-                            value={answers[question.id] || ""}
-                            onChange={(e) => setAnswer(question.id, e.target.value)}
-                            required={question.required}
-                          >
-                            <option value="">Selecione</option>
-                            {question.options.map((option) => (
-                              <option value={option} key={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        {question.type === "boolean" && (
-                          <select
-                            value={answers[question.id] || ""}
-                            onChange={(e) => setAnswer(question.id, e.target.value)}
-                            required={question.required}
-                          >
-                            <option value="">Selecione</option>
-                            <option value="Sim">Sim</option>
-                            <option value="Não">Não</option>
-                          </select>
-                        )}
-                        {(question.type === "text" || question.type === "number") && (
-                          <input
-                            type={question.type === "number" ? "number" : "text"}
-                            value={answers[question.id] || ""}
-                            onChange={(e) => setAnswer(question.id, e.target.value)}
-                            required={question.required}
-                          />
-                        )}
-                      </label>
+                      <QuestionField
+                        question={question}
+                        value={answers[question.id] || ""}
+                        onChange={setAnswer}
+                        key={question.id}
+                      />
                     ))}
                     <button className="btn btn-brand" disabled={busy}>
                       {busy ? "Salvando..." : "Salvar respostas"}

@@ -18,6 +18,25 @@ async def test_health_smoke_with_mongo_up(db):
     assert response.json() == {"status": "ok"}
 
 
+@pytest.mark.asyncio
+@pytest.mark.api
+async def test_public_plan_catalog(db):
+    app = main.create_app()
+    app.router.lifespan_context = asynccontextmanager(lambda _app: _empty_lifespan())
+    app.state.db = db
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/api/v1/plans")
+    assert response.status_code == 200
+    assert response.json()[1] == {
+        "slug": "semestral",
+        "name": "Plano Semestral",
+        "months": 6,
+        "cash": "997.00",
+        "subscription_total": "1093.00",
+        "monthly": "182.23",
+    }
+
+
 async def _empty_lifespan():
     yield
 

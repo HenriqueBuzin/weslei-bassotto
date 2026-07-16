@@ -2,13 +2,15 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.core.settings import settings
-from app.routers.auth import _send_reset_email, _token_hash
+from app.routers.auth import _token_hash
+from app.services.auth_sessions import issue_refresh_session, refresh_jti_hash
+from app.services.email import send_reset_email
 
 
 @pytest.mark.asyncio
-async def test_register_login_refresh_and_logout(client):
+async def test_register_login_refresh_and_logout(client, db):
     registered = await client.post("/api/v1/auth/register", json={"email": "New@Example.com", "password": "secret123"})
     assert registered.status_code == 201
     assert registered.json()["email"] == "new@example.com"
@@ -23,13 +25,39 @@ async def test_register_login_refresh_and_logout(client):
     assert login.status_code == 200
     assert login.json()["access_token"]
     assert "rt=" in login.headers["set-cookie"]
+    old_refresh = client.cookies.get(settings.refresh_cookie_name)
 
     refreshed = await client.post("/api/v1/auth/refresh")
     assert refreshed.status_code == 200
     assert refreshed.json()["access_token"]
+    new_refresh = client.cookies.get(settings.refresh_cookie_name)
+    assert new_refresh != old_refresh
+    old_session = await db.refresh_sessions.find_one({"jti_hash": refresh_jti_hash(decode_token(old_refresh)["jti"])})
+    assert old_session["revoke_reason"] == "rotated"
 
     logout = await client.post("/api/v1/auth/logout")
     assert logout.status_code == 204
+    new_session = await db.refresh_sessions.find_one({"jti_hash": refresh_jti_hash(decode_token(new_refresh)["jti"])})
+    assert new_session["revoke_reason"] == "logout"
+
+
+@pytest.mark.asyncio
+@pytest.mark.regression
+async def test_refresh_reuse_revokes_the_active_session_chain(client, db, user_factory):
+    user = await user_factory()
+    old_refresh = await issue_refresh_session(db, user["_id"], settings.REFRESH_TOKEN_EXPIRES_SHORT, False)
+    client.cookies.set(settings.refresh_cookie_name, old_refresh, path=settings.refresh_cookie_path)
+    rotation = await client.post("/api/v1/auth/refresh")
+    assert rotation.status_code == 200
+    active_refresh = rotation.cookies.get(settings.refresh_cookie_name)
+
+    client.cookies.clear()
+    client.cookies.set(settings.refresh_cookie_name, old_refresh)
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+    client.cookies.clear()
+    client.cookies.set(settings.refresh_cookie_name, active_refresh)
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+    assert await db.refresh_sessions.count_documents({"user_id": user["_id"], "revoked_at": None}) == 0
 
 
 @pytest.mark.asyncio
@@ -45,6 +73,7 @@ async def test_login_is_temporarily_locked_after_repeated_failures(client, user_
 @pytest.mark.asyncio
 async def test_password_reset_is_single_use_and_expires(client, db, user_factory):
     user = await user_factory()
+    await issue_refresh_session(db, user["_id"], settings.REFRESH_TOKEN_EXPIRES_SHORT, False)
     token = "reset-token"
     await db.password_reset_tokens.insert_one(
         {
@@ -57,6 +86,8 @@ async def test_password_reset_is_single_use_and_expires(client, db, user_factory
     )
     first = await client.post("/api/v1/auth/reset-password", json={"token": token, "password": "new-secret"})
     assert first.status_code == 200
+    session = await db.refresh_sessions.find_one({"user_id": user["_id"]})
+    assert session["revoke_reason"] == "password_reset"
     reused = await client.post("/api/v1/auth/reset-password", json={"token": token, "password": "another-secret"})
     assert reused.status_code == 400
 
@@ -80,9 +111,22 @@ async def test_refresh_rejects_missing_invalid_access_and_unknown_user(client):
     assert (await client.post("/api/v1/auth/refresh")).status_code == 401
     client.cookies.set(settings.refresh_cookie_name, create_access_token("missing", []))
     assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+    invalid_identity = create_refresh_token(
+        "000000000000000000000000", settings.REFRESH_TOKEN_EXPIRES_SHORT, {"jti": ""}
+    )
+    client.cookies.set(settings.refresh_cookie_name, invalid_identity)
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
     missing = create_refresh_token("000000000000000000000000", settings.REFRESH_TOKEN_EXPIRES_SHORT)
     client.cookies.set(settings.refresh_cookie_name, missing)
     assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_ignores_invalid_refresh_cookie(client):
+    client.cookies.set(settings.refresh_cookie_name, "invalid")
+    assert (await client.post("/api/v1/auth/logout")).status_code == 204
+    client.cookies.set(settings.refresh_cookie_name, create_access_token("missing", []))
+    assert (await client.post("/api/v1/auth/logout")).status_code == 204
 
 
 @pytest.mark.asyncio
@@ -135,18 +179,18 @@ def test_email_sender_supports_tls_and_ssl(monkeypatch):
         def send_message(self, message):
             self.message = message
 
-    monkeypatch.setattr("app.routers.auth.smtplib.SMTP", SMTP)
-    monkeypatch.setattr("app.routers.auth.smtplib.SMTP_SSL", SMTP)
-    monkeypatch.setattr("app.routers.auth.settings.smtp_user", "sender@example.com")
-    monkeypatch.setattr("app.routers.auth.settings.smtp_password", "password")
-    monkeypatch.setattr("app.routers.auth.settings.smtp_from", "")
-    monkeypatch.setattr("app.routers.auth.settings.smtp_use_ssl", False)
-    monkeypatch.setattr("app.routers.auth.settings.smtp_use_tls", True)
-    _send_reset_email("user@example.com", "https://example.com/reset")
+    monkeypatch.setattr("app.services.email.smtplib.SMTP", SMTP)
+    monkeypatch.setattr("app.services.email.smtplib.SMTP_SSL", SMTP)
+    monkeypatch.setattr("app.services.email.settings.smtp_user", "sender@example.com")
+    monkeypatch.setattr("app.services.email.settings.smtp_password", "password")
+    monkeypatch.setattr("app.services.email.settings.smtp_from", "")
+    monkeypatch.setattr("app.services.email.settings.smtp_use_ssl", False)
+    monkeypatch.setattr("app.services.email.settings.smtp_use_tls", True)
+    send_reset_email("user@example.com", "https://example.com/reset")
     assert sessions[-1].started_tls is True
     assert str(settings.password_reset_expires_minutes) in sessions[-1].message.get_content()
-    monkeypatch.setattr("app.routers.auth.settings.smtp_use_ssl", True)
-    _send_reset_email("user@example.com", "https://example.com/reset")
+    monkeypatch.setattr("app.services.email.settings.smtp_use_ssl", True)
+    send_reset_email("user@example.com", "https://example.com/reset")
     assert sessions[-1].started_tls is False
 
 

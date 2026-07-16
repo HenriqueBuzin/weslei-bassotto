@@ -4,8 +4,20 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
+const catalog = vi.hoisted(() => ({
+  plans: {
+    trimestral: { slug: "trimestral", name: "Plano Trimestral", months: 3 },
+    semestral: { slug: "semestral", name: "Plano Semestral", months: 6 },
+    anual: { slug: "anual", name: "Plano Anual", months: 12 },
+  },
+  loading: false,
+  error: "",
+}));
 vi.mock("../../lib/api", () => ({ api }));
 vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({ logout: vi.fn() }) }));
+vi.mock("../../hooks/usePlanCatalog", () => ({
+  usePlanCatalog: () => catalog,
+}));
 import SubscriberArea from "./SubscriberArea";
 
 const question = { id: "q1", label: "Quantas vezes treina?", type: "number", required: true, options: [] };
@@ -21,6 +33,13 @@ describe("SubscriberArea", () => {
   beforeEach(() => {
     api.get.mockReset();
     api.patch.mockReset();
+    catalog.plans = {
+      trimestral: { slug: "trimestral", name: "Plano Trimestral", months: 3 },
+      semestral: { slug: "semestral", name: "Plano Semestral", months: 6 },
+      anual: { slug: "anual", name: "Plano Anual", months: 12 },
+    };
+    catalog.loading = false;
+    catalog.error = "";
     api.get.mockImplementation((url) =>
       Promise.resolve({ data: url.includes("questions") ? [question] : [submission] }),
     );
@@ -33,6 +52,27 @@ describe("SubscriberArea", () => {
       </MemoryRouter>,
     );
     expect(await screen.findAllByText(/01\/01\/2026 até 01\/04\/2026/)).toHaveLength(2);
+  });
+
+  it("shows plan catalog loading and unavailable notices", async () => {
+    catalog.loading = true;
+    const loadingView = render(
+      <MemoryRouter>
+        <SubscriberArea />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Carregando opções de renovação...")).toBeInTheDocument();
+    loadingView.unmount();
+
+    catalog.loading = false;
+    catalog.error = "Falha ao carregar planos";
+    catalog.plans = {};
+    render(
+      <MemoryRouter>
+        <SubscriberArea />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Falha ao carregar planos")).toBeInTheDocument();
   });
 
   it("saves edited answers and signals the admin", async () => {

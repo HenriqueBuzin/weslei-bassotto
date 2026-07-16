@@ -56,6 +56,12 @@ LOGIN_SECURITY_INDEXES = [
     IndexModel([("expires_at", ASCENDING)], expireAfterSeconds=0, name="ttl_login_security_expires"),
 ]
 
+REFRESH_SESSION_INDEXES = [
+    IndexModel([("jti_hash", ASCENDING)], unique=True, name="uniq_refresh_session_jti"),
+    IndexModel([("user_id", ASCENDING), ("revoked_at", ASCENDING)], name="idx_refresh_session_user_revoked"),
+    IndexModel([("expires_at", ASCENDING)], expireAfterSeconds=0, name="ttl_refresh_session_expires"),
+]
+
 
 async def ensure_all(db: AsyncIOMotorDatabase) -> None:
     await db.users.create_indexes(USERS_INDEXES)
@@ -68,3 +74,4 @@ async def ensure_all(db: AsyncIOMotorDatabase) -> None:
     await db.contract_events.create_indexes(CONTRACT_EVENT_INDEXES)
     await db.admin_events.create_indexes(ADMIN_EVENT_INDEXES)
     await db.login_security.create_indexes(LOGIN_SECURITY_INDEXES)
+    await db.refresh_sessions.create_indexes(REFRESH_SESSION_INDEXES)

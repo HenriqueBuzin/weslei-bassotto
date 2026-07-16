@@ -34,13 +34,12 @@ def pytest_collection_modifyitems(items):
         path = str(item.path).replace("\\", "/")
         if "/unit/" in path:
             item.add_marker(pytest.mark.unit)
-        if "/integration/" in path:
+        elif path.endswith("/integration/test_payment_flow.py"):
             item.add_marker(pytest.mark.integration)
+        elif "/integration/" in path:
             item.add_marker(pytest.mark.api)
-            item.add_marker(pytest.mark.functional)
-        if "/smoke/" in path:
+        elif "/smoke/" in path:
             item.add_marker(pytest.mark.smoke)
-        item.add_marker(pytest.mark.regression)
 
 
 @pytest_asyncio.fixture
