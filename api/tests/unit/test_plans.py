@@ -1,11 +1,15 @@
 from datetime import date
 from decimal import Decimal
 
-from app.domain.plans import add_months, contract_period, get_plan
+from app.domain.plans import add_months, contract_period, get_plan, list_plans
 
 
 def test_monthly_amount_uses_contract_total():
     assert get_plan("semestral").monthly_amount == Decimal("182.23")
+
+
+def test_plan_catalog_preserves_the_commercial_order():
+    assert [plan.slug for plan in list_plans()] == ["trimestral", "semestral", "anual"]
 
 
 def test_add_months_handles_last_day_and_leap_year():

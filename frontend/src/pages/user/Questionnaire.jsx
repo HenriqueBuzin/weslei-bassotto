@@ -2,16 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { formatDateBR } from "../../lib/date";
-
-const plans = {
-  trimestral: { name: "Plano Trimestral", months: 3 },
-  semestral: { name: "Plano Semestral", months: 6 },
-  anual: { name: "Plano Anual", months: 12 },
-};
-
-function initialPlan(value) {
-  return plans[value] ? value : "trimestral";
-}
+import { selectPlan, usePlanCatalog } from "../../hooks/usePlanCatalog";
+import QuestionField from "../../components/QuestionField";
 
 function formatPhoneBR(value) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -25,8 +17,10 @@ function formatPhoneBR(value) {
 
 export default function Questionnaire() {
   const [params] = useSearchParams();
-  const planSlug = initialPlan(params.get("plano"));
-  const plan = plans[planSlug];
+  const requestedPlanSlug = params.get("plano") || "trimestral";
+  const { plans, loading: plansLoading, error: plansError } = usePlanCatalog();
+  const plan = selectPlan(plans, requestedPlanSlug);
+  const planSlug = plan?.slug || requestedPlanSlug;
   const paymentId = params.get("payment_id") || "";
   const paymentToken = params.get("payment_token") || "";
   const [paymentStatus, setPaymentStatus] = useState("pending");
@@ -129,7 +123,12 @@ export default function Questionnaire() {
           </p>
         </header>
 
-        {success ? (
+        {plansLoading || !plan ? (
+          <section className="success-panel">
+            <h2>{plansLoading ? "Carregando planos..." : "Planos indisponíveis"}</h2>
+            {plansError && <div className="form-alert">{plansError}</div>}
+          </section>
+        ) : success ? (
           <section className="success-panel">
             <p className="eyebrow">Recebido</p>
             <h2>Questionário enviado com sucesso.</h2>
@@ -204,50 +203,12 @@ export default function Questionnaire() {
               {!loading && questions.length === 0 && <p className="muted">O admin ainda não cadastrou perguntas.</p>}
               <div className="dynamic-questions">
                 {questions.map((question) => (
-                  <label className="question-field" key={question.id}>
-                    {question.label}
-                    {question.required && <span> obrigatório</span>}
-                    {question.type === "textarea" && (
-                      <textarea
-                        value={answers[question.id] || ""}
-                        onChange={(e) => setAnswer(question.id, e.target.value)}
-                        required={question.required}
-                      />
-                    )}
-                    {question.type === "select" && (
-                      <select
-                        value={answers[question.id] || ""}
-                        onChange={(e) => setAnswer(question.id, e.target.value)}
-                        required={question.required}
-                      >
-                        <option value="">Selecione</option>
-                        {(question.options || []).map((option) => (
-                          <option value={option} key={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {question.type === "boolean" && (
-                      <select
-                        value={answers[question.id] || ""}
-                        onChange={(e) => setAnswer(question.id, e.target.value)}
-                        required={question.required}
-                      >
-                        <option value="">Selecione</option>
-                        <option value="Sim">Sim</option>
-                        <option value="Não">Não</option>
-                      </select>
-                    )}
-                    {(question.type === "text" || question.type === "number") && (
-                      <input
-                        type={question.type === "number" ? "number" : "text"}
-                        value={answers[question.id] || ""}
-                        onChange={(e) => setAnswer(question.id, e.target.value)}
-                        required={question.required}
-                      />
-                    )}
-                  </label>
+                  <QuestionField
+                    question={question}
+                    value={answers[question.id] || ""}
+                    onChange={setAnswer}
+                    key={question.id}
+                  />
                 ))}
               </div>
             </section>

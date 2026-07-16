@@ -1,5 +1,6 @@
 # app/core/security.py
 
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from jose import jwt
@@ -33,7 +34,6 @@ def create_access_token(sub: str, roles: list[str]) -> str:
     return _encode({"sub": sub, "roles": roles}, settings.ACCESS_TOKEN_EXPIRES, "access")
 
 
-# app/core/security.py (exemplo de assinatura)
 def create_refresh_token(sub: str, expires_delta: timedelta, claims: dict | None = None) -> str:
     now = datetime.now(timezone.utc)
     payload = {
@@ -41,6 +41,7 @@ def create_refresh_token(sub: str, expires_delta: timedelta, claims: dict | None
         "type": "refresh",
         "iat": int(now.timestamp()),
         "exp": int((now + expires_delta).timestamp()),
+        "jti": secrets.token_urlsafe(32),
     }
     if claims:
         payload.update(claims)

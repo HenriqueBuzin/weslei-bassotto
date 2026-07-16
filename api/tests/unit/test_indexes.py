@@ -17,5 +17,6 @@ async def test_all_indexes_are_created(db):
         "contract_events",
         "admin_events",
         "login_security",
+        "refresh_sessions",
     }
     assert expected.issubset(set(await db.list_collection_names()))

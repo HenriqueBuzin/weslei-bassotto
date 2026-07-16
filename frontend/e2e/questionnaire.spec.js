@@ -1,8 +1,26 @@
 import { expect, test } from "@playwright/test";
 import { mockLogin } from "./helpers";
 
+async function mockPlans(page) {
+  await page.route("**/api/v1/plans", (route) =>
+    route.fulfill({
+      json: [
+        {
+          slug: "trimestral",
+          name: "Plano Trimestral",
+          months: 3,
+          cash: 597,
+          subscription_total: 638,
+          monthly: 212.66,
+        },
+      ],
+    }),
+  );
+}
+
 test("approved subscriber completes the initial questionnaire", async ({ page }) => {
   await mockLogin(page);
+  await mockPlans(page);
   await page.route("**/api/v1/consultancy/questions", (route) =>
     route.fulfill({
       json: [
@@ -52,6 +70,7 @@ test("approved subscriber completes the initial questionnaire", async ({ page })
 
 test("pending payment never exposes questionnaire fields", async ({ page }) => {
   await mockLogin(page);
+  await mockPlans(page);
   await page.route("**/api/v1/consultancy/questions", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/me", (route) =>
     route.fulfill({ json: { id: "u1", email: "user@example.com", roles: ["user"] } }),

@@ -3,21 +3,26 @@
 import asyncio
 import hashlib
 import secrets
-import smtplib
 from datetime import UTC, datetime, timedelta
-from email.message import EmailMessage
 
-from bson import ObjectId
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
-from pydantic import BaseModel, EmailStr, Field
 from pymongo import ReturnDocument
 
-from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
+from app.core.security import create_access_token, decode_token, hash_password, verify_password
 from app.core.settings import settings
 from app.db.mongo import get_db
+from app.schemas.auth import ForgotPasswordIn, ForgotPasswordOut, ResetPasswordIn, TokenOut
 from app.schemas.user import UserCreate, UserOut
+from app.services.auth_sessions import (
+    issue_refresh_session,
+    refresh_identity,
+    revoke_refresh_session,
+    revoke_user_sessions,
+    rotate_refresh_session,
+)
+from app.services.email import send_reset_email, smtp_configured
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -64,27 +69,6 @@ def _user_out(doc) -> UserOut:
     return UserOut(id=str(doc["_id"]), email=doc["email"], roles=doc.get("roles", []))
 
 
-# ===== Schemas =====
-class TokenOut(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-class ForgotPasswordIn(BaseModel):
-    email: EmailStr
-
-
-class ForgotPasswordOut(BaseModel):
-    ok: bool = True
-    email_sent: bool = False
-    reset_url: str | None = None
-
-
-class ResetPasswordIn(BaseModel):
-    token: str
-    password: str = Field(min_length=6)
-
-
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
@@ -97,37 +81,6 @@ def _as_utc(value: datetime | None) -> datetime | None:
 
 def _reset_url(token: str) -> str:
     return f"{settings.frontend_public_url.rstrip('/')}/redefinir-senha?token={token}"
-
-
-def _smtp_configured() -> bool:
-    return bool(settings.smtp_user and settings.smtp_password)
-
-
-def _send_reset_email(to_email: str, reset_url: str) -> None:
-    sender = settings.smtp_from or settings.smtp_user
-    message = EmailMessage()
-    message["Subject"] = "Recuperação de senha"
-    message["From"] = sender
-    message["To"] = to_email
-    message.set_content(
-        "\n".join(
-            [
-                "Recebemos uma solicitação para redefinir sua senha.",
-                "",
-                f"Acesse este link para criar uma nova senha: {reset_url}",
-                "",
-                f"Este link expira em {settings.password_reset_expires_minutes} minutos.",
-                "Se você não pediu essa alteração, ignore este e-mail.",
-            ]
-        )
-    )
-
-    smtp_class = smtplib.SMTP_SSL if settings.smtp_use_ssl else smtplib.SMTP
-    with smtp_class(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
-        if settings.smtp_use_tls and not settings.smtp_use_ssl:
-            smtp.starttls()
-        smtp.login(settings.smtp_user, settings.smtp_password)
-        smtp.send_message(message)
 
 
 # ===== Endpoints =====
@@ -178,7 +131,7 @@ async def login(
 
     # IMPORTANTE: inclua um claim para sabermos depois se era "remember"
     # Ex.: rm = 1 (persistente) ou 0 (sessão)
-    refresh = create_refresh_token(sub, expires_delta=rt_expires, claims={"rm": 1 if remember else 0})
+    refresh = await issue_refresh_session(db, user["_id"], rt_expires, remember)
 
     # Cookie: persistente quando remember=true; sessão quando remember=false
     max_age = int(rt_expires.total_seconds()) if remember else None
@@ -202,19 +155,26 @@ async def refresh(request: Request, response: Response):
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Use refresh token")
 
-    # Descobre se o refresh original era "remember" pelos claims (rm=1/0)
+    identity = refresh_identity(payload)
+    if not identity:
+        clear_refresh_cookie(response)
+        raise HTTPException(status_code=401, detail="Refresh inválido")
+
     remember = bool(payload.get("rm", 0))
 
     db = get_db(request)
-    user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+    user = await db.users.find_one({"_id": identity[0]})
     if not user:
+        clear_refresh_cookie(response)
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
 
     access = create_access_token(str(user["_id"]), user.get("roles", []))
 
-    # Rotaciona o refresh preservando a política remember
     rt_expires = settings.REFRESH_TOKEN_EXPIRES_LONG if remember else settings.REFRESH_TOKEN_EXPIRES_SHORT
-    new_rt = create_refresh_token(str(user["_id"]), expires_delta=rt_expires, claims={"rm": 1 if remember else 0})
+    new_rt = await rotate_refresh_session(db, payload, rt_expires)
+    if not new_rt:
+        clear_refresh_cookie(response)
+        raise HTTPException(status_code=401, detail="Refresh expirado, revogado ou reutilizado")
 
     # Cookie: persistente se remember, sessão se não
     max_age = int(rt_expires.total_seconds()) if remember else None
@@ -226,6 +186,14 @@ async def refresh(request: Request, response: Response):
 @router.post("/logout", status_code=204)
 async def logout(response: Response, request: Request):
     _require_xhr_if_none_samesite(request)
+    token = request.cookies.get(settings.refresh_cookie_name)
+    if token:
+        try:
+            payload = decode_token(token)
+            if payload.get("type") == "refresh":
+                await revoke_refresh_session(get_db(request), payload)
+        except JWTError:
+            pass
     clear_refresh_cookie(response)
 
 
@@ -255,10 +223,10 @@ async def forgot_password(req: Request, data: ForgotPasswordIn):
     )
 
     reset_url = _reset_url(token)
-    if not _smtp_configured():
+    if not smtp_configured():
         return ForgotPasswordOut(ok=True, email_sent=False, reset_url=reset_url if settings.is_dev else None)
 
-    await asyncio.to_thread(_send_reset_email, email, reset_url)
+    await asyncio.to_thread(send_reset_email, email, reset_url)
     return ForgotPasswordOut(ok=True, email_sent=True, reset_url=reset_url if settings.is_dev else None)
 
 
@@ -284,6 +252,8 @@ async def reset_password(req: Request, data: ResetPasswordIn):
     )
     if update_result.matched_count != 1:
         raise HTTPException(status_code=400, detail="Link inválido, expirado ou já utilizado")
+
+    await revoke_user_sessions(db, token_doc["user_id"], "password_reset")
 
     await db.password_reset_tokens.update_many(
         {"user_id": token_doc["user_id"], "used_at": None},

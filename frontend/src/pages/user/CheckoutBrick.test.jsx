@@ -3,15 +3,68 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ authenticated: false, post: vi.fn(), brickOptions: null }));
+const state = vi.hoisted(() => ({
+  authenticated: false,
+  post: vi.fn(),
+  brickOptions: null,
+  catalog: {
+    plans: {
+      trimestral: {
+        slug: "trimestral",
+        name: "Plano Trimestral",
+        months: 3,
+        cash: 597,
+        subscriptionTotal: 638,
+        monthly: 212.66,
+      },
+      semestral: {
+        slug: "semestral",
+        name: "Plano Semestral",
+        months: 6,
+        cash: 997,
+        subscriptionTotal: 1093,
+        monthly: 182.23,
+      },
+      anual: { slug: "anual", name: "Plano Anual", months: 12, cash: 1597, subscriptionTotal: 1863, monthly: 155.25 },
+    },
+    loading: false,
+    error: "",
+  },
+}));
 vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({ isAuthenticated: state.authenticated }) }));
 vi.mock("../../lib/api", () => ({ api: { post: state.post } }));
+vi.mock("../../hooks/usePlanCatalog", () => ({
+  usePlanCatalog: () => state.catalog,
+  selectPlan: (plans, slug) => plans[slug] || plans.trimestral,
+}));
 import CheckoutBrick from "./CheckoutBrick";
 
 describe("CheckoutBrick", () => {
   beforeEach(() => {
+    state.authenticated = false;
     state.post.mockReset();
     state.brickOptions = null;
+    state.catalog.plans = {
+      trimestral: {
+        slug: "trimestral",
+        name: "Plano Trimestral",
+        months: 3,
+        cash: 597,
+        subscriptionTotal: 638,
+        monthly: 212.66,
+      },
+      semestral: {
+        slug: "semestral",
+        name: "Plano Semestral",
+        months: 6,
+        cash: 997,
+        subscriptionTotal: 1093,
+        monthly: 182.23,
+      },
+      anual: { slug: "anual", name: "Plano Anual", months: 12, cash: 1597, subscriptionTotal: 1863, monthly: 155.25 },
+    };
+    state.catalog.loading = false;
+    state.catalog.error = "";
     delete window.MercadoPago;
   });
   it("does not load card fields before authentication", () => {
@@ -37,6 +90,29 @@ describe("CheckoutBrick", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("link", { name: "Criar conta" }).getAttribute("href")).toContain("renew%3Ds1");
+  });
+
+  it("shows plan catalog loading and unavailable states", () => {
+    state.authenticated = true;
+    state.catalog.loading = true;
+    const view = render(
+      <MemoryRouter initialEntries={["/checkout?plano=inexistente"]}>
+        <CheckoutBrick />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { name: "Carregando planos..." })).toBeInTheDocument();
+    view.unmount();
+
+    state.catalog.loading = false;
+    state.catalog.error = "Falha ao carregar planos";
+    state.catalog.plans = {};
+    render(
+      <MemoryRouter initialEntries={["/checkout?plano=inexistente"]}>
+        <CheckoutBrick />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { name: "Planos indisponíveis" })).toBeInTheDocument();
+    expect(screen.getByText("Falha ao carregar planos")).toBeInTheDocument();
   });
 
   it("submits card data through the backend adapter", async () => {

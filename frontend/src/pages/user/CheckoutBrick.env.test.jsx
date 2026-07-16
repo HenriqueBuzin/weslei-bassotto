@@ -4,6 +4,23 @@ import { afterEach, expect, it, vi } from "vitest";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({ isAuthenticated: true }) }));
 vi.mock("../../lib/api", () => ({ api: { post: vi.fn() } }));
+vi.mock("../../hooks/usePlanCatalog", () => ({
+  usePlanCatalog: () => ({
+    plans: {
+      trimestral: {
+        slug: "trimestral",
+        name: "Plano Trimestral",
+        months: 3,
+        cash: 597,
+        subscriptionTotal: 638,
+        monthly: 212.66,
+      },
+    },
+    loading: false,
+    error: "",
+  }),
+  selectPlan: (plans) => plans.trimestral,
+}));
 
 afterEach(() => {
   vi.unstubAllEnvs();

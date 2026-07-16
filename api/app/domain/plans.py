@@ -25,6 +25,10 @@ def get_plan(slug: str) -> Plan:
     return PLANS[slug]
 
 
+def list_plans() -> list[Plan]:
+    return list(PLANS.values())
+
+
 def add_months(source: date, months: int) -> date:
     target = source.month - 1 + months
     year = source.year + target // 12

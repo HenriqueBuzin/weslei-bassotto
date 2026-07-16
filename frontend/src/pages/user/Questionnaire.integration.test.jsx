@@ -6,10 +6,55 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Questionnaire from "./Questionnaire";
 import { api } from "../../lib/api";
 
+const catalog = vi.hoisted(() => ({
+  plans: {
+    trimestral: { slug: "trimestral", name: "Plano Trimestral", months: 3 },
+    semestral: { slug: "semestral", name: "Plano Semestral", months: 6 },
+    anual: { slug: "anual", name: "Plano Anual", months: 12 },
+  },
+  loading: false,
+  error: "",
+}));
 vi.mock("../../lib/api", () => ({ api: { get: vi.fn(), post: vi.fn() } }));
+vi.mock("../../hooks/usePlanCatalog", () => ({
+  usePlanCatalog: () => catalog,
+  selectPlan: (plans, slug) => plans[slug] || plans.trimestral,
+}));
 
 describe("Questionnaire payment gate", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    catalog.plans = {
+      trimestral: { slug: "trimestral", name: "Plano Trimestral", months: 3 },
+      semestral: { slug: "semestral", name: "Plano Semestral", months: 6 },
+      anual: { slug: "anual", name: "Plano Anual", months: 12 },
+    };
+    catalog.loading = false;
+    catalog.error = "";
+  });
+
+  it("shows plan catalog loading and unavailable states", async () => {
+    api.get.mockResolvedValue({ data: [] });
+    catalog.loading = true;
+    const view = render(
+      <MemoryRouter>
+        <Questionnaire />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("heading", { name: "Carregando planos..." })).toBeInTheDocument();
+    view.unmount();
+
+    catalog.loading = false;
+    catalog.error = "Falha ao carregar planos";
+    catalog.plans = {};
+    render(
+      <MemoryRouter initialEntries={["/questionario?plano=inexistente"]}>
+        <Questionnaire />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("heading", { name: "Planos indisponíveis" })).toBeInTheDocument();
+    expect(screen.getByText("Falha ao carregar planos")).toBeInTheDocument();
+  });
 
   it("keeps the form locked while payment is pending", async () => {
     api.get.mockImplementation((url) =>
