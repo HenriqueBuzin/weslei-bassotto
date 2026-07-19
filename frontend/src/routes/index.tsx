@@ -5,16 +5,16 @@ import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "../auth/ProtectedRoute";
 
 export const routeLoaders = {
-  home: () => import("../pages/user/Home.jsx"),
-  login: () => import("../pages/Login.jsx"),
-  forgotPassword: () => import("../pages/ForgotPassword.jsx"),
-  resetPassword: () => import("../pages/ResetPassword.jsx"),
-  register: () => import("../pages/Register.jsx"),
-  dashboard: () => import("../pages/admin/Dashboard.jsx"),
-  questionnaire: () => import("../pages/user/Questionnaire.jsx"),
-  subscriberArea: () => import("../pages/user/SubscriberArea.jsx"),
-  checkoutBrick: () => import("../pages/user/CheckoutBrick.jsx"),
-  notFound: () => import("../pages/NotFound.jsx"),
+  home: () => import("../pages/user/Home"),
+  login: () => import("../pages/Login"),
+  forgotPassword: () => import("../pages/ForgotPassword"),
+  resetPassword: () => import("../pages/ResetPassword"),
+  register: () => import("../pages/Register"),
+  dashboard: () => import("../pages/admin/Dashboard"),
+  questionnaire: () => import("../pages/user/Questionnaire"),
+  subscriberArea: () => import("../pages/user/SubscriberArea"),
+  checkoutBrick: () => import("../pages/user/CheckoutBrick"),
+  notFound: () => import("../pages/NotFound"),
 };
 
 const Home = lazy(routeLoaders.home);

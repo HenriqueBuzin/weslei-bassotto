@@ -1,12 +1,14 @@
-// src/lib/jwt.js
+import { JwtPayload, jwtDecode } from "jwt-decode";
 
-import { jwtDecode } from "jwt-decode";
+type AppJwtPayload = JwtPayload & {
+  roles?: string[];
+};
 
 /**
  * Retorna true se o token estiver expirado
  * ou prestes a expirar (<= 5s).
  */
-export function isExpired(token) {
+export function isExpired(token?: string | null) {
   if (!token) return true;
   try {
     const { exp } = jwtDecode(token);
@@ -21,10 +23,10 @@ export function isExpired(token) {
 /**
  * Lê as roles do token; [] se inválido/sem roles.
  */
-export function readRoles(token) {
+export function readRoles(token?: string | null) {
   if (!token) return [];
   try {
-    const { roles } = jwtDecode(token);
+    const { roles } = jwtDecode<AppJwtPayload>(token);
     return Array.isArray(roles) ? roles : [];
   } catch {
     return [];

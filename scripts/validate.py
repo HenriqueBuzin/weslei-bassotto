@@ -75,6 +75,7 @@ def main() -> int:
 
         run("Frontend formatting", [npm, "run", "format:check"], FRONTEND)
         run("Frontend lint", [npm, "run", "lint"], FRONTEND)
+        run("Frontend typecheck", [npm, "run", "typecheck"], FRONTEND)
         run("Frontend coverage: all metrics at 100%", [npm, "run", "test:coverage"], FRONTEND)
         for category in frontend_categories:
             run(f"Frontend {category}", [npm, "run", f"test:{category}"], FRONTEND)

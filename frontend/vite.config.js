@@ -46,15 +46,15 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     test: {
       environment: "jsdom",
-      setupFiles: "./src/test/setup.js",
+      setupFiles: "./src/test/setup.ts",
       clearMocks: true,
       testTimeout: 15000,
-      include: ["src/**/*.{test,spec}.{js,jsx}"],
+      include: ["src/**/*.{test,spec}.{ts,tsx}"],
       exclude: ["e2e/**", "node_modules/**", "dist/**"],
       coverage: {
         reporter: ["text", "html"],
-        include: ["src/**/*.{js,jsx}"],
-        exclude: ["src/main.jsx", "src/**/*.test.{js,jsx}", "src/test/**"],
+        include: ["src/**/*.{ts,tsx}"],
+        exclude: ["src/main.tsx", "src/**/*.test.{ts,tsx}", "src/test/**", "src/**/*.d.ts"],
         thresholds: {
           statements: 100,
           lines: 100,

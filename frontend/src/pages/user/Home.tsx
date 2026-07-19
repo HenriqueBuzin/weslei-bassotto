@@ -83,8 +83,7 @@ const testimonials = [
     name: "Aluno online",
   },
   {
-    quote:
-      "A combinação de treino, alimentação e feedback semanal deixou o processo muito mais simples de seguir.",
+    quote: "A combinação de treino, alimentação e feedback semanal deixou o processo muito mais simples de seguir.",
     name: "Avaliação Google Business",
   },
 ];
@@ -113,8 +112,7 @@ export default function Home() {
             ))}
           </h1>
           <p className="hero-lead">
-            Treino, dieta e acompanhamento direto para mulheres que querem evoluir com método,
-            segurança e constância.
+            Treino, dieta e acompanhamento direto para mulheres que querem evoluir com método, segurança e constância.
           </p>
           <div className="hero-actions">
             <a className="btn btn-brand btn-lg" href="#planos">
@@ -139,8 +137,8 @@ export default function Home() {
               <p className="eyebrow">Veja como funciona</p>
               <h2>Uma consultoria que se encaixa na sua rotina e te acompanha de perto.</h2>
               <p>
-                O processo combina avaliação inicial, treino no aplicativo, estratégia alimentar e
-                ajustes semanais para manter sua evolução acontecendo.
+                O processo combina avaliação inicial, treino no aplicativo, estratégia alimentar e ajustes semanais para
+                manter sua evolução acontecendo.
               </p>
             </div>
 
@@ -164,8 +162,8 @@ export default function Home() {
               <p className="eyebrow">Treinador</p>
               <h2>Especialista em emagrecimento, estética feminina e estética abdominal.</h2>
               <p>
-                Consultoria conduzida por profissional com CREF 03373-G/SC, especialista em
-                estética feminina, estética abdominal e diástase abdominal.
+                Consultoria conduzida por profissional com CREF 03373-G/SC, especialista em estética feminina, estética
+                abdominal e diástase abdominal.
               </p>
               <ul className="credential-list">
                 <li>Praticante de musculação há 21 anos</li>
@@ -174,10 +172,7 @@ export default function Home() {
               </ul>
             </div>
             <div className="coach-photo-wrap">
-              <img
-                src="/consultoria/weslei-espelho-wide-v3.jpeg"
-                alt="Weslei Bassotto em academia"
-              />
+              <img src="/consultoria/weslei-espelho-wide-v3.jpeg" alt="Weslei Bassotto em academia" />
             </div>
           </div>
         </section>
@@ -188,8 +183,8 @@ export default function Home() {
               <p className="eyebrow">Escolha seu plano</p>
               <h2>Assinaturas com período fechado e acompanhamento mensal.</h2>
               <p>
-                Você escolhe pagar à vista ou em assinatura mensal recorrente pelo período do
-                plano, direto pelo Mercado Pago dentro do site.
+                Você escolhe pagar à vista ou em assinatura mensal recorrente pelo período do plano, direto pelo Mercado
+                Pago dentro do site.
               </p>
             </div>
 
@@ -229,8 +224,8 @@ export default function Home() {
               <p className="eyebrow">Quero fazer parte</p>
               <h2>Depoimentos de alunos.</h2>
               <p>
-                Estes textos estão prontos como base. Quando você enviar os depoimentos reais do
-                Google Business, é só trocar.
+                Estes textos estão prontos como base. Quando você enviar os depoimentos reais do Google Business, é só
+                trocar.
               </p>
             </div>
             <div className="testimonials-grid">

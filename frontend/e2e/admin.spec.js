@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { mockLogin } from "./helpers";
+import { mockLogin, mockPlans } from "./helpers";
 
 test("admin sees alerts and creates a questionnaire field", async ({ page }) => {
   await mockLogin(page, ["admin"]);
+  await mockPlans(page);
   let questions = [];
   await page.route("**/api/v1/consultancy/admin/questions", async (route) => {
     if (route.request().method() === "POST") {

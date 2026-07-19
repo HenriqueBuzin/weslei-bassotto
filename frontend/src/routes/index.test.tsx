@@ -24,7 +24,7 @@ describe("application routes", () => {
   it("uses root as the basename fallback", async () => {
     vi.resetModules();
     vi.stubEnv("BASE_URL", "");
-    const { router: fallbackRouter } = await import("./index.jsx");
+    const { router: fallbackRouter } = await import("./index");
     expect(fallbackRouter.basename).toBe("/");
     fallbackRouter.dispose();
     vi.unstubAllEnvs();

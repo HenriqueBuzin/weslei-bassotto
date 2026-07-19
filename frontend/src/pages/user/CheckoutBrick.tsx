@@ -12,11 +12,11 @@ function brl(value) {
 
 function loadMercadoPagoScript() {
   if (window.MercadoPago) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "https://sdk.mercadopago.com/js/v2";
     script.async = true;
-    script.onload = resolve;
+    script.onload = () => resolve();
     script.onerror = reject;
     document.body.appendChild(script);
   });
@@ -69,7 +69,8 @@ export default function CheckoutBrick() {
         await loadMercadoPagoScript();
         if (!mounted) return;
 
-        const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" });
+        const MercadoPago = window.MercadoPago as NonNullable<typeof window.MercadoPago>;
+        const mp = new MercadoPago(publicKey, { locale: "pt-BR" });
         const bricksBuilder = mp.bricks();
         controllerRef.current = await bricksBuilder.create("cardPayment", "cardPaymentBrick_container", {
           initialization: { amount },
@@ -83,7 +84,7 @@ export default function CheckoutBrick() {
               setError("");
             },
             onSubmit: (cardFormData) =>
-              new Promise((resolve, reject) => {
+              new Promise<void>((resolve, reject) => {
                 const payerEmail = cardFormData?.payer?.email;
                 const token = cardFormData?.token || cardFormData?.card_token_id;
                 const paymentMethodId = cardFormData?.payment_method_id || cardFormData?.paymentMethodId;
