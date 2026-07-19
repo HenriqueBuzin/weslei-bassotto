@@ -12,3 +12,36 @@ export async function mockLogin(page, roles = ["user"]) {
     }),
   );
 }
+
+export async function mockPlans(page) {
+  await page.route("**/api/v1/plans", (route) =>
+    route.fulfill({
+      json: [
+        {
+          slug: "trimestral",
+          name: "Plano Trimestral",
+          months: 3,
+          cash: 597,
+          subscription_total: 638,
+          monthly: 212.66,
+        },
+        {
+          slug: "semestral",
+          name: "Plano Semestral",
+          months: 6,
+          cash: 997,
+          subscription_total: 1093,
+          monthly: 182.23,
+        },
+        {
+          slug: "anual",
+          name: "Plano Anual",
+          months: 12,
+          cash: 1597,
+          subscription_total: 1863,
+          monthly: 155.25,
+        },
+      ],
+    }),
+  );
+}

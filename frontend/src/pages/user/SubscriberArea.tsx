@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { formatDateBR } from "../../lib/date";
-import { usePlanCatalog } from "../../hooks/usePlanCatalog";
+import { Plan, usePlanCatalog } from "../../hooks/usePlanCatalog";
 import QuestionField from "../../components/QuestionField";
 
 function answersToMap(submission) {
@@ -22,7 +22,7 @@ export default function SubscriberArea() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const { plans: plansBySlug, loading: plansLoading, error: plansError } = usePlanCatalog();
-  const plans = Object.values(plansBySlug);
+  const plans = Object.values(plansBySlug) as Plan[];
 
   const selected = useMemo(
     () => submissions.find((submission) => submission.id === selectedId) || submissions[0],

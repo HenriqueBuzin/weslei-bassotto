@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { mockLogin } from "./helpers";
+import { mockLogin, mockPlans } from "./helpers";
 
 test("approved home remains responsive without horizontal overflow", async ({ page }) => {
+  await mockPlans(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /Weslei Bassotto/i })).toBeVisible();
   const dimensions = await page.evaluate(() => ({
@@ -12,6 +13,7 @@ test("approved home remains responsive without horizontal overflow", async ({ pa
 });
 
 test("anonymous checkout asks for an account", async ({ page }) => {
+  await mockPlans(page);
   await page.goto("/checkout?plano=semestral", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Entre ou crie sua conta para assinar." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", /returnTo/);
@@ -19,6 +21,7 @@ test("anonymous checkout asks for an account", async ({ page }) => {
 
 test("login returns the subscriber to the selected destination", async ({ page }) => {
   await mockLogin(page);
+  await mockPlans(page);
   await page.route("**/api/v1/consultancy/questions", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/consultancy/me/submissions", (route) => route.fulfill({ json: [] }));
   await page.goto("/login?returnTo=%2Fassinante", { waitUntil: "domcontentloaded" });

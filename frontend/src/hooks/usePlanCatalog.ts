@@ -1,9 +1,29 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
-export function normalizePlanCatalog(items) {
+export type Plan = {
+  slug: string;
+  name: string;
+  months: number;
+  cash: number;
+  subscriptionTotal: number;
+  monthly: number;
+};
+
+type ApiPlan = {
+  slug: string;
+  name: string;
+  months: number | string;
+  cash: number | string;
+  subscription_total: number | string;
+  monthly: number | string;
+};
+
+export type PlanCatalog = Record<string, Plan>;
+
+export function normalizePlanCatalog(items: unknown): PlanCatalog {
   return Object.fromEntries(
-    (Array.isArray(items) ? items : []).map((plan) => [
+    (Array.isArray(items) ? (items as ApiPlan[]) : []).map((plan) => [
       plan.slug,
       {
         slug: plan.slug,
@@ -18,7 +38,7 @@ export function normalizePlanCatalog(items) {
 }
 
 export function usePlanCatalog() {
-  const [plans, setPlans] = useState({});
+  const [plans, setPlans] = useState<PlanCatalog>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -45,6 +65,6 @@ export function usePlanCatalog() {
   return { plans, loading, error };
 }
 
-export function selectPlan(plans, requestedSlug) {
+export function selectPlan(plans: PlanCatalog, requestedSlug: string) {
   return plans[requestedSlug] || plans.trimestral || Object.values(plans)[0] || null;
 }

@@ -10,7 +10,7 @@ afterEach(() => {
 it("uses the approved fallback brand and WhatsApp number", async () => {
   vi.stubEnv("VITE_APP_NAME", "");
   vi.stubEnv("VITE_WHATSAPP_NUMBER", "");
-  const { default: Home } = await import("./Home.jsx");
+  const { default: Home } = await import("./Home");
   render(
     <MemoryRouter>
       <Home />

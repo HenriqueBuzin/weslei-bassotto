@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Login.css";
@@ -14,7 +14,7 @@ export default function Register() {
   const [error, setError] = useState("");
   const destination = params.get("returnTo") || "/assinante";
 
-  async function submit(event) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (password !== confirmation) {
       setError("As senhas não coincidem.");
@@ -25,8 +25,9 @@ export default function Register() {
     try {
       await register(email, password);
       navigate(destination);
-    } catch (err) {
-      setError(err?.response?.data?.detail || "Não foi possível criar sua conta.");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail || "Não foi possível criar sua conta.");
     } finally {
       setBusy(false);
     }
@@ -60,7 +61,7 @@ export default function Register() {
                     id="register-password"
                     className="form-control form-control-lg mb-3"
                     type="password"
-                    minLength="6"
+                    minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -72,7 +73,7 @@ export default function Register() {
                     id="register-confirmation"
                     className="form-control form-control-lg mb-3"
                     type="password"
-                    minLength="6"
+                    minLength={6}
                     value={confirmation}
                     onChange={(e) => setConfirmation(e.target.value)}
                     required

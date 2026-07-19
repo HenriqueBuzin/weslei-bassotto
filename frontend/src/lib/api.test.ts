@@ -35,7 +35,7 @@ describe("API clients", () => {
   it("fails fast without an API base URL", async () => {
     vi.resetModules();
     vi.stubEnv("VITE_API_BASE", "");
-    await expect(import("./api.js")).rejects.toThrow(/VITE_API_BASE/);
+    await expect(import("./api")).rejects.toThrow(/VITE_API_BASE/);
     vi.unstubAllEnvs();
   });
 });

@@ -1,22 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mockLogin } from "./helpers";
-
-async function mockPlans(page) {
-  await page.route("**/api/v1/plans", (route) =>
-    route.fulfill({
-      json: [
-        {
-          slug: "trimestral",
-          name: "Plano Trimestral",
-          months: 3,
-          cash: 597,
-          subscription_total: 638,
-          monthly: 212.66,
-        },
-      ],
-    }),
-  );
-}
+import { mockLogin, mockPlans } from "./helpers";
 
 test("approved subscriber completes the initial questionnaire", async ({ page }) => {
   await mockLogin(page);

@@ -29,7 +29,7 @@ afterEach(() => {
 
 it("explains when the Mercado Pago public key is missing", async () => {
   vi.stubEnv("VITE_MP_PUBLIC_KEY", "");
-  const { default: CheckoutBrick } = await import("./CheckoutBrick.jsx");
+  const { default: CheckoutBrick } = await import("./CheckoutBrick");
   render(
     <MemoryRouter initialEntries={["/checkout"]}>
       <CheckoutBrick />
