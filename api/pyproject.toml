@@ -1,7 +1,7 @@
 [project]
 name = "myapi"
 version = "0.1.0"
-description = "FastAPI + Mongo (Motor) API"
+description = "FastAPI + Postgres API"
 authors = []
 requires-python = ">=3.14,<3.15"
 dependencies = [
@@ -9,6 +9,7 @@ dependencies = [
   "uvicorn[standard]==0.51.0",
   "pydantic[email]==2.13.4",
   "pydantic-settings==2.14.2",
+  "asyncpg==0.31.0",
   "motor==3.7.1",
   "python-jose[cryptography]==3.5.0",
   "passlib[argon2]==1.7.4",

@@ -8,10 +8,14 @@ services:
         API_PORT: ${API_PORT}
     env_file:
       - ${ENV_FILE}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
-      - MONGO_URI=${MONGO_URI}
+      - DB_ADAPTER=${DB_ADAPTER}
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE}
       - API_PORT=${API_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALG=${JWT_ALG}
@@ -41,8 +45,6 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
       - ADMIN_ACCOUNTS=${ADMIN_ACCOUNTS}
-    depends_on:
-      - mongodb
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
@@ -62,10 +64,14 @@ services:
         API_PORT: ${API_PORT}
     env_file:
       - ${ENV_FILE}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
-      - MONGO_URI=${MONGO_URI}
+      - DB_ADAPTER=${DB_ADAPTER}
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE}
       - API_PORT=${API_PORT}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALG=${JWT_ALG}
@@ -100,8 +106,6 @@ services:
       - ADMIN_ACCOUNTS=${ADMIN_ACCOUNTS}
     volumes:
       - ./api:/app
-    depends_on:
-      - mongodb
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT} --reload"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
@@ -109,20 +113,6 @@ services:
       timeout: 2s
       retries: 40
       start_period: 2s
-    networks:
-      - proxy-network
-
-  mongodb:
-    image: mongo:7.0
-    restart: unless-stopped
-    env_file:
-      - ${ENV_FILE}
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${MONGO_DB}
-    volumes:
-      - mongo_data:/data/db
     networks:
       - proxy-network
 
@@ -219,8 +209,6 @@ services:
       - proxy-network
 
 volumes:
-  mongo_data:
-    name: ${COMPOSE_PROJECT_NAME}_mongo_data
   react_node_modules:
     name: ${COMPOSE_PROJECT_NAME}_react_node_modules
     
