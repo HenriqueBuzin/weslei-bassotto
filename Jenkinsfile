@@ -20,6 +20,7 @@ pipeline {
                         '''
                     }
                 }
+
                 stage('Frontend') {
                     steps {
                         sh '''
@@ -35,6 +36,7 @@ pipeline {
                 }
             }
         }
+
         stage('E2E') {
             steps {
                 sh '''
@@ -47,18 +49,16 @@ pipeline {
                 '''
             }
         }
+
         stage('Deploy') {
             steps {
                 script {
-
-                    // branch atual do multibranch
                     def branch = env.BRANCH_NAME
                     def project = "weslei-bassotto"
 
                     echo "🚀 Branch: ${branch}"
 
                     if (branch == 'main') {
-
                         sh """
                         set -e
 
@@ -70,7 +70,7 @@ pipeline {
                         git clean -fd
 
                         echo "🔗 Aplicando .env produção..."
-                        ln -sf /root/envs/${project}.env .env
+                        ln -sf /root/projects/envs/${project}.env .env
 
                         echo "🛑 Derrubando containers antigos..."
                         docker compose --profile prod down || true
@@ -85,7 +85,6 @@ pipeline {
                     }
 
                     else if (branch == 'dev') {
-
                         sh """
                         set -e
 
@@ -97,7 +96,7 @@ pipeline {
                         git clean -fd
 
                         echo "🔗 Aplicando .env dev..."
-                        ln -sf /root/envs/${project}-dev.env .env
+                        ln -sf /root/projects/envs/${project}-dev.env .env
 
                         echo "🛑 Derrubando containers antigos..."
                         docker compose --profile dev down || true
@@ -120,7 +119,6 @@ pipeline {
     }
 
     post {
-
         success {
             echo "✅ Deploy OK - ${env.BRANCH_NAME}"
         }
