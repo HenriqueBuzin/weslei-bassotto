@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/playwright:v1.61.1-noble
+
+ARG NODE_VERSION=24.18.0
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install --yes --no-install-recommends ca-certificates curl xz-utils; \
+    rm -rf /var/lib/apt/lists/*; \
+    architecture="$(dpkg --print-architecture)"; \
+    case "$architecture" in \
+      amd64) node_architecture="x64" ;; \
+      arm64) node_architecture="arm64" ;; \
+      *) echo "Unsupported architecture: $architecture" >&2; exit 1 ;; \
+    esac; \
+    curl --fail --show-error --location \
+      "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_architecture}.tar.xz" \
+      --output /tmp/node.tar.xz; \
+    tar --extract --xz --file /tmp/node.tar.xz --directory /usr/local --strip-components=1; \
+    rm /tmp/node.tar.xz; \
+    test "$(node --version)" = "v${NODE_VERSION}"; \
+    test "$(npm --version)" = "11.16.0"

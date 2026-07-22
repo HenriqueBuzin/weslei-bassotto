@@ -63,11 +63,16 @@ pipeline {
                 sh '''
                 set -e
 
+                docker build \
+                  --file "$WORKSPACE/frontend/Dockerfile.e2e" \
+                  --tag weslei-bassotto-e2e:playwright-1.61.1-node-24.18.0 \
+                  "$WORKSPACE/frontend"
+
                 docker run --rm \
                   --ipc=host \
                   --volumes-from jenkins \
                   -w "$WORKSPACE/frontend" \
-                  mcr.microsoft.com/playwright:v1.61.1-noble \
+                  weslei-bassotto-e2e:playwright-1.61.1-node-24.18.0 \
                   sh -c '
                     npm ci --no-audit --no-fund &&
                     npm run test:e2e
