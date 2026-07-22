@@ -1,4 +1,23 @@
 services:
+  postgres_dev:
+    profiles: ["dev"]
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-weslei_bassotto_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-weslei_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weslei_dev_local}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      - database-network
+
   api:
     profiles: ["prod"]
     restart: unless-stopped
@@ -70,7 +89,7 @@ services:
       - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
       - DB_ADAPTER=${DB_ADAPTER}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-weslei_dev}:${POSTGRES_PASSWORD:-weslei_dev_local}@postgres_dev:5432/${POSTGRES_DB:-weslei_bassotto_dev}
       - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE}
       - API_PORT=${API_PORT}
       - JWT_SECRET=${JWT_SECRET}
@@ -106,6 +125,9 @@ services:
       - ADMIN_ACCOUNTS=${ADMIN_ACCOUNTS}
     volumes:
       - ./api:/app
+    depends_on:
+      postgres_dev:
+        condition: service_healthy
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT} --reload"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
@@ -115,6 +137,7 @@ services:
       start_period: 2s
     networks:
       - proxy-network
+      - database-network
 
   frontend:
     profiles: ["dev"]
@@ -211,7 +234,11 @@ services:
 volumes:
   react_node_modules:
     name: ${COMPOSE_PROJECT_NAME}_react_node_modules
+  postgres_dev_data:
+    name: ${COMPOSE_PROJECT_NAME}_postgres_dev_data
     
 networks:
   proxy-network:
     external: true
+  database-network:
+    internal: true
