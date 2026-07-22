@@ -139,7 +139,13 @@ pipeline {
                         docker compose --profile dev build --no-cache
 
                         echo "🚀 Subindo dev..."
-                        docker compose --profile dev up -d
+                        if ! docker compose --profile dev up -d; then
+                            echo "❌ Falha ao iniciar o ambiente dev. Estado dos serviços:"
+                            docker compose --profile dev ps || true
+                            echo "📋 Logs recentes do PostgreSQL e da API:"
+                            docker compose --profile dev logs --no-color --tail=200 postgres_dev api_dev || true
+                            exit 1
+                        fi
 
                         echo "📋 Verificando containers..."
                         docker compose --profile dev ps
