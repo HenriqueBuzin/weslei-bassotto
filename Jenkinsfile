@@ -104,13 +104,13 @@ pipeline {
                         ln -sfn /root/projects/envs/${project}.env .env
 
                         echo "🛑 Derrubando containers antigos..."
-                        docker compose --profile prod down || true
+                        docker compose --profile prod down --remove-orphans || true
 
                         echo "🐳 Construindo produção..."
                         docker compose --profile prod build --no-cache
 
                         echo "🚀 Subindo produção..."
-                        docker compose --profile prod up -d
+                        docker compose --profile prod up -d --remove-orphans
 
                         echo "📋 Verificando containers..."
                         docker compose --profile prod ps
@@ -133,13 +133,13 @@ pipeline {
                         ln -sfn /root/projects/envs/${project}-dev.env .env
 
                         echo "🛑 Derrubando containers antigos..."
-                        docker compose --profile dev down || true
+                        docker compose --profile dev down --remove-orphans || true
 
                         echo "🐳 Construindo dev..."
                         docker compose --profile dev build --no-cache
 
                         echo "🚀 Subindo dev..."
-                        if ! docker compose --profile dev up -d; then
+                        if ! docker compose --profile dev up -d --remove-orphans; then
                             echo "❌ Falha ao iniciar o ambiente dev. Estado dos serviços:"
                             docker compose --profile dev ps || true
                             echo "📋 Logs recentes da API:"
