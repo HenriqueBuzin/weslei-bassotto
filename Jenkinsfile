@@ -142,8 +142,11 @@ pipeline {
                         if ! docker compose --profile dev up -d; then
                             echo "❌ Falha ao iniciar o ambiente dev. Estado dos serviços:"
                             docker compose --profile dev ps || true
-                            echo "📋 Logs recentes do PostgreSQL e da API:"
-                            docker compose --profile dev logs --no-color --tail=200 postgres_dev api_dev || true
+                            echo "📋 Logs recentes da API:"
+                            docker compose --profile dev logs --no-color --tail=200 api_dev || true
+                            echo "🌐 Containers conectados à rede compartilhada do PostgreSQL:"
+                            docker network inspect "\${POSTGRES_NETWORK:-postgres-network}" \
+                                --format '{{range .Containers}}{{.Name}} {{end}}' || true
                             exit 1
                         fi
 
