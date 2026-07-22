@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   authenticated: false,
@@ -37,9 +37,19 @@ vi.mock("../../hooks/usePlanCatalog", () => ({
   usePlanCatalog: () => state.catalog,
   selectPlan: (plans, slug) => plans[slug] || plans.trimestral,
 }));
-import CheckoutBrick from "./CheckoutBrick";
+
+let CheckoutBrick: typeof import("./CheckoutBrick").default;
 
 describe("CheckoutBrick", () => {
+  beforeAll(async () => {
+    vi.stubEnv("VITE_MP_PUBLIC_KEY", "TEST-public-key");
+    ({ default: CheckoutBrick } = await import("./CheckoutBrick"));
+  });
+
+  afterAll(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     state.authenticated = false;
     state.post.mockReset();
