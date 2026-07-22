@@ -50,7 +50,7 @@ services:
       test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
       interval: 5s
       timeout: 2s
-      retries: 10
+      retries: 40
       start_period: 5s
     networks:
       - proxy-network

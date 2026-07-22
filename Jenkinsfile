@@ -110,7 +110,16 @@ pipeline {
                         docker compose --profile prod build --no-cache
 
                         echo "🚀 Subindo produção..."
-                        docker compose --profile prod up -d --remove-orphans
+                        if ! docker compose --profile prod up -d --remove-orphans; then
+                            echo "❌ Falha ao iniciar o ambiente de produção. Estado dos serviços:"
+                            docker compose --profile prod ps || true
+                            echo "📋 Logs recentes da API:"
+                            docker compose --profile prod logs --no-color --tail=200 api || true
+                            echo "🌐 Containers conectados à rede compartilhada do PostgreSQL:"
+                            docker network inspect "\${POSTGRES_NETWORK:-postgres-network}" \
+                                --format '{{range .Containers}}{{.Name}} {{end}}' || true
+                            exit 1
+                        fi
 
                         echo "📋 Verificando containers..."
                         docker compose --profile prod ps
