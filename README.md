@@ -8,7 +8,7 @@ Weslei Bassotto
 # build das imagens
 docker compose --profile dev build
 
-# sobe os serviços de DEV (Caddy em :8080)
+# sobe os serviços de DEV na rede Docker compartilhada
 docker compose --profile dev up -d
 
 # logs em tempo real
@@ -23,7 +23,7 @@ docker compose --profile dev down
 ```bash
 docker compose --profile prod build
 
-# sobe os serviços de PROD (80/443)
+# sobe os serviços de PROD na rede Docker compartilhada
 docker compose --profile prod up -d
 
 # logs em tempo real
@@ -39,7 +39,16 @@ docker compose --profile prod down
 - Planos e períodos ficam em `api/app/domain`.
 - Gateways implementam `PaymentGateway`, definido em `api/app/payments/contracts.py`.
 - O serviço de pagamentos seleciona o adapter, registra tentativas e processa webhooks com idempotência.
-- Contratos, renovações, revisões da anamnese e alertas são persistidos no MongoDB.
+- Contratos, renovações, revisões da anamnese e alertas são persistidos no PostgreSQL compartilhado da VPS. O adapter Mongo permanece disponível no código, mas fica desabilitado enquanto `DB_ADAPTER=postgres`.
+
+## Proxy e banco compartilhados
+
+O projeto não publica portas HTTP no host e não cria bancos internos. O Nginx Proxy Manager deve estar conectado à `proxy-network` e encaminhar para:
+
+- desenvolvimento: `weslei-bassotto-dev:80`;
+- produção: `weslei-bassotto:80`.
+
+API e PostgreSQL compartilham a rede externa definida por `POSTGRES_NETWORK` (padrão `postgres-network`). A `DATABASE_URL` usa o alias `postgres`, por exemplo `postgresql://usuario:senha@postgres:5432/weslei_bassotto`.
 
 Para adicionar outro gateway, implemente `PaymentGateway`, registre-o em `build_gateway_registry()` e inclua seu nome em `PAYMENT_GATEWAY_ORDER`. O fallback só ocorre quando o adapter informa indisponibilidade antes de uma cobrança ser aceita. Recusas ou respostas ambíguas não são reenviadas automaticamente, evitando cobrança duplicada.
 
