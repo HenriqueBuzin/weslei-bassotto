@@ -152,11 +152,11 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deploy OK - ${env.BRANCH_NAME}"
+            echo "✅ Pipeline e deploy OK - ${env.BRANCH_NAME}"
         }
 
         failure {
-            echo "❌ Pipeline FALHOU - ${env.BRANCH_NAME}"
+            echo "❌ Pipeline ou deploy FALHOU - ${env.BRANCH_NAME}"
         }
 
         always {

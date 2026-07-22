@@ -9,7 +9,8 @@ from app.core.settings import Settings
 def valid_settings(**overrides):
     values = {
         "API_BASE": "api/v1/",
-        "MONGO_URI": "mongodb://localhost/test",
+        "DB_ADAPTER": "postgres",
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/weslei_bassotto_test",
         "APP_ENV": "dev",
         "JWT_ALG": "hs256",
         "JWT_SECRET": "a-secret-that-is-longer-than-thirty-two-characters",
@@ -39,6 +40,7 @@ def test_settings_normalize_values_and_legacy_admin():
         ADMIN_PASSWORD="secret123",
     )
     assert settings.api_base == "/api/v1"
+    assert settings.database_adapter == "postgres"
     assert settings.cors_allowed_origins == ["https://one.test", "https://two.test"]
     assert settings.payment_gateway_order == ["first", "second"]
     assert settings.refresh_cookie_path == "/api/v1/auth"
@@ -71,6 +73,8 @@ def test_admin_accounts_array_takes_precedence_and_prod_requires_two():
         ({"JWT_ALG": "none"}, "JWT_ALG"),
         ({"JWT_SECRET": "short"}, "muito curto"),
         ({"APP_ENV": "staging"}, "APP_ENV"),
+        ({"DB_ADAPTER": "sqlite"}, "DB_ADAPTER"),
+        ({"DB_ADAPTER": "mongo", "MONGO_URI": ""}, "MONGO_URI"),
         ({"COOKIE_SAMESITE": "invalid"}, "COOKIE_SAMESITE"),
         ({"REFRESH_COOKIE_NAME": "bad name"}, "REFRESH_COOKIE_NAME"),
         ({"COOKIE_SAMESITE": "none", "COOKIE_SECURE": False}, "COOKIE_SECURE"),
@@ -100,3 +104,9 @@ def test_asymmetric_algorithms_require_a_nonempty_secret():
     assert settings.jwt_alg == "RS256"
     with pytest.raises(ValidationError, match="não pode ser vazio"):
         valid_settings(JWT_ALG="ES256", JWT_SECRET="")
+
+
+def test_mongo_adapter_can_be_enabled_explicitly():
+    settings = valid_settings(DB_ADAPTER="MONGO", MONGO_URI="mongodb://localhost/test")
+    assert settings.database_adapter == "mongo"
+    assert settings.mongo_uri == "mongodb://localhost/test"

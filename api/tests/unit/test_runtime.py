@@ -1,13 +1,14 @@
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 from jose import jwt
 
+from app import db as db_module
 from app.core import deps
 from app.core.security import create_access_token, create_refresh_token
 from app.core.settings import settings
-from app.db import mongo
+from app.db import mongo, postgres
 from app.main import create_app, lifespan
 
 
@@ -37,18 +38,83 @@ async def test_role_dependency_allows_and_denies_roles():
 
 
 @pytest.mark.asyncio
+async def test_postgres_connect_disconnect_and_get_db(monkeypatch):
+    executed = []
+
+    class Pool:
+        async def execute(self, sql):
+            executed.append(sql)
+
+        async def close(self):
+            self.closed = True
+
+    pool = Pool()
+    app = SimpleNamespace(state=SimpleNamespace())
+    fake_asyncpg = ModuleType("asyncpg")
+
+    async def create_pool(*args, **kwargs):
+        assert args and args[0].startswith("postgresql://")
+        assert kwargs["min_size"] == 1
+        return pool
+
+    fake_asyncpg.create_pool = create_pool
+    monkeypatch.setitem(__import__("sys").modules, "asyncpg", fake_asyncpg)
+
+    await postgres.connect(app)
+    assert app.state.pg_pool is pool
+    assert app.state.db.pool is pool
+    assert "CREATE TABLE IF NOT EXISTS app_documents" in executed[0]
+    assert postgres.get_db(SimpleNamespace(app=app)) is app.state.db
+    await postgres.disconnect(app)
+    assert pool.closed is True
+
+
+@pytest.mark.asyncio
 async def test_mongo_connect_disconnect_and_get_db(monkeypatch):
     database = object()
     client = SimpleNamespace(get_default_database=lambda: database, close=lambda: setattr(client, "closed", True))
-    app = SimpleNamespace(state=SimpleNamespace())
     ensured = []
+    app = SimpleNamespace(state=SimpleNamespace())
+
     monkeypatch.setattr(mongo, "AsyncIOMotorClient", lambda uri: client)
     monkeypatch.setattr(mongo, "ensure_all", lambda db: _record_async(ensured, db))
+
     await mongo.connect(app)
-    assert app.state.db is database and ensured == [database]
+
+    assert app.state.db is database
+    assert ensured == [database]
     assert mongo.get_db(SimpleNamespace(app=app)) is database
     await mongo.disconnect(app)
     assert client.closed is True
+
+
+@pytest.mark.asyncio
+async def test_db_module_selects_configured_adapter(monkeypatch):
+    events = []
+
+    async def record_connect(app):
+        events.append(("connect", app))
+
+    async def record_disconnect(app):
+        events.append(("disconnect", app))
+
+    monkeypatch.setattr("app.db.postgres.connect", record_connect)
+    monkeypatch.setattr("app.db.postgres.disconnect", record_disconnect)
+    monkeypatch.setattr("app.db.postgres.get_db", lambda request: "postgres-db")
+    monkeypatch.setattr(settings, "database_adapter", "postgres")
+
+    app = SimpleNamespace(state=SimpleNamespace())
+    request = SimpleNamespace(app=app)
+    assert db_module.adapter() is postgres
+    await db_module.connect(app)
+    assert db_module.get_db(request) == "postgres-db"
+    await db_module.disconnect(app)
+
+    monkeypatch.setattr("app.db.mongo.get_db", lambda request: "mongo-db")
+    monkeypatch.setattr(settings, "database_adapter", "mongo")
+    assert db_module.adapter() is mongo
+    assert db_module.get_db(request) == "mongo-db"
+    assert [event[0] for event in events] == ["connect", "disconnect"]
 
 
 async def _record_async(items, value):

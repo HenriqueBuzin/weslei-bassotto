@@ -1,7 +1,8 @@
 import os
 
 os.environ.setdefault("API_BASE", "/api/v1")
-os.environ.setdefault("MONGO_URI", "mongodb://localhost/test")
+os.environ.setdefault("DB_ADAPTER", "postgres")
+os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/weslei_bassotto_test")
 os.environ.setdefault("APP_ENV", "dev")
 os.environ.setdefault("JWT_ALG", "HS256")
 os.environ.setdefault("JWT_SECRET", "test-secret-with-at-least-thirty-two-characters")

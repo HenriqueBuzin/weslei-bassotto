@@ -5,7 +5,16 @@ import re
 from datetime import timedelta
 from typing import Annotated
 
-from pydantic import BaseModel, EmailStr, Field, ValidationInfo, computed_field, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    EmailStr,
+    Field,
+    ValidationInfo,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -17,7 +26,10 @@ class AdminAccount(BaseModel):
 class Settings(BaseSettings):
     # --- Básicos ---
     api_base: str = Field(validation_alias="API_BASE")
-    mongo_uri: str = Field(validation_alias="MONGO_URI")
+    database_adapter: str = Field(default="postgres", validation_alias="DB_ADAPTER")
+    database_url: str = Field(validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_DSN"))
+    database_pool_size: int = Field(default=5, gt=0, validation_alias="DATABASE_POOL_SIZE")
+    mongo_uri: str = Field(default="", validation_alias="MONGO_URI")
     app_env: str = Field(validation_alias="APP_ENV")  # "dev" | "prod"
 
     # --- Auth/JWT ---
@@ -138,6 +150,18 @@ class Settings(BaseSettings):
     def _lower_env(cls, v: str) -> str:
         return str(v or "").strip().lower()
 
+    @field_validator("database_adapter", mode="before")
+    @classmethod
+    def _lower_database_adapter(cls, v: str) -> str:
+        return str(v or "postgres").strip().lower()
+
+    @field_validator("database_adapter")
+    @classmethod
+    def _check_database_adapter(cls, v: str) -> str:
+        if v not in {"postgres", "mongo"}:
+            raise ValueError("DB_ADAPTER deve ser 'postgres' ou 'mongo'")
+        return v
+
     @field_validator("app_env")
     @classmethod
     def _check_env(cls, v: str) -> str:
@@ -184,6 +208,12 @@ class Settings(BaseSettings):
                 "COOKIE_SAMESITE=None exige COOKIE_SECURE=true. "
                 "Use COOKIE_SAMESITE=lax em dev ou habilite HTTPS + Secure."
             )
+        return self
+
+    @model_validator(mode="after")
+    def _check_database_combo(self):
+        if self.database_adapter == "mongo" and not self.mongo_uri:
+            raise ValueError("MONGO_URI deve ser definido quando DB_ADAPTER=mongo")
         return self
 
     @model_validator(mode="after")
