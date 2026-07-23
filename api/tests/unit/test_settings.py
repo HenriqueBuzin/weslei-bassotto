@@ -1,12 +1,12 @@
 import importlib
 
 import pytest
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from app.core.settings import Settings
 
 
-def valid_settings(**overrides):
+def valid_settings(_settings_class=Settings, **overrides):
     values = {
         "API_BASE": "api/v1/",
         "DB_ADAPTER": "postgres",
@@ -29,7 +29,7 @@ def valid_settings(**overrides):
         "REFRESH_COOKIE_PATH": "api/v1/auth",
     }
     values.update(overrides)
-    return Settings(_env_file=None, **values)
+    return _settings_class(_env_file=None, **values)
 
 
 def test_settings_normalize_values_and_legacy_admin():
@@ -114,3 +114,30 @@ def test_mongo_adapter_can_be_enabled_explicitly():
     assert settings.database_adapter == "mongo"
     assert settings.database_url == ""
     assert settings.mongo_uri == "mongodb://localhost/test"
+
+
+def test_adapter_validation_discovers_future_connection_fields_automatically():
+    class FutureSettings(Settings):
+        redis_uri: str = Field(
+            default="",
+            validation_alias="REDIS_URI",
+            json_schema_extra={"database_adapter": "redis"},
+        )
+
+    settings = valid_settings(
+        FutureSettings,
+        DB_ADAPTER="redis",
+        DATABASE_URL="",
+        REDIS_URI="redis://localhost/database",
+    )
+    assert settings.database_adapter == "redis"
+    assert settings.redis_uri == "redis://localhost/database"
+    assert FutureSettings.database_connection_fields()["redis"] == "redis_uri"
+    assert FutureSettings.database_connection_label("redis_uri") == "REDIS_URI"
+
+    with pytest.raises(ValidationError, match="apenas um adapter"):
+        valid_settings(
+            FutureSettings,
+            DB_ADAPTER="redis",
+            REDIS_URI="redis://localhost/database",
+        )

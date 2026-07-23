@@ -27,9 +27,17 @@ class Settings(BaseSettings):
     # --- Básicos ---
     api_base: str = Field(validation_alias="API_BASE")
     database_adapter: str = Field(default="postgres", validation_alias="DB_ADAPTER")
-    database_url: str = Field(default="", validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_DSN"))
+    database_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_DSN"),
+        json_schema_extra={"database_adapter": "postgres"},
+    )
     database_pool_size: int = Field(default=5, gt=0, validation_alias="DATABASE_POOL_SIZE")
-    mongo_uri: str = Field(default="", validation_alias="MONGO_URI")
+    mongo_uri: str = Field(
+        default="",
+        validation_alias="MONGO_URI",
+        json_schema_extra={"database_adapter": "mongo"},
+    )
     app_env: str = Field(validation_alias="APP_ENV")  # "dev" | "prod"
 
     # --- Auth/JWT ---
@@ -158,9 +166,26 @@ class Settings(BaseSettings):
     @field_validator("database_adapter")
     @classmethod
     def _check_database_adapter(cls, v: str) -> str:
-        if v not in {"postgres", "mongo"}:
-            raise ValueError("DB_ADAPTER deve ser 'postgres' ou 'mongo'")
+        allowed = cls.database_connection_fields()
+        if v not in allowed:
+            raise ValueError(f"DB_ADAPTER deve ser um de: {', '.join(sorted(allowed))}")
         return v
+
+    @classmethod
+    def database_connection_fields(cls) -> dict[str, str]:
+        connections = {}
+        for field_name, field_info in cls.model_fields.items():
+            metadata = field_info.json_schema_extra or {}
+            adapter_name = metadata.get("database_adapter")
+            if adapter_name:
+                connections[str(adapter_name)] = field_name
+        return connections
+
+    @classmethod
+    def database_connection_label(cls, field_name: str) -> str:
+        alias = cls.model_fields[field_name].validation_alias
+        choices = getattr(alias, "choices", None)
+        return str(choices[0] if choices else alias or field_name)
 
     @field_validator("database_url", "mongo_uri", mode="before")
     @classmethod
@@ -217,14 +242,17 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _check_database_combo(self):
-        postgres_active = bool(self.database_url)
-        mongo_active = bool(self.mongo_uri)
-        if postgres_active and mongo_active:
-            raise ValueError("Configure apenas um adapter: DATABASE_URL ou MONGO_URI, nunca os dois")
-        if self.database_adapter == "postgres" and not postgres_active:
-            raise ValueError("DATABASE_URL deve ser definida quando DB_ADAPTER=postgres")
-        if self.database_adapter == "mongo" and not mongo_active:
-            raise ValueError("MONGO_URI deve ser definido quando DB_ADAPTER=mongo")
+        connection_fields = type(self).database_connection_fields()
+        active_adapters = [
+            adapter_name for adapter_name, field_name in connection_fields.items() if bool(getattr(self, field_name))
+        ]
+        if len(active_adapters) > 1:
+            names = ", ".join(sorted(active_adapters))
+            raise ValueError(f"Configure apenas um adapter de banco; conexões ativas: {names}")
+        selected_field = connection_fields[self.database_adapter]
+        if not getattr(self, selected_field):
+            connection_label = type(self).database_connection_label(selected_field)
+            raise ValueError(f"{connection_label} deve ser definida quando DB_ADAPTER={self.database_adapter}")
         return self
 
     @model_validator(mode="after")

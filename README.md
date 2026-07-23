@@ -56,6 +56,8 @@ API e PostgreSQL compartilham a rede externa definida por `POSTGRES_NETWORK` (pa
 
 Somente um adapter pode estar ativo: com `DB_ADAPTER=postgres`, preencha `DATABASE_URL` e deixe `MONGO_URI=`; com `DB_ADAPTER=mongo`, preencha `MONGO_URI` e deixe `DATABASE_URL=`. A aplicação recusa a inicialização se as duas conexões estiverem preenchidas ou se a conexão selecionada estiver vazia.
 
+Os campos de conexão declaram em seus metadados o adapter correspondente. A validação descobre essa lista automaticamente, portanto adapters futuros entram na mesma regra de exclusividade sem alterar o validador.
+
 Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolados:
 
 - produção usa o projeto Compose `weslei-bassotto-prod`, banco `weslei_bassotto` e um usuário exclusivo, como `weslei_app`;
