@@ -5,6 +5,8 @@ Weslei Bassotto
 ## Desenvolvimento (profile: dev)
 
 ```bash
+export COMPOSE_PROJECT_NAME=weslei-bassotto-dev
+
 # build das imagens
 docker compose --profile dev build
 
@@ -18,9 +20,11 @@ docker compose --profile dev logs -f
 docker compose --profile dev down
 ```
 
-## Desenvolvimento (profile: prod)
+## Produção (profile: prod)
 
 ```bash
+export COMPOSE_PROJECT_NAME=weslei-bassotto-prod
+
 docker compose --profile prod build
 
 # sobe os serviços de PROD na rede Docker compartilhada
@@ -49,6 +53,14 @@ O projeto não publica portas HTTP no host e não cria bancos internos. O Nginx 
 - produção: `weslei-bassotto:80`.
 
 API e PostgreSQL compartilham a rede externa definida por `POSTGRES_NETWORK` (padrão `postgres-network`). A `DATABASE_URL` usa o alias `postgres`, por exemplo `postgresql://usuario:senha@postgres:5432/weslei_bassotto`.
+
+Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolados:
+
+- produção usa o projeto Compose `weslei-bassotto-prod`, banco `weslei_bassotto` e um usuário exclusivo, como `weslei_app`;
+- desenvolvimento usa o projeto Compose `weslei-bassotto-dev`, banco `weslei_bassotto_dev` e um usuário exclusivo, como `weslei_dev`;
+- os dois compartilham somente o servidor PostgreSQL e as redes externas; não compartilham credenciais, banco, containers, imagens de projeto ou volumes.
+
+Na VPS, `/root/projects/envs/weslei-bassotto.env` configura produção e `/root/projects/envs/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. O Jenkins define `COMPOSE_PROJECT_NAME` por branch, independentemente do valor presente nesses arquivos.
 
 Para adicionar outro gateway, implemente `PaymentGateway`, registre-o em `build_gateway_registry()` e inclua seu nome em `PAYMENT_GATEWAY_ORDER`. O fallback só ocorre quando o adapter informa indisponibilidade antes de uma cobrança ser aceita. Recusas ou respostas ambíguas não são reenviadas automaticamente, evitando cobrança duplicada.
 
@@ -109,7 +121,7 @@ Use uma lista JSON extensível no ambiente. Em produção, configure inicialment
 ADMIN_ACCOUNTS=[{"email":"admin1@dominio.com","password":"senha-forte-1"},{"email":"admin2@dominio.com","password":"senha-forte-2"}]
 ```
 
-O seeder garante cada conta e adiciona a role `admin`. `ADMIN_EMAIL` e `ADMIN_PASSWORD` continuam aceitos apenas como compatibilidade para ambientes antigos.
+Com `SEED_ON_START=true`, o seeder cria roles e administradores somente quando o banco inteiro não possui documentos. Depois da primeira carga, qualquer dado existente faz o seed ser ignorado: deploys futuros não alteram contas, senhas, roles nem dados operacionais. `ADMIN_EMAIL` e `ADMIN_PASSWORD` continuam aceitos apenas como compatibilidade para ambientes antigos.
 
 ## Webhook do Mercado Pago
 

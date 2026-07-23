@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.core.security import verify_password
-from app.seeder.seed import seed_admin, seed_all, seed_roles
+from app.seeder.seed import database_has_documents, seed_admin, seed_all, seed_roles
 
 
 @pytest.mark.asyncio
@@ -48,7 +48,37 @@ async def test_seed_ignores_existing_index_errors_and_seed_all_calls_both(db, mo
     monkeypatch.setattr(db.users, "create_index", broken)
     await seed_admin(db)
     assert await db.users.find_one({"email": "admin@example.com"})
-    await seed_all(db)
+
+
+@pytest.mark.asyncio
+async def test_seed_all_only_populates_database_without_documents(db, monkeypatch, capsys):
+    monkeypatch.setattr(
+        "app.seeder.seed.settings",
+        SimpleNamespace(configured_admin_accounts=[{"email": "admin@example.com", "password": "secret123"}]),
+    )
+    await db.audit_events.create_index("created_at")
+
+    assert await database_has_documents(db) is False
+    assert await seed_all(db) is True
+    assert await db.roles.count_documents({}) == 2
+    assert await db.users.count_documents({}) == 1
+    assert "Carga inicial concluída" in capsys.readouterr().out
+
+
+@pytest.mark.asyncio
+async def test_seed_all_preserves_any_existing_production_data(db, monkeypatch, capsys):
+    monkeypatch.setattr(
+        "app.seeder.seed.settings",
+        SimpleNamespace(configured_admin_accounts=[{"email": "admin@example.com", "password": "secret123"}]),
+    )
+    await db.consultancy_submissions.insert_one({"status": "existing"})
+
+    assert await database_has_documents(db) is True
+    assert await seed_all(db) is False
+    assert await db.roles.count_documents({}) == 0
+    assert await db.users.count_documents({}) == 0
+    assert await db.consultancy_submissions.count_documents({}) == 1
+    assert "Banco com dados" in capsys.readouterr().out
 
 
 @pytest.mark.asyncio

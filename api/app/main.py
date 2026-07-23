@@ -17,6 +17,8 @@ async def lifespan(app: FastAPI):
     await connect(app)
     if settings.seed_on_start:
         await seed_all(app.state.db)
+    else:
+        print("[SEED] Carga inicial desabilitada por SEED_ON_START.")
     try:
         yield
     finally:
