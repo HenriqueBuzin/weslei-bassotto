@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # --- Básicos ---
     api_base: str = Field(validation_alias="API_BASE")
     database_adapter: str = Field(default="postgres", validation_alias="DB_ADAPTER")
-    database_url: str = Field(validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_DSN"))
+    database_url: str = Field(default="", validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_DSN"))
     database_pool_size: int = Field(default=5, gt=0, validation_alias="DATABASE_POOL_SIZE")
     mongo_uri: str = Field(default="", validation_alias="MONGO_URI")
     app_env: str = Field(validation_alias="APP_ENV")  # "dev" | "prod"
@@ -162,6 +162,11 @@ class Settings(BaseSettings):
             raise ValueError("DB_ADAPTER deve ser 'postgres' ou 'mongo'")
         return v
 
+    @field_validator("database_url", "mongo_uri", mode="before")
+    @classmethod
+    def _normalize_database_connection(cls, v: str | None) -> str:
+        return str(v or "").strip()
+
     @field_validator("app_env")
     @classmethod
     def _check_env(cls, v: str) -> str:
@@ -212,7 +217,13 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _check_database_combo(self):
-        if self.database_adapter == "mongo" and not self.mongo_uri:
+        postgres_active = bool(self.database_url)
+        mongo_active = bool(self.mongo_uri)
+        if postgres_active and mongo_active:
+            raise ValueError("Configure apenas um adapter: DATABASE_URL ou MONGO_URI, nunca os dois")
+        if self.database_adapter == "postgres" and not postgres_active:
+            raise ValueError("DATABASE_URL deve ser definida quando DB_ADAPTER=postgres")
+        if self.database_adapter == "mongo" and not mongo_active:
             raise ValueError("MONGO_URI deve ser definido quando DB_ADAPTER=mongo")
         return self
 

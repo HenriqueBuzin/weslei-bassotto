@@ -74,7 +74,10 @@ def test_admin_accounts_array_takes_precedence_and_prod_requires_two():
         ({"JWT_SECRET": "short"}, "muito curto"),
         ({"APP_ENV": "staging"}, "APP_ENV"),
         ({"DB_ADAPTER": "sqlite"}, "DB_ADAPTER"),
-        ({"DB_ADAPTER": "mongo", "MONGO_URI": ""}, "MONGO_URI"),
+        ({"DB_ADAPTER": "postgres", "DATABASE_URL": ""}, "DATABASE_URL"),
+        ({"DB_ADAPTER": "mongo", "DATABASE_URL": "", "MONGO_URI": ""}, "MONGO_URI"),
+        ({"DB_ADAPTER": "postgres", "MONGO_URI": "mongodb://localhost/test"}, "apenas um adapter"),
+        ({"DB_ADAPTER": "mongo", "MONGO_URI": "mongodb://localhost/test"}, "apenas um adapter"),
         ({"COOKIE_SAMESITE": "invalid"}, "COOKIE_SAMESITE"),
         ({"REFRESH_COOKIE_NAME": "bad name"}, "REFRESH_COOKIE_NAME"),
         ({"COOKIE_SAMESITE": "none", "COOKIE_SECURE": False}, "COOKIE_SECURE"),
@@ -107,6 +110,7 @@ def test_asymmetric_algorithms_require_a_nonempty_secret():
 
 
 def test_mongo_adapter_can_be_enabled_explicitly():
-    settings = valid_settings(DB_ADAPTER="MONGO", MONGO_URI="mongodb://localhost/test")
+    settings = valid_settings(DB_ADAPTER="MONGO", DATABASE_URL="  ", MONGO_URI=" mongodb://localhost/test ")
     assert settings.database_adapter == "mongo"
+    assert settings.database_url == ""
     assert settings.mongo_uri == "mongodb://localhost/test"

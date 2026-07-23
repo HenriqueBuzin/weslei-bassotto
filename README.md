@@ -54,6 +54,8 @@ O projeto não publica portas HTTP no host e não cria bancos internos. O Nginx 
 
 API e PostgreSQL compartilham a rede externa definida por `POSTGRES_NETWORK` (padrão `postgres-network`). A `DATABASE_URL` usa o alias `postgres`, por exemplo `postgresql://usuario:senha@postgres:5432/weslei_bassotto`.
 
+Somente um adapter pode estar ativo: com `DB_ADAPTER=postgres`, preencha `DATABASE_URL` e deixe `MONGO_URI=`; com `DB_ADAPTER=mongo`, preencha `MONGO_URI` e deixe `DATABASE_URL=`. A aplicação recusa a inicialização se as duas conexões estiverem preenchidas ou se a conexão selecionada estiver vazia.
+
 Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolados:
 
 - produção usa o projeto Compose `weslei-bassotto-prod`, banco `weslei_bassotto` e um usuário exclusivo, como `weslei_app`;
