@@ -135,7 +135,7 @@ async def test_lifespan_connects_seeds_and_disconnects(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_lifespan_skips_seed_when_disabled(monkeypatch):
+async def test_lifespan_skips_seed_when_disabled(monkeypatch, capsys):
     events = []
     app = SimpleNamespace(state=SimpleNamespace(db="database"))
     monkeypatch.setattr("app.main.connect", lambda target: _record_async(events, "connect"))
@@ -145,6 +145,7 @@ async def test_lifespan_skips_seed_when_disabled(monkeypatch):
     async with lifespan(app):
         pass
     assert events == ["connect", "disconnect"]
+    assert "SEED_ON_START" in capsys.readouterr().out
 
 
 @pytest.mark.asyncio

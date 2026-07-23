@@ -51,6 +51,19 @@ async def seed_admin(db):
         print(f"[SEED] Admin garantido: {email}")
 
 
+async def database_has_documents(db) -> bool:
+    for collection_name in await db.list_collection_names():
+        if await getattr(db, collection_name).find_one({}) is not None:
+            return True
+    return False
+
+
 async def seed_all(db):
+    if await database_has_documents(db):
+        print("[SEED] Banco com dados; carga inicial ignorada.")
+        return False
+
     await seed_roles(db)
     await seed_admin(db)
+    print("[SEED] Carga inicial concluída.")
+    return True

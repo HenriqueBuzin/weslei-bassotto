@@ -102,12 +102,16 @@ pipeline {
 
                         echo "🔗 Aplicando .env produção..."
                         ln -sfn /root/projects/envs/${project}.env .env
+                        export COMPOSE_PROJECT_NAME=${project}-prod
 
                         echo "🛑 Derrubando containers antigos..."
                         docker compose --profile prod down --remove-orphans || true
 
                         echo "🐳 Construindo produção..."
                         docker compose --profile prod build --no-cache
+
+                        echo "🧹 Removendo containers legados de produção..."
+                        docker rm -f wesleibassotto-web-1 wesleibassotto-api-1 2>/dev/null || true
 
                         echo "🚀 Subindo produção..."
                         if ! docker compose --profile prod up -d --remove-orphans; then
@@ -125,7 +129,7 @@ pipeline {
                         docker compose --profile prod ps
 
                         echo "🧹 Limpando imagens antigas..."
-                        docker image prune -af || true
+                        docker image prune -f || true
                         """
                     } else if (branch == 'dev') {
                         sh """
@@ -140,12 +144,19 @@ pipeline {
 
                         echo "🔗 Aplicando .env dev..."
                         ln -sfn /root/projects/envs/${project}-dev.env .env
+                        export COMPOSE_PROJECT_NAME=${project}-dev
 
                         echo "🛑 Derrubando containers antigos..."
                         docker compose --profile dev down --remove-orphans || true
 
                         echo "🐳 Construindo dev..."
                         docker compose --profile dev build --no-cache
+
+                        echo "🧹 Removendo containers legados de dev..."
+                        docker rm -f \
+                            wesleibassotto-caddy-1 \
+                            wesleibassotto-frontend-1 \
+                            wesleibassotto-api_dev-1 2>/dev/null || true
 
                         echo "🚀 Subindo dev..."
                         if ! docker compose --profile dev up -d --remove-orphans; then
@@ -163,7 +174,7 @@ pipeline {
                         docker compose --profile dev ps
 
                         echo "🧹 Limpando imagens antigas..."
-                        docker image prune -af || true
+                        docker image prune -f || true
                         """
                     } else {
                         echo "⚠️ Branch ignorada: ${branch}"
