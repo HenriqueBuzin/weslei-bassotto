@@ -65,14 +65,14 @@ pipeline {
 
                 docker build \
                   --file "$WORKSPACE/frontend/Dockerfile.e2e" \
-                  --tag weslei-bassotto-e2e:playwright-1.61.1-node-24.18.0 \
+                  --tag weslei-bassotto-e2e:playwright-1.62.0-node-24.18.0 \
                   "$WORKSPACE/frontend"
 
                 docker run --rm \
                   --ipc=host \
                   --volumes-from jenkins \
                   -w "$WORKSPACE/frontend" \
-                  weslei-bassotto-e2e:playwright-1.61.1-node-24.18.0 \
+                  weslei-bassotto-e2e:playwright-1.62.0-node-24.18.0 \
                   sh -c '
                     npm ci --no-audit --no-fund &&
                     npm run test:e2e
