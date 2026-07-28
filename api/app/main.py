@@ -31,8 +31,8 @@ def create_app() -> FastAPI:
         version=__version__,
         description=__description__,
         lifespan=lifespan,
-        docs_url=f"{settings.api_base}/docs",
-        openapi_url=f"{settings.api_base}/openapi.json",
+        docs_url=f"{settings.api_base}/docs" if settings.is_dev else None,
+        openapi_url=f"{settings.api_base}/openapi.json" if settings.is_dev else None,
     )
 
     allow_creds = not (len(settings.cors_allowed_origins) == 1 and settings.cors_allowed_origins[0] == "*")

@@ -2,7 +2,7 @@
 
 Weslei Bassotto
 
-## Desenvolvimento (profile: dev)
+## Desenvolvimento
 
 ```bash
 # build das imagens
@@ -18,19 +18,19 @@ docker compose -f docker-compose.yml logs -f
 docker compose -f docker-compose.yml down
 ```
 
-## Produção (profile: prod)
+## Produção
 
 ```bash
-docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose-prod.yml build
 
 # sobe os serviços de PROD na rede Docker compartilhada
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose-prod.yml up -d
 
 # logs em tempo real
-docker compose -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose-prod.yml logs -f
 
 # parar/remover
-docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose-prod.yml down
 ```
 
 ## Arquitetura de pagamentos
@@ -43,7 +43,7 @@ docker compose -f docker-compose.prod.yml down
 
 ## Proxy e banco compartilhados
 
-O projeto não publica portas HTTP no host e não cria bancos internos. O Nginx Proxy Manager deve estar conectado à `proxy-network` e encaminhar para:
+O projeto não publica portas HTTP no host e não cria bancos internos. O Caddy deve estar conectado à `proxy-network` e encaminhar para:
 
 - desenvolvimento: `weslei-bassotto-dev:80`;
 - produção: `weslei-bassotto:80`.

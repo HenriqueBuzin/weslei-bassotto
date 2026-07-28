@@ -7,6 +7,18 @@ from fastapi import FastAPI
 from app import main
 
 
+def test_swagger_is_enabled_only_in_development(monkeypatch):
+    monkeypatch.setattr(main.settings, "app_env", "dev")
+    development = main.create_app()
+    assert development.docs_url == "/api/v1/docs"
+    assert development.openapi_url == "/api/v1/openapi.json"
+
+    monkeypatch.setattr(main.settings, "app_env", "prod")
+    production = main.create_app()
+    assert production.docs_url is None
+    assert production.openapi_url is None
+
+
 @pytest.mark.asyncio
 async def test_health_smoke_with_mongo_up(db):
     app = main.create_app()
