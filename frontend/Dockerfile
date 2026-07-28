@@ -2,6 +2,8 @@ FROM node:24-bookworm-slim
 
 WORKDIR /app
 
+ENV TZ=America/Sao_Paulo
+
 RUN apt-get update && apt-get install -y --no-install-recommends dumb-init && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./

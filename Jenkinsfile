@@ -3,10 +3,11 @@ pipeline {
 
     options {
         disableConcurrentBuilds()
+        timeout(time: 60, unit: 'MINUTES')
     }
 
     stages {
-        stage('Tests') {
+        stage('Install') {
             parallel {
                 stage('Backend') {
                     steps {
@@ -59,7 +60,7 @@ pipeline {
             }
         }
 
-        stage('E2E') {
+        stage('Verify') {
             steps {
                 sh '''
                 set -e
@@ -79,6 +80,50 @@ pipeline {
                     npm run test:e2e
                   '
                 '''
+            }
+        }
+
+        stage('Compose') {
+            steps {
+                script {
+                    def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    branch = branch.replaceFirst(/^origin\//, '')
+                    if (branch != 'main' && branch != 'dev') {
+                        echo "Branch sem Compose de entrega: ${branch}"
+                        return
+                    }
+                    withEnv(["PIPELINE_BRANCH=${branch}"]) {
+                        sh '''
+                            set -eu
+                            suffix=""
+                            [ "$PIPELINE_BRANCH" = "dev" ] && suffix="-dev"
+                            env_file="/root/projects/envs/weslei-bassotto${suffix}.env"
+                            test -f "$env_file"
+                            ln -sfn "$env_file" .env
+                            if [ "$PIPELINE_BRANCH" = "main" ]; then
+                              docker compose -f docker-compose.prod.yml config --quiet
+                            else
+                              docker compose -f docker-compose.yml config --quiet
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Container') {
+            steps {
+                script {
+                    def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    branch = branch.replaceFirst(/^origin\//, '')
+                    if (branch == 'main') {
+                        sh 'IMAGE_TAG=$(git rev-parse --short=12 HEAD) docker compose -f docker-compose.prod.yml build'
+                    } else if (branch == 'dev') {
+                        sh 'IMAGE_TAG=$(git rev-parse --short=12 HEAD) docker compose -f docker-compose.yml build'
+                    } else {
+                        echo "Branch sem imagem de entrega: ${branch}"
+                    }
+                }
             }
         }
 
@@ -103,23 +148,24 @@ pipeline {
 
                         echo "🔗 Aplicando .env produção..."
                         ln -sfn /root/projects/envs/${project}.env .env
-                        export COMPOSE_PROJECT_NAME=${project}-prod
+                        export COMPOSE_PROJECT_NAME=${project}
+                        export IMAGE_TAG=\$(git rev-parse --short=12 HEAD)
 
                         echo "🛑 Derrubando containers antigos..."
-                        docker compose --profile prod down --remove-orphans || true
+                        docker compose -f docker-compose.prod.yml down --remove-orphans || true
 
                         echo "🐳 Construindo produção..."
-                        docker compose --profile prod build --no-cache
+                        docker compose -f docker-compose.prod.yml build --no-cache
 
                         echo "🧹 Removendo containers legados de produção..."
                         docker rm -f wesleibassotto-web-1 wesleibassotto-api-1 2>/dev/null || true
 
                         echo "🚀 Subindo produção..."
-                        if ! docker compose --profile prod up -d --remove-orphans; then
+                        if ! docker compose -f docker-compose.prod.yml up -d --remove-orphans --wait --wait-timeout 180; then
                             echo "❌ Falha ao iniciar o ambiente de produção. Estado dos serviços:"
-                            docker compose --profile prod ps || true
+                            docker compose -f docker-compose.prod.yml ps || true
                             echo "📋 Logs recentes da API:"
-                            docker compose --profile prod logs --no-color --tail=200 api || true
+                            docker compose -f docker-compose.prod.yml logs --no-color --tail=200 backend || true
                             echo "🌐 Containers conectados à rede compartilhada do PostgreSQL:"
                             docker network inspect "\${POSTGRES_NETWORK:-postgres-network}" \
                                 --format '{{range .Containers}}{{.Name}} {{end}}' || true
@@ -127,7 +173,7 @@ pipeline {
                         fi
 
                         echo "📋 Verificando containers..."
-                        docker compose --profile prod ps
+                        docker compose -f docker-compose.prod.yml ps
 
                         echo "🧹 Limpando imagens antigas..."
                         docker image prune -f || true
@@ -146,12 +192,13 @@ pipeline {
                         echo "🔗 Aplicando .env dev..."
                         ln -sfn /root/projects/envs/${project}-dev.env .env
                         export COMPOSE_PROJECT_NAME=${project}-dev
+                        export IMAGE_TAG=\$(git rev-parse --short=12 HEAD)
 
                         echo "🛑 Derrubando containers antigos..."
-                        docker compose --profile dev down --remove-orphans || true
+                        docker compose -f docker-compose.yml down --remove-orphans || true
 
                         echo "🐳 Construindo dev..."
-                        docker compose --profile dev build --no-cache
+                        docker compose -f docker-compose.yml build --no-cache
 
                         echo "🧹 Removendo containers legados de dev..."
                         docker rm -f \
@@ -160,11 +207,11 @@ pipeline {
                             wesleibassotto-api_dev-1 2>/dev/null || true
 
                         echo "🚀 Subindo dev..."
-                        if ! docker compose --profile dev up -d --remove-orphans; then
+                        if ! docker compose -f docker-compose.yml up -d --remove-orphans --wait --wait-timeout 180; then
                             echo "❌ Falha ao iniciar o ambiente dev. Estado dos serviços:"
-                            docker compose --profile dev ps || true
+                            docker compose -f docker-compose.yml ps || true
                             echo "📋 Logs recentes da API:"
-                            docker compose --profile dev logs --no-color --tail=200 api_dev || true
+                            docker compose -f docker-compose.yml logs --no-color --tail=200 backend || true
                             echo "🌐 Containers conectados à rede compartilhada do PostgreSQL:"
                             docker network inspect "\${POSTGRES_NETWORK:-postgres-network}" \
                                 --format '{{range .Containers}}{{.Name}} {{end}}' || true
@@ -172,7 +219,7 @@ pipeline {
                         fi
 
                         echo "📋 Verificando containers..."
-                        docker compose --profile dev ps
+                        docker compose -f docker-compose.yml ps
 
                         echo "🧹 Limpando imagens antigas..."
                         docker image prune -f || true

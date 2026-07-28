@@ -3,7 +3,9 @@
 FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    TZ=America/Sao_Paulo \
+    UVICORN_RELOAD=false
 
 WORKDIR /app
 
@@ -25,4 +27,4 @@ EXPOSE ${API_PORT}
 
 # 4) Porta SEM padrão: exige em runtime
 ENV API_PORT=${API_PORT}
-CMD ["sh","-lc",": ${API_PORT:?Defina API_PORT}; uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}"]
+CMD ["sh","-lc",": ${API_PORT:?Defina API_PORT}; if [ \"${UVICORN_RELOAD}\" = \"true\" ]; then exec uvicorn app.main:app --host 0.0.0.0 --port \"${API_PORT}\" --reload; else exec uvicorn app.main:app --host 0.0.0.0 --port \"${API_PORT}\"; fi"]

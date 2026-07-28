@@ -5,7 +5,7 @@
 
   route {
     @api path /api/*
-    reverse_proxy @api api:{$API_PORT}
+    reverse_proxy @api backend:{$API_PORT}
 
     try_files {path} /index.html
     file_server

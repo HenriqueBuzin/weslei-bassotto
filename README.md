@@ -5,36 +5,32 @@ Weslei Bassotto
 ## Desenvolvimento (profile: dev)
 
 ```bash
-export COMPOSE_PROJECT_NAME=weslei-bassotto-dev
-
 # build das imagens
-docker compose --profile dev build
+docker compose -f docker-compose.yml build
 
 # sobe os serviços de DEV na rede Docker compartilhada
-docker compose --profile dev up -d
+docker compose -f docker-compose.yml up -d
 
 # logs em tempo real
-docker compose --profile dev logs -f
+docker compose -f docker-compose.yml logs -f
 
 # parar/remover
-docker compose --profile dev down
+docker compose -f docker-compose.yml down
 ```
 
 ## Produção (profile: prod)
 
 ```bash
-export COMPOSE_PROJECT_NAME=weslei-bassotto-prod
-
-docker compose --profile prod build
+docker compose -f docker-compose.prod.yml build
 
 # sobe os serviços de PROD na rede Docker compartilhada
-docker compose --profile prod up -d
+docker compose -f docker-compose.prod.yml up -d
 
 # logs em tempo real
-docker compose --profile prod logs -f
+docker compose -f docker-compose.prod.yml logs -f
 
 # parar/remover
-docker compose --profile prod down
+docker compose -f docker-compose.prod.yml down
 ```
 
 ## Arquitetura de pagamentos
@@ -60,11 +56,11 @@ Os campos de conexão declaram em seus metadados o adapter correspondente. A val
 
 Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolados:
 
-- produção usa o projeto Compose `weslei-bassotto-prod`, banco `weslei_bassotto` e um usuário exclusivo, como `weslei_app`;
+- produção usa o projeto Compose `weslei-bassotto`, banco `weslei_bassotto` e um usuário exclusivo, como `weslei_app`;
 - desenvolvimento usa o projeto Compose `weslei-bassotto-dev`, banco `weslei_bassotto_dev` e um usuário exclusivo, como `weslei_dev`;
 - os dois compartilham somente o servidor PostgreSQL e as redes externas; não compartilham credenciais, banco, containers, imagens de projeto ou volumes.
 
-Na VPS, `/root/projects/envs/weslei-bassotto.env` configura produção e `/root/projects/envs/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. O Jenkins define `COMPOSE_PROJECT_NAME` por branch, independentemente do valor presente nesses arquivos.
+Na VPS, `/root/projects/envs/weslei-bassotto.env` configura produção e `/root/projects/envs/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. Os nomes dos projetos são definidos pelos arquivos Compose: `weslei-bassotto` em produção e `weslei-bassotto-dev` em desenvolvimento.
 
 ## Docker Secrets
 

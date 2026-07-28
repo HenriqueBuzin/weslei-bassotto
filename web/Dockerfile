@@ -1,6 +1,7 @@
 # --- Stage 1: build do React ---
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
+ENV TZ=America/Sao_Paulo
 
 # Vite lê VITE_* em tempo de build
 ARG VITE_API_BASE
@@ -39,6 +40,7 @@ RUN npm run build
 
 # --- Stage 2: Caddy servindo estáticos ---
 FROM caddy:2-alpine
+ENV TZ=America/Sao_Paulo
 COPY --from=build /app/dist /usr/share/caddy
 COPY web/Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80

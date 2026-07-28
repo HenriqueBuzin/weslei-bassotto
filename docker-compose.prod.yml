@@ -1,4 +1,4 @@
-name: weslei-bassotto-dev
+name: weslei-bassotto
 
 x-logging: &default-logging
   driver: json-file
@@ -8,12 +8,12 @@ x-logging: &default-logging
 
 x-labels: &default-labels
   infra.project: weslei-bassotto
-  infra.environment: development
+  infra.environment: production
   infra.version: ${IMAGE_TAG:-local}
 
 services:
   backend:
-    image: weslei-bassotto/backend:${IMAGE_TAG:-local}-dev
+    image: weslei-bassotto/backend:${IMAGE_TAG:-local}
     labels: *default-labels
     restart: unless-stopped
     init: true
@@ -29,7 +29,7 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - API_BASE=${API_BASE}
-      - APP_ENV=${APP_ENV}
+      - APP_ENV=production
       - DB_ADAPTER=${DB_ADAPTER}
       - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE}
       - API_PORT=${API_PORT}
@@ -65,7 +65,7 @@ services:
       - MERCADO_PAGO_ACCESS_TOKEN_FILE=/run/secrets/mercado_pago_access_token
       - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
       - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
-      - UVICORN_RELOAD=true
+      - UVICORN_RELOAD=false
       - TZ=America/Sao_Paulo
     secrets:
       - database_connection
@@ -80,20 +80,18 @@ services:
       core:
         soft: 0
         hard: 0
-    volumes:
-      - ./api:/app
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
-      interval: 3s
+      interval: 5s
       timeout: 2s
       retries: 40
-      start_period: 2s
+      start_period: 5s
     networks:
       - proxy-network
       - postgres-network
 
-  frontend:
-    image: weslei-bassotto/frontend:${IMAGE_TAG:-local}-dev
+  web:
+    image: weslei-bassotto/web:${IMAGE_TAG:-local}
     labels: *default-labels
     restart: unless-stopped
     init: true
@@ -102,70 +100,26 @@ services:
       - no-new-privileges:true
     logging: *default-logging
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web/Dockerfile
       args:
-        - VITE_PORT=${VITE_PORT}
-    environment:
-      - VITE_API_BASE=${VITE_API_BASE}
-      - VITE_PORT=${VITE_PORT}
-      - VITE_APP_NAME=${VITE_APP_NAME}
-      - VITE_MP_TRIMESTRAL_URL=${VITE_MP_TRIMESTRAL_URL}
-      - VITE_MP_SEMESTRAL_URL=${VITE_MP_SEMESTRAL_URL}
-      - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
-      - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
-      - VITE_WHATSAPP_NUMBER=${VITE_WHATSAPP_NUMBER}
-      - VITE_PROXY_TARGET=http://backend:8000
-      - VITE_HMR_DISABLED=${VITE_HMR_DISABLED}
-      - VITE_HMR_HOST=${VITE_HMR_HOST}
-      - VITE_HMR_PROTOCOL=${VITE_HMR_PROTOCOL}
-      - VITE_HMR_CLIENT_PORT=${VITE_HMR_CLIENT_PORT}
-      - VITE_HMR_PATH=${VITE_HMR_PATH}
-      - TZ=America/Sao_Paulo
-    volumes:
-      - ./frontend:/app
-      - react_node_modules:/app/node_modules
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - |
-          : "$${VITE_PORT:?VITE_PORT nao definido}";
-          node -e "
-          const http=require('http'), p=Number(process.env.VITE_PORT);
-          const ping=path=>new Promise(ok=>{
-            const r=http.get({host:'127.0.0.1',port:p,path},s=>ok(s.statusCode===200));
-            r.on('error',()=>ok(false)); setTimeout(()=>{try{r.destroy()}catch{}; ok(false)},1500);
-          });
-          (async()=>{process.exit((await ping('/health'))||(await ping('/'))?0:1)})();"
-      interval: 3s
-      timeout: 2s
-      retries: 40
-      start_period: 2s
-    networks:
-      - proxy-network
-
-  web:
-    labels: *default-labels
-    restart: unless-stopped
-    init: true
-    stop_grace_period: 30s
-    security_opt:
-      - no-new-privileges:true
-    logging: *default-logging
-    image: caddy:2-alpine
+        - VITE_API_BASE=${VITE_API_BASE}
+        - VITE_APP_NAME=${VITE_APP_NAME}
+        - VITE_MP_TRIMESTRAL_URL=${VITE_MP_TRIMESTRAL_URL}
+        - VITE_MP_SEMESTRAL_URL=${VITE_MP_SEMESTRAL_URL}
+        - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
+        - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
+        - VITE_WHATSAPP_NUMBER=${VITE_WHATSAPP_NUMBER}
     expose:
       - "80"
-    environment:
-      - API_PORT=${API_PORT}
-      - VITE_PORT=${VITE_PORT}
-      - TZ=America/Sao_Paulo
     depends_on:
       backend:
         condition: service_healthy
-      frontend:
-        condition: service_healthy
-    volumes:
-      - ./web/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    environment:
+      - API_PORT=${API_PORT}
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+      - CADDY_EMAIL=${CADDY_EMAIL}
+      - TZ=America/Sao_Paulo
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
       interval: 10s
@@ -174,11 +128,8 @@ services:
     networks:
       proxy-network:
         aliases:
-          - weslei-bassotto-dev
+          - weslei-bassotto
 
-volumes:
-  react_node_modules:
-    
 networks:
   proxy-network:
     external: true
