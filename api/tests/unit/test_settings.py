@@ -3,10 +3,10 @@ import importlib
 import pytest
 from pydantic import Field, ValidationError
 
-from app.core.settings import Settings
+from app.core.settings import Settings, load_file_secrets
 
 
-def valid_settings(_settings_class=Settings, **overrides):
+def valid_settings(_settings_class=Settings, _drop=(), **overrides):
     values = {
         "API_BASE": "api/v1/",
         "DB_ADAPTER": "postgres",
@@ -28,6 +28,8 @@ def valid_settings(_settings_class=Settings, **overrides):
         "REFRESH_COOKIE_NAME": "rt_test",
         "REFRESH_COOKIE_PATH": "api/v1/auth",
     }
+    for name in _drop:
+        values.pop(name, None)
     values.update(overrides)
     return _settings_class(_env_file=None, **values)
 
@@ -65,6 +67,47 @@ def test_admin_accounts_array_takes_precedence_and_prod_requires_two():
     ]
     with pytest.raises(ValidationError, match="exatamente dois administradores"):
         valid_settings(APP_ENV="prod", ADMIN_ACCOUNTS=accounts[:1])
+
+
+def test_sensitive_settings_can_be_loaded_from_file_environment(tmp_path):
+    secrets = {
+        "DATABASE_URL": "postgresql://secret-user:secret-pass@postgres:5432/weslei",
+        "MONGO_URI": "",
+        "JWT_SECRET": "secret-file-value-with-at-least-thirty-two-characters",
+        "ADMIN_EMAIL": "",
+        "ADMIN_PASSWORD": "",
+        "ADMIN_ACCOUNTS": (
+            '[{"email":"admin1@example.com","password":"secret-one"},'
+            '{"email":"admin2@example.com","password":"secret-two"}]'
+        ),
+        "MERCADO_PAGO_ACCESS_TOKEN": "mp-access-token",
+        "MERCADO_PAGO_WEBHOOK_SECRET": "mp-webhook-secret",
+        "SMTP_PASSWORD": "gmail-app-password",
+    }
+    environ = {}
+    for name, value in secrets.items():
+        secret_file = tmp_path / name.lower()
+        secret_file.write_text(f"{value}\n", encoding="utf-8")
+        environ[f"{name}_FILE"] = str(secret_file)
+
+    loaded = load_file_secrets(environ)
+    settings = valid_settings(
+        _drop=("DATABASE_URL", "JWT_SECRET", "ADMIN_ACCOUNTS"),
+        **loaded,
+        APP_ENV="prod",
+    )
+
+    assert set(loaded) == {name for name, value in secrets.items() if value}
+    assert settings.database_url == secrets["DATABASE_URL"]
+    assert settings.jwt_secret == secrets["JWT_SECRET"]
+    assert len(settings.configured_admin_accounts) == 2
+    assert settings.mercado_pago_access_token == "mp-access-token"
+    assert settings.mercado_pago_webhook_secret == "mp-webhook-secret"
+    assert settings.smtp_password == "gmail-app-password"
+
+
+def test_file_secret_loader_ignores_missing_file_variables():
+    assert load_file_secrets({"JWT_SECRET_FILE": "/run/secrets/not-mounted"}) == {}
 
 
 @pytest.mark.parametrize(

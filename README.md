@@ -66,6 +66,28 @@ Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolado
 
 Na VPS, `/root/projects/envs/weslei-bassotto.env` configura produção e `/root/projects/envs/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. O Jenkins define `COMPOSE_PROJECT_NAME` por branch, independentemente do valor presente nesses arquivos.
 
+## Docker Secrets
+
+O Jenkins mantém o link simbólico `.env` apontando para o arquivo de cada
+ambiente. O Docker Compose lê esse arquivo e usa os valores sensíveis como
+origem dos secrets, sem enviá-los como variáveis de ambiente para a API:
+
+```text
+.env -> Docker Compose -> /run/secrets/<nome> -> VARIAVEL_FILE -> FastAPI
+```
+
+São protegidos `DATABASE_URL`, `MONGO_URI`, `JWT_SECRET`, `ADMIN_EMAIL`,
+`ADMIN_PASSWORD`, `ADMIN_ACCOUNTS`, `MERCADO_PAGO_ACCESS_TOKEN`,
+`MERCADO_PAGO_WEBHOOK_SECRET` e `SMTP_PASSWORD`. Dentro do container, a API
+recebe apenas referências como `DATABASE_URL_FILE=/run/secrets/database_url`.
+O restante das configurações continua no ambiente do container.
+
+O arquivo `.env` da VPS não muda de formato e continua sendo a fonte única das
+configurações. Ele deve permanecer fora do Git e com acesso restrito no host.
+Este projeto usa Docker Compose Secrets sem Swarm; a origem `environment` é
+resolvida pelo Compose a partir do `.env`. A chave `VITE_MP_PUBLIC_KEY`
+permanece pública porque é incorporada ao JavaScript entregue ao navegador.
+
 Para adicionar outro gateway, implemente `PaymentGateway`, registre-o em `build_gateway_registry()` e inclua seu nome em `PAYMENT_GATEWAY_ORDER`. O fallback só ocorre quando o adapter informa indisponibilidade antes de uma cobrança ser aceita. Recusas ou respostas ambíguas não são reenviadas automaticamente, evitando cobrança duplicada.
 
 ## Testes
