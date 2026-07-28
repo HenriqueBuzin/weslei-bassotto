@@ -1,8 +1,10 @@
 # app/core/settings.py
 
 import json
+import os
 import re
 from datetime import timedelta
+from pathlib import Path
 from typing import Annotated
 
 from pydantic import (
@@ -16,6 +18,31 @@ from pydantic import (
     model_validator,
 )
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+FILE_SECRET_NAMES = (
+    "DATABASE_URL",
+    "MONGO_URI",
+    "JWT_SECRET",
+    "ADMIN_EMAIL",
+    "ADMIN_PASSWORD",
+    "ADMIN_ACCOUNTS",
+    "MERCADO_PAGO_ACCESS_TOKEN",
+    "MERCADO_PAGO_WEBHOOK_SECRET",
+    "SMTP_PASSWORD",
+)
+
+
+def load_file_secrets(environ=None) -> dict[str, object]:
+    source = os.environ if environ is None else environ
+    values = {}
+    for name in FILE_SECRET_NAMES:
+        file_path = source.get(f"{name}_FILE")
+        secret_path = Path(file_path) if file_path else None
+        if secret_path and secret_path.is_file():
+            value = secret_path.read_text(encoding="utf-8").rstrip("\r\n")
+            if value:
+                values[name] = json.loads(value) if name == "ADMIN_ACCOUNTS" else value
+    return values
 
 
 class AdminAccount(BaseModel):
@@ -306,4 +333,4 @@ class Settings(BaseSettings):
         return []
 
 
-settings = Settings()
+settings = Settings(**load_file_secrets())

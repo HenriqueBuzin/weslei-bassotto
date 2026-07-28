@@ -6,18 +6,14 @@ services:
       context: ./api
       args:
         API_PORT: ${API_PORT}
-    env_file:
-      - ${ENV_FILE}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
       - DB_ADAPTER=${DB_ADAPTER}
-      - DATABASE_URL=${DATABASE_URL}
       - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE}
       - API_PORT=${API_PORT}
-      - JWT_SECRET=${JWT_SECRET}
       - JWT_ALG=${JWT_ALG}
       - ACCESS_TOKEN_EXPIRES_MINUTES=${ACCESS_TOKEN_EXPIRES_MINUTES}
       - LOGIN_MAX_ATTEMPTS=${LOGIN_MAX_ATTEMPTS}
@@ -32,10 +28,6 @@ services:
       - REFRESH_COOKIE_NAME=${REFRESH_COOKIE_NAME}
       - REFRESH_COOKIE_PATH=${REFRESH_COOKIE_PATH}
       - SEED_ON_START=${SEED_ON_START}
-      - ADMIN_EMAIL=${ADMIN_EMAIL}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
-      - MERCADO_PAGO_WEBHOOK_SECRET=${MERCADO_PAGO_WEBHOOK_SECRET}
       - PAYMENT_GATEWAY_ORDER=${PAYMENT_GATEWAY_ORDER}
       - APP_PUBLIC_URL=${APP_PUBLIC_URL}
       - FRONTEND_PUBLIC_URL=${FRONTEND_PUBLIC_URL}
@@ -45,9 +37,30 @@ services:
       - SMTP_USE_TLS=${SMTP_USE_TLS}
       - SMTP_USE_SSL=${SMTP_USE_SSL}
       - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
-      - ADMIN_ACCOUNTS=${ADMIN_ACCOUNTS}
+      - DATABASE_URL_FILE=/run/secrets/database_url
+      - MONGO_URI_FILE=/run/secrets/mongo_uri
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - ADMIN_EMAIL_FILE=/run/secrets/admin_email
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
+      - ADMIN_ACCOUNTS_FILE=/run/secrets/admin_accounts
+      - MERCADO_PAGO_ACCESS_TOKEN_FILE=/run/secrets/mercado_pago_access_token
+      - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
+      - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
+    secrets:
+      - database_url
+      - mongo_uri
+      - jwt_secret
+      - admin_email
+      - admin_password
+      - admin_accounts
+      - mercado_pago_access_token
+      - mercado_pago_webhook_secret
+      - smtp_password
+    ulimits:
+      core:
+        soft: 0
+        hard: 0
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
@@ -66,18 +79,14 @@ services:
       context: ./api
       args:
         API_PORT: ${API_PORT}
-    env_file:
-      - ${ENV_FILE}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
       - DB_ADAPTER=${DB_ADAPTER}
-      - DATABASE_URL=${DATABASE_URL}
       - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE}
       - API_PORT=${API_PORT}
-      - JWT_SECRET=${JWT_SECRET}
       - JWT_ALG=${JWT_ALG}
       - ACCESS_TOKEN_EXPIRES_MINUTES=${ACCESS_TOKEN_EXPIRES_MINUTES}
       - LOGIN_MAX_ATTEMPTS=${LOGIN_MAX_ATTEMPTS}
@@ -92,10 +101,6 @@ services:
       - REFRESH_COOKIE_NAME=${REFRESH_COOKIE_NAME}
       - REFRESH_COOKIE_PATH=${REFRESH_COOKIE_PATH}
       - SEED_ON_START=${SEED_ON_START}
-      - ADMIN_EMAIL=${ADMIN_EMAIL}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
-      - MERCADO_PAGO_WEBHOOK_SECRET=${MERCADO_PAGO_WEBHOOK_SECRET}
       - PAYMENT_GATEWAY_ORDER=${PAYMENT_GATEWAY_ORDER}
       - APP_PUBLIC_URL=${APP_PUBLIC_URL}
       - FRONTEND_PUBLIC_URL=${FRONTEND_PUBLIC_URL}
@@ -105,9 +110,30 @@ services:
       - SMTP_USE_TLS=${SMTP_USE_TLS}
       - SMTP_USE_SSL=${SMTP_USE_SSL}
       - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
-      - ADMIN_ACCOUNTS=${ADMIN_ACCOUNTS}
+      - DATABASE_URL_FILE=/run/secrets/database_url
+      - MONGO_URI_FILE=/run/secrets/mongo_uri
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - ADMIN_EMAIL_FILE=/run/secrets/admin_email
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
+      - ADMIN_ACCOUNTS_FILE=/run/secrets/admin_accounts
+      - MERCADO_PAGO_ACCESS_TOKEN_FILE=/run/secrets/mercado_pago_access_token
+      - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
+      - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
+    secrets:
+      - database_url
+      - mongo_uri
+      - jwt_secret
+      - admin_email
+      - admin_password
+      - admin_accounts
+      - mercado_pago_access_token
+      - mercado_pago_webhook_secret
+      - smtp_password
+    ulimits:
+      core:
+        soft: 0
+        hard: 0
     volumes:
       - ./api:/app
     command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT} --reload"
@@ -129,8 +155,6 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_PORT=${VITE_PORT}
-    env_file:
-      - ${ENV_FILE}
     environment:
       - VITE_API_BASE=${VITE_API_BASE}
       - VITE_PORT=${VITE_PORT}
@@ -227,3 +251,23 @@ networks:
   postgres-network:
     external: true
     name: ${POSTGRES_NETWORK:-postgres-network}
+
+secrets:
+  database_url:
+    environment: DATABASE_URL
+  mongo_uri:
+    environment: MONGO_URI
+  jwt_secret:
+    environment: JWT_SECRET
+  admin_email:
+    environment: ADMIN_EMAIL
+  admin_password:
+    environment: ADMIN_PASSWORD
+  admin_accounts:
+    environment: ADMIN_ACCOUNTS
+  mercado_pago_access_token:
+    environment: MERCADO_PAGO_ACCESS_TOKEN
+  mercado_pago_webhook_secret:
+    environment: MERCADO_PAGO_WEBHOOK_SECRET
+  smtp_password:
+    environment: SMTP_PASSWORD

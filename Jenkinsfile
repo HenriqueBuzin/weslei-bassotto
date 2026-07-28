@@ -43,6 +43,7 @@ pipeline {
                         docker run --rm \
                           --volumes-from jenkins \
                           -e VITE_API_BASE=/api/v1 \
+                          -e VITE_MP_PUBLIC_KEY=TEST-public-key \
                           -w "$WORKSPACE/frontend" \
                           node:24-bookworm-slim \
                           sh -c '
