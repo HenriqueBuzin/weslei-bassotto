@@ -139,17 +139,25 @@ pipeline {
                         sh """
                         set -e
 
-                        cd /root/projects/${project}
-
-                        echo "🔄 Atualizando código (main)..."
-                        git fetch origin
-                        git reset --hard origin/main
-                        git clean -fd
+                        workspace=\$(pwd)
+                        target=/root/projects/${project}
+                        image_tag=\$(git rev-parse --short=12 HEAD)
+                        echo "🔄 Sincronizando checkout autenticado do Jenkins (main)..."
+                        mkdir -p "\${target}"
+                        find "\${target}" -mindepth 1 -maxdepth 1 \
+                          ! -name '.git' \
+                          ! -name '.env' \
+                          -exec rm -rf {} +
+                        tar -C "\${workspace}" \
+                          --exclude='./.git' \
+                          --exclude='./.env' \
+                          -cf - . | tar -C "\${target}" -xf -
+                        cd "\${target}"
 
                         echo "🔗 Aplicando .env produção..."
                         ln -sfn /root/projects/envs/${project}.env .env
                         export COMPOSE_PROJECT_NAME=${project}
-                        export IMAGE_TAG=\$(git rev-parse --short=12 HEAD)
+                        export IMAGE_TAG="\${image_tag}"
 
                         echo "🛑 Derrubando containers antigos..."
                         docker compose -f docker-compose.prod.yml down --remove-orphans || true
@@ -182,17 +190,25 @@ pipeline {
                         sh """
                         set -e
 
-                        cd /root/projects/${project}-dev
-
-                        echo "🔄 Atualizando código (dev)..."
-                        git fetch origin
-                        git reset --hard origin/dev
-                        git clean -fd
+                        workspace=\$(pwd)
+                        target=/root/projects/${project}-dev
+                        image_tag=\$(git rev-parse --short=12 HEAD)
+                        echo "🔄 Sincronizando checkout autenticado do Jenkins (dev)..."
+                        mkdir -p "\${target}"
+                        find "\${target}" -mindepth 1 -maxdepth 1 \
+                          ! -name '.git' \
+                          ! -name '.env' \
+                          -exec rm -rf {} +
+                        tar -C "\${workspace}" \
+                          --exclude='./.git' \
+                          --exclude='./.env' \
+                          -cf - . | tar -C "\${target}" -xf -
+                        cd "\${target}"
 
                         echo "🔗 Aplicando .env dev..."
                         ln -sfn /root/projects/envs/${project}-dev.env .env
                         export COMPOSE_PROJECT_NAME=${project}-dev
-                        export IMAGE_TAG=\$(git rev-parse --short=12 HEAD)
+                        export IMAGE_TAG="\${image_tag}"
 
                         echo "🛑 Derrubando containers antigos..."
                         docker compose -f docker-compose.yml down --remove-orphans || true
