@@ -7,7 +7,7 @@ export IMAGE_TAG=${2:?use: rollback-compose.sh <prod|dev> <image-tag>}
 case "$environment" in
   prod)
     export COMPOSE_PROJECT_NAME=weslei-bassotto
-    set -- -f docker-compose.prod.yml
+    set -- -f docker-compose-prod.yml
     ;;
   dev)
     export COMPOSE_PROJECT_NAME=weslei-bassotto-dev

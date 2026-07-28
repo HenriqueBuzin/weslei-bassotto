@@ -101,7 +101,7 @@ pipeline {
                             test -f "$env_file"
                             ln -sfn "$env_file" .env
                             if [ "$PIPELINE_BRANCH" = "main" ]; then
-                              docker compose -f docker-compose.prod.yml config --quiet
+                              docker compose -f docker-compose-prod.yml config --quiet
                             else
                               docker compose -f docker-compose.yml config --quiet
                             fi
@@ -117,7 +117,7 @@ pipeline {
                     def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
                     branch = branch.replaceFirst(/^origin\//, '')
                     if (branch == 'main') {
-                        sh 'IMAGE_TAG=$(git rev-parse --short=12 HEAD) docker compose -f docker-compose.prod.yml build'
+                        sh 'IMAGE_TAG=$(git rev-parse --short=12 HEAD) docker compose -f docker-compose-prod.yml build'
                     } else if (branch == 'dev') {
                         sh 'IMAGE_TAG=$(git rev-parse --short=12 HEAD) docker compose -f docker-compose.yml build'
                     } else {
@@ -160,20 +160,20 @@ pipeline {
                         export IMAGE_TAG="\${image_tag}"
 
                         echo "🛑 Derrubando containers antigos..."
-                        docker compose -f docker-compose.prod.yml down --remove-orphans || true
+                        docker compose -f docker-compose-prod.yml down --remove-orphans || true
 
                         echo "🐳 Construindo produção..."
-                        docker compose -f docker-compose.prod.yml build --no-cache
+                        docker compose -f docker-compose-prod.yml build --no-cache
 
                         echo "🧹 Removendo containers legados de produção..."
                         docker rm -f wesleibassotto-web-1 wesleibassotto-api-1 2>/dev/null || true
 
                         echo "🚀 Subindo produção..."
-                        if ! docker compose -f docker-compose.prod.yml up -d --remove-orphans --wait --wait-timeout 180; then
+                        if ! docker compose -f docker-compose-prod.yml up -d --remove-orphans --wait --wait-timeout 180; then
                             echo "❌ Falha ao iniciar o ambiente de produção. Estado dos serviços:"
-                            docker compose -f docker-compose.prod.yml ps || true
+                            docker compose -f docker-compose-prod.yml ps || true
                             echo "📋 Logs recentes da API:"
-                            docker compose -f docker-compose.prod.yml logs --no-color --tail=200 backend || true
+                            docker compose -f docker-compose-prod.yml logs --no-color --tail=200 backend || true
                             echo "🌐 Containers conectados à rede compartilhada do PostgreSQL:"
                             docker network inspect "\${POSTGRES_NETWORK:-postgres-network}" \
                                 --format '{{range .Containers}}{{.Name}} {{end}}' || true
@@ -181,7 +181,7 @@ pipeline {
                         fi
 
                         echo "📋 Verificando containers..."
-                        docker compose -f docker-compose.prod.yml ps
+                        docker compose -f docker-compose-prod.yml ps
 
                         echo "🧹 Limpando imagens antigas..."
                         docker image prune -f || true
