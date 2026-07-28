@@ -38,8 +38,7 @@ services:
       - SMTP_USE_SSL=${SMTP_USE_SSL}
       - SMTP_USER=${SMTP_USER}
       - SMTP_FROM=${SMTP_FROM}
-      - DATABASE_URL_FILE=/run/secrets/database_url
-      - MONGO_URI_FILE=/run/secrets/mongo_uri
+      - DATABASE_CONNECTION_FILE=/run/secrets/database_connection
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
       - ADMIN_EMAIL_FILE=/run/secrets/admin_email
       - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
@@ -48,8 +47,7 @@ services:
       - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
       - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
     secrets:
-      - database_url
-      - mongo_uri
+      - database_connection
       - jwt_secret
       - admin_email
       - admin_password
@@ -111,8 +109,7 @@ services:
       - SMTP_USE_SSL=${SMTP_USE_SSL}
       - SMTP_USER=${SMTP_USER}
       - SMTP_FROM=${SMTP_FROM}
-      - DATABASE_URL_FILE=/run/secrets/database_url
-      - MONGO_URI_FILE=/run/secrets/mongo_uri
+      - DATABASE_CONNECTION_FILE=/run/secrets/database_connection
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
       - ADMIN_EMAIL_FILE=/run/secrets/admin_email
       - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
@@ -121,8 +118,7 @@ services:
       - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
       - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
     secrets:
-      - database_url
-      - mongo_uri
+      - database_connection
       - jwt_secret
       - admin_email
       - admin_password
@@ -253,10 +249,8 @@ networks:
     name: ${POSTGRES_NETWORK:-postgres-network}
 
 secrets:
-  database_url:
-    environment: DATABASE_URL
-  mongo_uri:
-    environment: MONGO_URI
+  database_connection:
+    environment: ${DATABASE_SECRET_ENV:-DATABASE_URL}
   jwt_secret:
     environment: JWT_SECRET
   admin_email:

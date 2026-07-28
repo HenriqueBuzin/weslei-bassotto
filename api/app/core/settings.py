@@ -20,8 +20,6 @@ from pydantic import (
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 FILE_SECRET_NAMES = (
-    "DATABASE_URL",
-    "MONGO_URI",
     "JWT_SECRET",
     "ADMIN_EMAIL",
     "ADMIN_PASSWORD",
@@ -35,6 +33,15 @@ FILE_SECRET_NAMES = (
 def load_file_secrets(environ=None) -> dict[str, object]:
     source = os.environ if environ is None else environ
     values = {}
+    connection_file = source.get("DATABASE_CONNECTION_FILE")
+    connection_path = Path(connection_file) if connection_file else None
+    if connection_path and connection_path.is_file():
+        adapter = str(source.get("DB_ADAPTER", "postgres")).strip().lower()
+        field_name = Settings.database_connection_fields().get(adapter)
+        value = connection_path.read_text(encoding="utf-8").rstrip("\r\n")
+        if field_name and value:
+            values[Settings.database_connection_label(field_name)] = value
+
     for name in FILE_SECRET_NAMES:
         file_path = source.get(f"{name}_FILE")
         secret_path = Path(file_path) if file_path else None

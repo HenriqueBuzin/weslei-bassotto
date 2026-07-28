@@ -76,11 +76,17 @@ origem dos secrets, sem enviá-los como variáveis de ambiente para a API:
 .env -> Docker Compose -> /run/secrets/<nome> -> VARIAVEL_FILE -> FastAPI
 ```
 
-São protegidos `DATABASE_URL`, `MONGO_URI`, `JWT_SECRET`, `ADMIN_EMAIL`,
+São protegidos a conexão do adapter ativo, `JWT_SECRET`, `ADMIN_EMAIL`,
 `ADMIN_PASSWORD`, `ADMIN_ACCOUNTS`, `MERCADO_PAGO_ACCESS_TOKEN`,
 `MERCADO_PAGO_WEBHOOK_SECRET` e `SMTP_PASSWORD`. Dentro do container, a API
-recebe apenas referências como `DATABASE_URL_FILE=/run/secrets/database_url`.
+recebe apenas referências como
+`DATABASE_CONNECTION_FILE=/run/secrets/database_connection`.
 O restante das configurações continua no ambiente do container.
+
+`DATABASE_SECRET_ENV` informa ao Compose qual variável contém a conexão do
+adapter ativo. O padrão é `DATABASE_URL`, portanto PostgreSQL não exige essa
+linha no `.env`. Ao habilitar Mongo, use `DATABASE_SECRET_ENV=MONGO_URI`,
+preencha `MONGO_URI` e deixe `DATABASE_URL` vazio.
 
 O arquivo `.env` da VPS não muda de formato e continua sendo a fonte única das
 configurações. Ele deve permanecer fora do Git e com acesso restrito no host.

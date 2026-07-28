@@ -71,8 +71,6 @@ def test_admin_accounts_array_takes_precedence_and_prod_requires_two():
 
 def test_sensitive_settings_can_be_loaded_from_file_environment(tmp_path):
     secrets = {
-        "DATABASE_URL": "postgresql://secret-user:secret-pass@postgres:5432/weslei",
-        "MONGO_URI": "",
         "JWT_SECRET": "secret-file-value-with-at-least-thirty-two-characters",
         "ADMIN_EMAIL": "",
         "ADMIN_PASSWORD": "",
@@ -85,6 +83,11 @@ def test_sensitive_settings_can_be_loaded_from_file_environment(tmp_path):
         "SMTP_PASSWORD": "gmail-app-password",
     }
     environ = {}
+    connection = "postgresql://secret-user:secret-pass@postgres:5432/weslei"
+    connection_file = tmp_path / "database_connection"
+    connection_file.write_text(f"{connection}\n", encoding="utf-8")
+    environ["DB_ADAPTER"] = "postgres"
+    environ["DATABASE_CONNECTION_FILE"] = str(connection_file)
     for name, value in secrets.items():
         secret_file = tmp_path / name.lower()
         secret_file.write_text(f"{value}\n", encoding="utf-8")
@@ -97,8 +100,8 @@ def test_sensitive_settings_can_be_loaded_from_file_environment(tmp_path):
         APP_ENV="prod",
     )
 
-    assert set(loaded) == {name for name, value in secrets.items() if value}
-    assert settings.database_url == secrets["DATABASE_URL"]
+    assert set(loaded) == {"DATABASE_URL"} | {name for name, value in secrets.items() if value}
+    assert settings.database_url == connection
     assert settings.jwt_secret == secrets["JWT_SECRET"]
     assert len(settings.configured_admin_accounts) == 2
     assert settings.mercado_pago_access_token == "mp-access-token"
@@ -107,7 +110,44 @@ def test_sensitive_settings_can_be_loaded_from_file_environment(tmp_path):
 
 
 def test_file_secret_loader_ignores_missing_file_variables():
-    assert load_file_secrets({"JWT_SECRET_FILE": "/run/secrets/not-mounted"}) == {}
+    assert (
+        load_file_secrets(
+            {
+                "DB_ADAPTER": "postgres",
+                "DATABASE_CONNECTION_FILE": "/run/secrets/missing-database",
+                "JWT_SECRET_FILE": "/run/secrets/not-mounted",
+            }
+        )
+        == {}
+    )
+
+
+def test_database_connection_secret_follows_selected_adapter(tmp_path):
+    secret_file = tmp_path / "database_connection"
+    secret_file.write_text("mongodb://localhost/secret\n", encoding="utf-8")
+
+    loaded = load_file_secrets(
+        {
+            "DB_ADAPTER": "mongo",
+            "DATABASE_CONNECTION_FILE": str(secret_file),
+        }
+    )
+
+    assert loaded == {"MONGO_URI": "mongodb://localhost/secret"}
+
+
+def test_database_connection_secret_ignores_unknown_adapter_and_empty_file(tmp_path):
+    secret_file = tmp_path / "database_connection"
+    secret_file.write_text("\n", encoding="utf-8")
+    assert (
+        load_file_secrets(
+            {
+                "DB_ADAPTER": "redis",
+                "DATABASE_CONNECTION_FILE": str(secret_file),
+            }
+        )
+        == {}
+    )
 
 
 @pytest.mark.parametrize(
