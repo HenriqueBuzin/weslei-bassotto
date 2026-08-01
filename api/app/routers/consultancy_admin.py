@@ -3,8 +3,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.deps import role_required
-from app.db.mongo import get_db
-from app.routers.consultancy_common import now, parse_object_id, question_out, submission_out
+from app.db import get_db
+from app.routers.consultancy_common import now, parse_record_id, question_out, submission_out
 from app.schemas.consultancy import QuestionIn, QuestionOut, QuestionPatch, SubmissionOut, SubscriptionPatch
 
 router = APIRouter(prefix="/admin")
@@ -27,7 +27,7 @@ async def create_question(req: Request, data: QuestionIn, _user=Depends(role_req
 
 @router.patch("/questions/{question_id}", response_model=QuestionOut)
 async def update_question(question_id: str, req: Request, data: QuestionPatch, _user=Depends(role_required("admin"))):
-    db, oid = get_db(req), parse_object_id(question_id)
+    db, oid = get_db(req), parse_record_id(question_id)
     patch = data.model_dump(exclude_unset=True)
     if patch:
         await db.consultancy_questions.update_one({"_id": oid}, {"$set": {**patch, "updated_at": now()}})
@@ -39,7 +39,7 @@ async def update_question(question_id: str, req: Request, data: QuestionPatch, _
 
 @router.delete("/questions/{question_id}", status_code=204)
 async def delete_question(question_id: str, req: Request, _user=Depends(role_required("admin"))):
-    if (await get_db(req).consultancy_questions.delete_one({"_id": parse_object_id(question_id)})).deleted_count == 0:
+    if (await get_db(req).consultancy_questions.delete_one({"_id": parse_record_id(question_id)})).deleted_count == 0:
         raise HTTPException(status_code=404, detail="Pergunta não encontrada")
 
 
@@ -53,7 +53,7 @@ async def list_submissions(req: Request, _user=Depends(role_required("admin"))):
 async def update_submission(
     submission_id: str, req: Request, data: SubscriptionPatch, _user=Depends(role_required("admin"))
 ):
-    db, oid = get_db(req), parse_object_id(submission_id)
+    db, oid = get_db(req), parse_record_id(submission_id)
     patch = data.model_dump(exclude_unset=True)
     update: dict[str, Any] = {"updated_at": now()}
     for key in ("status", "payment_reference"):
@@ -71,7 +71,7 @@ async def update_submission(
 
 @router.post("/submissions/{submission_id}/answers/seen", response_model=SubmissionOut)
 async def mark_answers_seen(submission_id: str, req: Request, _user=Depends(role_required("admin"))):
-    db, oid = get_db(req), parse_object_id(submission_id)
+    db, oid = get_db(req), parse_record_id(submission_id)
     timestamp = now()
     await db.consultancy_submissions.update_one(
         {"_id": oid}, {"$set": {"answers_seen_at": timestamp, "updated_at": timestamp}}
@@ -101,7 +101,7 @@ async def list_admin_events(req: Request, _user=Depends(role_required("admin")))
 
 @router.post("/events/{event_id}/seen")
 async def mark_admin_event_seen(event_id: str, req: Request, _user=Depends(role_required("admin"))):
-    result = await get_db(req).admin_events.update_one({"_id": parse_object_id(event_id)}, {"$set": {"seen_at": now()}})
+    result = await get_db(req).admin_events.update_one({"_id": parse_record_id(event_id)}, {"$set": {"seen_at": now()}})
     if result.matched_count != 1:
         raise HTTPException(status_code=404, detail="Alerta não encontrado")
     return {"ok": True}

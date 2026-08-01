@@ -3,25 +3,23 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from bson import ObjectId
-from pymongo import ReturnDocument
-
 from app.core.security import create_refresh_token
+from app.db.contracts import RecordId, ReturnDocument
 
 
 def refresh_jti_hash(jti: str) -> str:
     return hashlib.sha256(jti.encode("utf-8")).hexdigest()
 
 
-def refresh_identity(payload: dict[str, Any]) -> tuple[ObjectId, str] | None:
+def refresh_identity(payload: dict[str, Any]) -> tuple[RecordId, str] | None:
     subject = payload.get("sub")
     jti = payload.get("jti")
-    if not isinstance(subject, str) or not ObjectId.is_valid(subject) or not isinstance(jti, str) or not jti:
+    if not isinstance(subject, str) or not RecordId.is_valid(subject) or not isinstance(jti, str) or not jti:
         return None
-    return ObjectId(subject), refresh_jti_hash(jti)
+    return RecordId(subject), refresh_jti_hash(jti)
 
 
-async def issue_refresh_session(db, user_id: ObjectId, expires_delta: timedelta, remember: bool) -> str:
+async def issue_refresh_session(db, user_id: RecordId, expires_delta: timedelta, remember: bool) -> str:
     issued_at = datetime.now(UTC)
     jti = secrets.token_urlsafe(32)
     token = create_refresh_token(
@@ -107,7 +105,7 @@ async def revoke_refresh_session(db, payload: dict[str, Any], reason: str = "log
     return result.modified_count == 1
 
 
-async def revoke_user_sessions(db, user_id: ObjectId, reason: str) -> int:
+async def revoke_user_sessions(db, user_id: RecordId, reason: str) -> int:
     result = await db.refresh_sessions.update_many(
         {"user_id": user_id, "revoked_at": None},
         {"$set": {"revoked_at": datetime.now(UTC), "revoke_reason": reason}},

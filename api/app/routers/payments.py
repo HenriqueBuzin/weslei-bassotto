@@ -1,11 +1,11 @@
 from typing import Any
 
-from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from app.core.deps import get_current_user
 from app.core.settings import settings
+from app.db.contracts import RecordId
 from app.payments.mercado_pago import GatewayError, verify_webhook_signature
 from app.payments.registry import build_gateway_registry
 from app.schemas.payment import CardSubscriptionIn, PaymentOut
@@ -56,9 +56,9 @@ async def renewal_payment(
     req: Request,
     user=Depends(get_current_user),
 ):
-    if not ObjectId.is_valid(submission_id):
+    if not RecordId.is_valid(submission_id):
         raise HTTPException(status_code=400, detail="ID inválido")
-    submission = await req.app.state.db.consultancy_submissions.find_one({"_id": ObjectId(submission_id)})
+    submission = await req.app.state.db.consultancy_submissions.find_one({"_id": RecordId(submission_id)})
     if not submission:
         raise HTTPException(status_code=404, detail="Contrato não encontrado")
     if submission.get("customer", {}).get("email", "").lower() != user["email"].lower():
@@ -83,9 +83,9 @@ async def renewal_payment(
 
 @router.get("/{payment_id}/status", response_model=PaymentStatusOut)
 async def payment_status(payment_id: str, token: str, req: Request):
-    if not ObjectId.is_valid(payment_id):
+    if not RecordId.is_valid(payment_id):
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
-    doc = await req.app.state.db.payments.find_one({"_id": ObjectId(payment_id), "claim_token_hash": token_hash(token)})
+    doc = await req.app.state.db.payments.find_one({"_id": RecordId(payment_id), "claim_token_hash": token_hash(token)})
     if not doc:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
     return PaymentStatusOut(id=payment_id, status=doc["status"], status_detail=doc.get("status_detail"))

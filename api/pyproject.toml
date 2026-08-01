@@ -10,7 +10,6 @@ dependencies = [
   "pydantic[email]==2.13.4",
   "pydantic-settings==2.14.2",
   "asyncpg==0.31.0",
-  "motor==3.7.1",
   "python-jose[cryptography]==3.5.0",
   "passlib[argon2]==1.7.4",
   "argon2-cffi==25.1.0",
@@ -25,7 +24,6 @@ packages = [{ include = "app" }]
 pytest = "9.1.1"
 pytest-asyncio = "1.4.0"
 pytest-cov = "7.1.0"
-mongomock-motor = "0.0.36"
 black = "26.5.1"
 isort = "8.0.1"
 flake8 = "7.3.0"

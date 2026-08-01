@@ -1,13 +1,13 @@
 # app/core/deps.py
 
-from bson import ObjectId
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
 from app.core.security import decode_token
 from app.core.settings import settings
-from app.db.mongo import get_db
+from app.db import get_db
+from app.db.contracts import RecordId
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_base}/auth/login")
 
@@ -39,7 +39,7 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
         )
 
     try:
-        user = await db.users.find_one({"_id": ObjectId(sub)})
+        user = await db.users.find_one({"_id": RecordId(sub)})
     except Exception:
         user = None
     if not user:

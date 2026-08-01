@@ -8,11 +8,11 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
-from pymongo import ReturnDocument
 
 from app.core.security import create_access_token, decode_token, hash_password, verify_password
 from app.core.settings import settings
-from app.db.mongo import get_db
+from app.db import get_db
+from app.db.contracts import ReturnDocument
 from app.schemas.auth import ForgotPasswordIn, ForgotPasswordOut, ResetPasswordIn, TokenOut
 from app.schemas.user import UserCreate, UserOut
 from app.services.auth_sessions import (

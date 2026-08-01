@@ -1,15 +1,14 @@
 import copy
 import json
+import re
 from datetime import date, datetime
 from types import SimpleNamespace
 from typing import Any
 
-from bson import ObjectId
 from fastapi import Request
-from pymongo import ReturnDocument
-from pymongo.errors import DuplicateKeyError
 
 from app.core.settings import settings
+from app.db.contracts import DuplicateKeyError, RecordId, ReturnDocument
 
 COLLECTIONS = (
     "users",
@@ -38,8 +37,6 @@ UNIQUE_KEYS = {
 
 
 def _json_default(value: Any) -> dict[str, str]:
-    if isinstance(value, ObjectId):
-        return {"$oid": str(value)}
     if isinstance(value, datetime):
         return {"$date": value.isoformat()}
     if isinstance(value, date):
@@ -55,13 +52,17 @@ def _restore_ids(value: Any, key: str | None = None) -> Any:
     if isinstance(value, list):
         return [_restore_ids(item, key) for item in value]
     if isinstance(value, dict):
-        if set(value) == {"$oid"} and ObjectId.is_valid(value["$oid"]):
-            return ObjectId(value["$oid"])
+        if set(value) in ({"$id"}, {"$oid"}):
+            raw_id = value.get("$id", value.get("$oid"))
+            if RecordId.is_valid(raw_id):
+                return RecordId(raw_id)
         if set(value) == {"$date"}:
             return datetime.fromisoformat(value["$date"].replace("Z", "+00:00"))
         if set(value) == {"$dateOnly"}:
             return date.fromisoformat(value["$dateOnly"])
         return {item_key: _restore_ids(item_value, item_key) for item_key, item_value in value.items()}
+    if key == "_id" and RecordId.is_valid(value):
+        return RecordId(value)
     return value
 
 
@@ -86,6 +87,19 @@ def _set_path(doc: dict[str, Any], path: str, value: Any) -> None:
     current[parts[-1]] = value
 
 
+def _unset_path(doc: dict[str, Any], path: str) -> bool:
+    current = doc
+    parts = path.split(".")
+    for part in parts[:-1]:
+        if not isinstance(current, dict) or part not in current:
+            return False
+        current = current[part]
+    if not isinstance(current, dict) or parts[-1] not in current:
+        return False
+    del current[parts[-1]]
+    return True
+
+
 def _matches_value(actual_exists: bool, actual: Any, expected: Any) -> bool:
     if isinstance(expected, dict):
         for operator, operand in expected.items():
@@ -95,9 +109,14 @@ def _matches_value(actual_exists: bool, actual: Any, expected: Any) -> bool:
             elif operator == "$gt":
                 if not actual_exists or actual <= operand:
                     return False
+            elif operator == "$regex":
+                if not actual_exists or re.search(str(operand), str(actual)) is None:
+                    return False
             else:
                 raise NotImplementedError(f"Unsupported query operator: {operator}")
         return True
+    if actual_exists and isinstance(actual, list) and not isinstance(expected, list):
+        return expected in actual
     return actual_exists and actual == expected
 
 
@@ -145,6 +164,8 @@ def _apply_update(doc: dict[str, Any], update: dict[str, Any], *, inserting: boo
         if value not in current:
             current.append(value)
             changed = True
+    for key in update.get("$unset", {}):
+        changed = _unset_path(doc, key) or changed
     return changed
 
 
@@ -216,7 +237,7 @@ class PostgresCollection:
 
     async def insert_one(self, doc: dict[str, Any]):
         stored = _copy_doc(doc)
-        inserted_id = stored.setdefault("_id", ObjectId())
+        inserted_id = stored.setdefault("_id", RecordId())
         await self._save(stored)
         return SimpleNamespace(inserted_id=inserted_id)
 
@@ -246,7 +267,7 @@ class PostgresCollection:
         upserted_id = None
         if matched == 0 and upsert:
             doc = _query_seed(query)
-            doc.setdefault("_id", ObjectId())
+            doc.setdefault("_id", RecordId())
             _apply_update(doc, update, inserting=True)
             await self._save(doc)
             upserted_id = doc["_id"]

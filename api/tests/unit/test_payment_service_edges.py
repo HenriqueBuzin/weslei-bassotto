@@ -1,9 +1,8 @@
 from datetime import UTC, datetime
 
 import pytest
-from bson import ObjectId
-from pymongo.errors import DuplicateKeyError
 
+from app.db.contracts import DuplicateKeyError, RecordId
 from app.payments.contracts import ChargeResult, PaymentStatus, WebhookEvent
 from app.payments.mercado_pago import GatewayUnavailable
 from app.payments.registry import GatewayRegistry
@@ -66,7 +65,7 @@ async def test_webhook_none_unmatched_failed_renewal_and_already_approved(db):
     unmatched = Gateway(event=WebhookEvent("unmatched", "missing", PaymentStatus.PENDING))
     assert await apply_webhook(db, GatewayRegistry([unmatched], ["fake"]), "fake", {}) is False
 
-    submission_id, payment_id = ObjectId(), ObjectId()
+    submission_id, payment_id = RecordId(), RecordId()
     await db.consultancy_submissions.insert_one({"_id": submission_id})
     await db.payments.insert_one(
         {
@@ -81,14 +80,14 @@ async def test_webhook_none_unmatched_failed_renewal_and_already_approved(db):
     assert await apply_webhook(db, GatewayRegistry([failed], ["fake"]), "fake", {}) is True
     assert (await db.consultancy_submissions.find_one({"_id": submission_id}))["recurrence_status"] == "failed"
 
-    plain_id = ObjectId()
+    plain_id = RecordId()
     await db.payments.insert_one(
         {"_id": plain_id, "gateway": "fake", "external_id": "plain-failed", "status": "pending"}
     )
     plain_failed = Gateway(event=WebhookEvent("plain-failed", "plain-failed", PaymentStatus.FAILED))
     assert await apply_webhook(db, GatewayRegistry([plain_failed], ["fake"]), "fake", {}) is True
 
-    approved_id = ObjectId()
+    approved_id = RecordId()
     await db.payments.insert_one(
         {
             "_id": approved_id,
@@ -113,7 +112,7 @@ async def test_duplicate_webhook_insert_is_idempotent(monkeypatch):
 
     class Payments:
         async def find_one(self, query):
-            return {"_id": ObjectId(), "status": "pending"}
+            return {"_id": RecordId(), "status": "pending"}
 
     db = type("Db", (), {"payment_webhook_events": Events(), "payments": Payments()})()
     gateway = Gateway(event=WebhookEvent("duplicate", "charge", PaymentStatus.PENDING))
@@ -122,7 +121,7 @@ async def test_duplicate_webhook_insert_is_idempotent(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_contract_activation_handles_replays_missing_contract_and_event_failure(db, monkeypatch):
-    payment_id, submission_id = ObjectId(), ObjectId()
+    payment_id, submission_id = RecordId(), RecordId()
     payment = {
         "_id": payment_id,
         "plan_slug": "trimestral",
@@ -137,7 +136,12 @@ async def test_contract_activation_handles_replays_missing_contract_and_event_fa
     await db.payments.update_one({"_id": payment_id}, {"$unset": {"contract_activated_at": ""}})
     assert await activate_contract(db, payment) is None
 
-    no_renewal = {**payment, "_id": ObjectId(), "renewal_submission_id": None}
+    no_renewal = {
+        **payment,
+        "_id": RecordId(),
+        "external_id": "no-renewal",
+        "renewal_submission_id": None,
+    }
     await db.payments.insert_one(no_renewal)
     assert await activate_contract(db, no_renewal) is None
 
@@ -145,7 +149,7 @@ async def test_contract_activation_handles_replays_missing_contract_and_event_fa
     await db.consultancy_submissions.insert_one(current)
     event_collection = db.contract_events
     monkeypatch.setattr(event_collection, "insert_one", _raise_async)
-    fresh = {**payment, "_id": ObjectId()}
+    fresh = {**payment, "_id": RecordId(), "external_id": "event-failure"}
     await db.payments.insert_one(fresh)
     assert await activate_contract(db, fresh) is not None
 
@@ -156,7 +160,7 @@ async def _raise_async(*args, **kwargs):
 
 @pytest.mark.asyncio
 async def test_contract_event_insert_exception_is_ignored(db):
-    submission_id, payment_id = ObjectId(), ObjectId()
+    submission_id, payment_id = RecordId(), RecordId()
     await db.consultancy_submissions.insert_one(
         {"_id": submission_id, "plan": {"end_date": "2026-08-01"}, "renewal_count": 0, "renewals": []}
     )

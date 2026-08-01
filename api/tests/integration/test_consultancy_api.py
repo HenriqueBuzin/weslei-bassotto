@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
-from bson import ObjectId
 from fastapi import HTTPException
 
+from app.db.contracts import RecordId
 from app.routers.consultancy import create_submission
 from app.schemas.consultancy import SubmissionIn
 from app.services.payments import token_hash
@@ -13,7 +13,7 @@ from app.services.payments import token_hash
 async def seed_question(db, label="Possui alguma doença?", required=True):
     now = datetime.now(UTC)
     doc = {
-        "_id": ObjectId(),
+        "_id": RecordId(),
         "label": label,
         "type": "textarea",
         "options": [],
@@ -29,7 +29,7 @@ async def seed_question(db, label="Possui alguma doença?", required=True):
 
 async def seed_payment(db, user, secret="claim-secret", status="approved"):
     doc = {
-        "_id": ObjectId(),
+        "_id": RecordId(),
         "plan_slug": "trimestral",
         "status": status,
         "account_email": user["email"],
@@ -145,7 +145,7 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
 
     invalid = "/api/v1/consultancy/me/submissions/not-an-id/answers"
     assert (await client.patch(invalid, json={"answers": []}, headers=user_headers)).status_code == 400
-    missing_id = ObjectId()
+    missing_id = RecordId()
     assert (
         await client.patch(
             f"/api/v1/consultancy/me/submissions/{missing_id}/answers", json={"answers": []}, headers=user_headers
@@ -153,7 +153,7 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
     ).status_code == 404
 
     submission = {
-        "_id": ObjectId(),
+        "_id": RecordId(),
         "customer": {"email": user["email"]},
         "plan": {
             "slug": "trimestral",
@@ -185,10 +185,10 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
     assert (await client.get("/api/v1/consultancy/me/submissions", headers=user_headers)).status_code == 200
 
     assert (
-        await client.patch(f"/api/v1/consultancy/admin/questions/{ObjectId()}", json={}, headers=admin_headers)
+        await client.patch(f"/api/v1/consultancy/admin/questions/{RecordId()}", json={}, headers=admin_headers)
     ).status_code == 404
     assert (
-        await client.delete(f"/api/v1/consultancy/admin/questions/{ObjectId()}", headers=admin_headers)
+        await client.delete(f"/api/v1/consultancy/admin/questions/{RecordId()}", headers=admin_headers)
     ).status_code == 404
     assert (await client.get("/api/v1/consultancy/admin/submissions", headers=admin_headers)).status_code == 200
     assert (await client.get("/api/v1/consultancy/admin/questions", headers=admin_headers)).status_code == 200
@@ -199,7 +199,7 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
     )
     assert updated.status_code == 200 and updated.json()["status"] == "finished"
     assert (
-        await client.patch(f"/api/v1/consultancy/admin/submissions/{ObjectId()}", json={}, headers=admin_headers)
+        await client.patch(f"/api/v1/consultancy/admin/submissions/{RecordId()}", json={}, headers=admin_headers)
     ).status_code == 404
     assert (
         await client.post(
@@ -207,17 +207,17 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
         )
     ).status_code == 200
     assert (
-        await client.post(f"/api/v1/consultancy/admin/submissions/{ObjectId()}/answers/seen", headers=admin_headers)
+        await client.post(f"/api/v1/consultancy/admin/submissions/{RecordId()}/answers/seen", headers=admin_headers)
     ).status_code == 404
 
-    event = {"_id": ObjectId(), "type": "test", "seen_at": None, "created_at": datetime.now(UTC)}
+    event = {"_id": RecordId(), "type": "test", "seen_at": None, "created_at": datetime.now(UTC)}
     await db.admin_events.insert_one(event)
     assert (await client.get("/api/v1/consultancy/admin/events", headers=admin_headers)).status_code == 200
     assert (
         await client.post(f"/api/v1/consultancy/admin/events/{event['_id']}/seen", headers=admin_headers)
     ).json() == {"ok": True}
     assert (
-        await client.post(f"/api/v1/consultancy/admin/events/{ObjectId()}/seen", headers=admin_headers)
+        await client.post(f"/api/v1/consultancy/admin/events/{RecordId()}/seen", headers=admin_headers)
     ).status_code == 404
 
 

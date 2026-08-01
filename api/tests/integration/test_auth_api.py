@@ -4,6 +4,7 @@ import pytest
 
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.core.settings import settings
+from app.db.contracts import RecordId
 from app.routers.auth import _token_hash
 from app.services.auth_sessions import issue_refresh_session, refresh_jti_hash
 from app.services.email import send_reset_email
@@ -199,7 +200,7 @@ async def test_reset_rejects_token_whose_user_was_removed(client, db):
     token = "orphan-token"
     await db.password_reset_tokens.insert_one(
         {
-            "user_id": __import__("bson").ObjectId(),
+            "user_id": RecordId(),
             "token_hash": _token_hash(token),
             "used_at": None,
             "created_at": datetime.now(UTC),

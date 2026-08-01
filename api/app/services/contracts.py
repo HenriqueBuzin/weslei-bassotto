@@ -1,8 +1,7 @@
 from datetime import UTC, date, datetime
 from typing import Any
 
-from bson import ObjectId
-
+from app.db.contracts import RecordId
 from app.domain.plans import contract_period, get_plan
 
 
@@ -23,7 +22,7 @@ async def activate_contract(db, payment: dict[str, Any]) -> dict[str, Any] | Non
     plan = get_plan(payment["plan_slug"])
     timestamp = now()
     if payment.get("renewal_submission_id"):
-        submission_id = ObjectId(payment["renewal_submission_id"])
+        submission_id = RecordId(payment["renewal_submission_id"])
         current = await db.consultancy_submissions.find_one({"_id": submission_id})
         if not current:
             return None

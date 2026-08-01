@@ -71,6 +71,7 @@ async def test_seed_all_preserves_any_existing_production_data(db, monkeypatch, 
         "app.seeder.seed.settings",
         SimpleNamespace(configured_admin_accounts=[{"email": "admin@example.com", "password": "secret123"}]),
     )
+    await db.audit_events.create_index("created_at")
     await db.consultancy_submissions.insert_one({"status": "existing"})
 
     assert await database_has_documents(db) is True
@@ -79,6 +80,24 @@ async def test_seed_all_preserves_any_existing_production_data(db, monkeypatch, 
     assert await db.users.count_documents({}) == 0
     assert await db.consultancy_submissions.count_documents({}) == 1
     assert "Banco com dados" in capsys.readouterr().out
+
+
+@pytest.mark.asyncio
+async def test_database_scan_skips_empty_collections_before_finding_data():
+    class Collection:
+        def __init__(self, document):
+            self.document = document
+
+        async def find_one(self, query):
+            return self.document
+
+    db = SimpleNamespace(
+        list_collection_names=lambda: _collection_names(),
+        empty=Collection(None),
+        populated=Collection({"status": "existing"}),
+    )
+
+    assert await database_has_documents(db) is True
 
 
 @pytest.mark.asyncio
@@ -103,3 +122,7 @@ async def test_seed_index_exception_handlers():
     finally:
         original.admin_accounts = old_accounts
         original.admin_email, original.admin_password = old_email, old_password
+
+
+async def _collection_names():
+    return ["empty", "populated"]

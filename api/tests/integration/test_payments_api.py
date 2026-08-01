@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
 
 import pytest
-from bson import ObjectId
 
+from app.db.contracts import RecordId
 from app.payments.contracts import ChargeResult, PaymentStatus
 from app.payments.registry import GatewayRegistry
 
@@ -48,7 +48,7 @@ async def test_card_payment_and_secret_status_endpoint(client, db, user_factory,
 async def test_renewal_payment_enforces_contract_owner(client, db, user_factory, auth_headers, monkeypatch):
     owner = await user_factory("owner@example.com")
     other = await user_factory("other@example.com")
-    submission_id = ObjectId()
+    submission_id = RecordId()
     await db.consultancy_submissions.insert_one(
         {
             "_id": submission_id,
@@ -116,11 +116,11 @@ async def test_payment_api_reports_invalid_ids_missing_contracts_and_gateway_err
     assert (await client.post("/api/v1/payments/card-subscription", json=payload, headers=headers)).status_code == 502
     assert (await client.post("/api/v1/payments/me/renewals/invalid", json=payload, headers=headers)).status_code == 400
     assert (
-        await client.post(f"/api/v1/payments/me/renewals/{ObjectId()}", json=payload, headers=headers)
+        await client.post(f"/api/v1/payments/me/renewals/{RecordId()}", json=payload, headers=headers)
     ).status_code == 404
     assert (await client.get("/api/v1/payments/invalid/status", params={"token": "x"})).status_code == 404
 
-    submission_id = ObjectId()
+    submission_id = RecordId()
     await client._transport.app.state.db.consultancy_submissions.insert_one(
         {"_id": submission_id, "customer": {"email": user["email"]}}
     )

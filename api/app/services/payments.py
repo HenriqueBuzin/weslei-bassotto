@@ -3,9 +3,7 @@ import secrets
 from datetime import UTC, datetime
 from typing import Any
 
-from bson import ObjectId
-from pymongo.errors import DuplicateKeyError
-
+from app.db.contracts import DuplicateKeyError, RecordId
 from app.domain.plans import get_plan
 from app.payments.contracts import ChargeRequest, PaymentStatus
 from app.payments.mercado_pago import GatewayRejected, GatewayUnavailable
@@ -36,7 +34,7 @@ async def create_payment(
 ) -> tuple[dict[str, Any], str]:
     plan = get_plan(plan_slug)
     claim_token = secrets.token_urlsafe(32)
-    payment_id = ObjectId()
+    payment_id = RecordId()
     reference = f"payment:{payment_id}"
     amount = plan.cash_amount if mode == "cash" else plan.monthly_amount
     timestamp = now()
@@ -160,7 +158,7 @@ async def apply_webhook(db, registry: GatewayRegistry, gateway_name: str, payloa
         await create_admin_event(db, "payment_failed", payment_id=payment["_id"])
         if payment.get("renewal_submission_id"):
             await db.consultancy_submissions.update_one(
-                {"_id": ObjectId(payment["renewal_submission_id"])},
+                {"_id": RecordId(payment["renewal_submission_id"])},
                 {
                     "$set": {
                         "recurrence_status": "failed",
@@ -173,11 +171,11 @@ async def apply_webhook(db, registry: GatewayRegistry, gateway_name: str, payloa
 
 
 async def get_claimed_approved_payment(db, payment_id: str, claim_token: str) -> dict[str, Any] | None:
-    if not ObjectId.is_valid(payment_id) or not claim_token:
+    if not RecordId.is_valid(payment_id) or not claim_token:
         return None
     return await db.payments.find_one(
         {
-            "_id": ObjectId(payment_id),
+            "_id": RecordId(payment_id),
             "claim_token_hash": token_hash(claim_token),
             "status": PaymentStatus.APPROVED.value,
         }

@@ -8,7 +8,7 @@ from app import db as db_module
 from app.core import deps
 from app.core.security import create_access_token, create_refresh_token
 from app.core.settings import settings
-from app.db import mongo, postgres
+from app.db import postgres
 from app.main import create_app, lifespan
 
 
@@ -70,26 +70,7 @@ async def test_postgres_connect_disconnect_and_get_db(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_mongo_connect_disconnect_and_get_db(monkeypatch):
-    database = object()
-    client = SimpleNamespace(get_default_database=lambda: database, close=lambda: setattr(client, "closed", True))
-    ensured = []
-    app = SimpleNamespace(state=SimpleNamespace())
-
-    monkeypatch.setattr(mongo, "AsyncIOMotorClient", lambda uri: client)
-    monkeypatch.setattr(mongo, "ensure_all", lambda db: _record_async(ensured, db))
-
-    await mongo.connect(app)
-
-    assert app.state.db is database
-    assert ensured == [database]
-    assert mongo.get_db(SimpleNamespace(app=app)) is database
-    await mongo.disconnect(app)
-    assert client.closed is True
-
-
-@pytest.mark.asyncio
-async def test_db_module_selects_configured_adapter(monkeypatch):
+async def test_db_module_delegates_to_postgres(monkeypatch):
     events = []
 
     async def record_connect(app):
@@ -101,19 +82,11 @@ async def test_db_module_selects_configured_adapter(monkeypatch):
     monkeypatch.setattr("app.db.postgres.connect", record_connect)
     monkeypatch.setattr("app.db.postgres.disconnect", record_disconnect)
     monkeypatch.setattr("app.db.postgres.get_db", lambda request: "postgres-db")
-    monkeypatch.setattr(settings, "database_adapter", "postgres")
-
     app = SimpleNamespace(state=SimpleNamespace())
     request = SimpleNamespace(app=app)
-    assert db_module.adapter() is postgres
     await db_module.connect(app)
     assert db_module.get_db(request) == "postgres-db"
     await db_module.disconnect(app)
-
-    monkeypatch.setattr("app.db.mongo.get_db", lambda request: "mongo-db")
-    monkeypatch.setattr(settings, "database_adapter", "mongo")
-    assert db_module.adapter() is mongo
-    assert db_module.get_db(request) == "mongo-db"
     assert [event[0] for event in events] == ["connect", "disconnect"]
 
 

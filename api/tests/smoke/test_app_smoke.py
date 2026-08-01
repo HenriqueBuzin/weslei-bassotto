@@ -20,7 +20,7 @@ def test_swagger_is_enabled_only_in_development(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_health_smoke_with_mongo_up(db):
+async def test_health_smoke_with_database_up(db):
     app = main.create_app()
     app.router.lifespan_context = asynccontextmanager(lambda _app: _empty_lifespan())
     app.state.db = db

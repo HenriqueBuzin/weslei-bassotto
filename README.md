@@ -39,7 +39,7 @@ docker compose -f docker-compose-prod.yml down
 - Planos e períodos ficam em `api/app/domain`.
 - Gateways implementam `PaymentGateway`, definido em `api/app/payments/contracts.py`.
 - O serviço de pagamentos seleciona o adapter, registra tentativas e processa webhooks com idempotência.
-- Contratos, renovações, revisões da anamnese e alertas são persistidos no PostgreSQL compartilhado da VPS. O adapter Mongo permanece disponível no código, mas fica desabilitado enquanto `DB_ADAPTER=postgres`.
+- Contratos, renovações, revisões da anamnese e alertas são persistidos no PostgreSQL compartilhado da VPS.
 
 ## Proxy e banco compartilhados
 
@@ -50,9 +50,7 @@ O projeto não publica portas HTTP no host e não cria bancos internos. O Caddy 
 
 API e PostgreSQL compartilham a rede externa definida por `POSTGRES_NETWORK` (padrão `postgres-network`). A `DATABASE_URL` usa o alias `postgres`, por exemplo `postgresql://usuario:senha@postgres:5432/weslei_bassotto`.
 
-Somente um adapter pode estar ativo: com `DB_ADAPTER=postgres`, preencha `DATABASE_URL` e deixe `MONGO_URI=`; com `DB_ADAPTER=mongo`, preencha `MONGO_URI` e deixe `DATABASE_URL=`. A aplicação recusa a inicialização se as duas conexões estiverem preenchidas ou se a conexão selecionada estiver vazia.
-
-Os campos de conexão declaram em seus metadados o adapter correspondente. A validação descobre essa lista automaticamente, portanto adapters futuros entram na mesma regra de exclusividade sem alterar o validador.
+`DATABASE_URL` é obrigatória. O projeto usa exclusivamente PostgreSQL e recusa a inicialização quando a conexão não está configurada.
 
 Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolados:
 
@@ -72,17 +70,12 @@ origem dos secrets, sem enviá-los como variáveis de ambiente para a API:
 .env -> Docker Compose -> /run/secrets/<nome> -> VARIAVEL_FILE -> FastAPI
 ```
 
-São protegidos a conexão do adapter ativo, `JWT_SECRET`, `ADMIN_EMAIL`,
+São protegidos `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`,
 `ADMIN_PASSWORD`, `ADMIN_ACCOUNTS`, `MERCADO_PAGO_ACCESS_TOKEN`,
 `MERCADO_PAGO_WEBHOOK_SECRET` e `SMTP_PASSWORD`. Dentro do container, a API
 recebe apenas referências como
-`DATABASE_CONNECTION_FILE=/run/secrets/database_connection`.
+`DATABASE_URL_FILE=/run/secrets/database_url`.
 O restante das configurações continua no ambiente do container.
-
-`DATABASE_SECRET_ENV` informa ao Compose qual variável contém a conexão do
-adapter ativo. O padrão é `DATABASE_URL`, portanto PostgreSQL não exige essa
-linha no `.env`. Ao habilitar Mongo, use `DATABASE_SECRET_ENV=MONGO_URI`,
-preencha `MONGO_URI` e deixe `DATABASE_URL` vazio.
 
 O arquivo `.env` da VPS não muda de formato e continua sendo a fonte única das
 configurações. Ele deve permanecer fora do Git e com acesso restrito no host.

@@ -1,9 +1,8 @@
 from dataclasses import replace
 
 import pytest
-from bson import ObjectId
-from mongomock_motor import AsyncMongoMockClient
 
+from app.db.contracts import RecordId
 from app.payments.contracts import ChargeResult, PaymentStatus, WebhookEvent
 from app.payments.mercado_pago import GatewayRejected, GatewayUnavailable
 from app.payments.registry import GatewayRegistry
@@ -38,11 +37,6 @@ class RejectedGateway(FakeGateway):
         raise GatewayRejected("card rejected")
 
 
-@pytest.fixture
-def db():
-    return AsyncMongoMockClient().db
-
-
 @pytest.mark.asyncio
 async def test_approved_payment_can_only_be_claimed_with_secret(db):
     gateway = FakeGateway()
@@ -66,7 +60,7 @@ async def test_approved_payment_can_only_be_claimed_with_secret(db):
 async def test_webhook_is_idempotent_and_renews_once(db):
     gateway = FakeGateway()
     gateway.result = replace(gateway.result, status=PaymentStatus.PENDING)
-    submission_id = ObjectId()
+    submission_id = RecordId()
     await db.consultancy_submissions.insert_one(
         {
             "_id": submission_id,

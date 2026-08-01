@@ -2,11 +2,9 @@ from datetime import UTC, date, datetime
 from types import ModuleType, SimpleNamespace
 
 import pytest
-from bson import ObjectId
-from pymongo import ReturnDocument
-from pymongo.errors import DuplicateKeyError
 
 from app.db import postgres
+from app.db.contracts import DuplicateKeyError, RecordId, ReturnDocument
 
 
 class FakeRow(dict):
@@ -51,8 +49,8 @@ def db():
 
 @pytest.mark.asyncio
 async def test_collection_crud_query_sort_and_type_roundtrip(db):
-    first_id = ObjectId()
-    second_id = ObjectId()
+    first_id = RecordId()
+    second_id = RecordId()
     created_at = datetime.now(UTC)
     await db.users.insert_one(
         {
@@ -108,7 +106,7 @@ async def test_collection_crud_query_sort_and_type_roundtrip(db):
 
 @pytest.mark.asyncio
 async def test_updates_upserts_uniques_and_delete(db):
-    original_id = ObjectId()
+    original_id = RecordId()
     await db.users.insert_one({"_id": original_id, "email": "user@example.com", "roles": ["user"], "count": 1})
 
     result = await db.users.update_one(
@@ -137,7 +135,7 @@ async def test_updates_upserts_uniques_and_delete(db):
         {"$setOnInsert": {"roles": []}},
         upsert=True,
     )
-    assert isinstance(result.upserted_id, ObjectId)
+    assert isinstance(result.upserted_id, RecordId)
     assert await db.users.find_one({"email": "new@example.com", "roles": []})
     assert (await db.users.update_one({"email": "none@example.com"}, {}, upsert=False)).matched_count == 0
 
@@ -166,7 +164,7 @@ async def test_updates_upserts_uniques_and_delete(db):
 
 @pytest.mark.asyncio
 async def test_sparse_compound_unique_and_disconnect(db):
-    payment_id = ObjectId()
+    payment_id = RecordId()
     await db.payments.insert_one({"_id": payment_id, "claim_token_hash": "one"})
     await db.payments.insert_one({"claim_token_hash": "two", "gateway": None, "external_id": None})
     await db.payments.update_one({"_id": payment_id}, {"$set": {"gateway": "mp", "external_id": "abc"}})
@@ -184,7 +182,11 @@ async def test_adapter_edges_and_private_helpers(db):
     with pytest.raises(TypeError, match="set"):
         postgres._to_json({"bad": {1, 2}})
 
+    legacy_id = RecordId()
+    assert postgres._restore_ids({"$oid": str(legacy_id)}) == legacy_id
+    assert postgres._restore_ids({"$id": str(legacy_id)}) == legacy_id
     assert postgres._restore_ids({"$oid": "not-valid"}) == {"$oid": "not-valid"}
+    assert postgres._restore_ids(str(legacy_id), "_id") == legacy_id
     assert postgres._restore_ids("plain") == "plain"
 
     doc = {}
@@ -195,6 +197,9 @@ async def test_adapter_edges_and_private_helpers(db):
     assert postgres._apply_update(doc, {"$push": {"items": "b"}})
     assert doc["items"] == ["a", "b"]
     assert postgres._apply_update(doc, {"$addToSet": {"tags": "x"}}) is False
+    assert postgres._apply_update(doc, {"$unset": {"profile.score": ""}})
+    assert postgres._apply_update(doc, {"$unset": {"profile.missing": ""}}) is False
+    assert postgres._apply_update(doc, {"$unset": {"missing.path": ""}}) is False
     assert postgres._apply_update(doc, {}) is False
 
     await db.users.insert_one({"email": "plain@example.com", "profile": {"score": 1}})

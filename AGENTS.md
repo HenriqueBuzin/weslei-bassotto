@@ -13,10 +13,10 @@ vivem em `api/app/domain`. Gateways implementam `PaymentGateway`; o registry
 define ordem e fallback. Nunca reenviar cobrança recusada ou ambígua; fallback
 só antes de uma cobrança aceita. Webhooks são idempotentes.
 
-Persistência usa exatamente um adapter selecionado por `DB_ADAPTER`. PostgreSQL
-é o padrão na VPS; Mongo permanece disponível. O processo deve recusar duas
-URLs preenchidas ou ausência da conexão do adapter escolhido. Seeder só roda
-quando o banco inteiro está vazio e nunca sobrescreve contas/dados existentes.
+Persistência usa exclusivamente PostgreSQL externo, configurado por
+`DATABASE_URL`. O processo deve recusar a ausência dessa conexão. Seeder só
+roda quando o banco inteiro está vazio e nunca sobrescreve contas/dados
+existentes.
 
 ## Arquitetura e versões
 
@@ -38,7 +38,7 @@ Rotas usam prefixo `/api/v1`; pagamentos Mercado Pago recebem webhook em
 `/openapi.json` em dev; produção deve desabilitar ou proteger documentação.
 Cookies, JWT, lock de login, CORS e expirações vêm do env.
 
-PostgreSQL e Mongo são externos. O repositório não instala banco ou Redis.
+PostgreSQL é externo. O repositório não instala banco ou Redis.
 Backend entra em `POSTGRES_NETWORK` apenas quando precisa do banco e web entra
 somente em `proxy-network`. Produção e dev usam bancos, usuários, secrets,
 imagens e projetos separados.
@@ -77,7 +77,7 @@ scan. `main` e `dev` terminam com a mesma árvore.
 ## Critério de aceite
 
 Todos os fluxos de autenticação, planos, anamnese, pagamentos, contratos,
-webhooks, admins e seed permanecem; adapters mantêm exclusividade e
-idempotência; documentação existe em dev; cobertura permanece 100%; Compose e
+webhooks, admins e seed permanecem; pagamentos mantêm idempotência;
+documentação existe em dev; cobertura permanece 100%; Compose e
 containers ficam saudáveis; nenhum banco é criado; árvores `main`/`dev` são
 iguais.

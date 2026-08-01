@@ -1,7 +1,7 @@
 import importlib
 
 import pytest
-from pydantic import Field, ValidationError
+from pydantic import ValidationError
 
 from app.core.settings import Settings, load_file_secrets
 
@@ -9,7 +9,6 @@ from app.core.settings import Settings, load_file_secrets
 def valid_settings(_settings_class=Settings, _drop=(), **overrides):
     values = {
         "API_BASE": "api/v1/",
-        "DB_ADAPTER": "postgres",
         "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/weslei_bassotto_test",
         "APP_ENV": "dev",
         "JWT_ALG": "hs256",
@@ -42,7 +41,7 @@ def test_settings_normalize_values_and_legacy_admin():
         ADMIN_PASSWORD="secret123",
     )
     assert settings.api_base == "/api/v1"
-    assert settings.database_adapter == "postgres"
+    assert settings.database_url.startswith("postgresql://")
     assert settings.cors_allowed_origins == ["https://one.test", "https://two.test"]
     assert settings.payment_gateway_order == ["first", "second"]
     assert settings.refresh_cookie_path == "/api/v1/auth"
@@ -84,10 +83,9 @@ def test_sensitive_settings_can_be_loaded_from_file_environment(tmp_path):
     }
     environ = {}
     connection = "postgresql://secret-user:secret-pass@postgres:5432/weslei"
-    connection_file = tmp_path / "database_connection"
+    connection_file = tmp_path / "database_url"
     connection_file.write_text(f"{connection}\n", encoding="utf-8")
-    environ["DB_ADAPTER"] = "postgres"
-    environ["DATABASE_CONNECTION_FILE"] = str(connection_file)
+    environ["DATABASE_URL_FILE"] = str(connection_file)
     for name, value in secrets.items():
         secret_file = tmp_path / name.lower()
         secret_file.write_text(f"{value}\n", encoding="utf-8")
@@ -113,8 +111,7 @@ def test_file_secret_loader_ignores_missing_file_variables():
     assert (
         load_file_secrets(
             {
-                "DB_ADAPTER": "postgres",
-                "DATABASE_CONNECTION_FILE": "/run/secrets/missing-database",
+                "DATABASE_URL_FILE": "/run/secrets/missing-database",
                 "JWT_SECRET_FILE": "/run/secrets/not-mounted",
             }
         )
@@ -122,32 +119,11 @@ def test_file_secret_loader_ignores_missing_file_variables():
     )
 
 
-def test_database_connection_secret_follows_selected_adapter(tmp_path):
-    secret_file = tmp_path / "database_connection"
-    secret_file.write_text("mongodb://localhost/secret\n", encoding="utf-8")
-
-    loaded = load_file_secrets(
-        {
-            "DB_ADAPTER": "mongo",
-            "DATABASE_CONNECTION_FILE": str(secret_file),
-        }
-    )
-
-    assert loaded == {"MONGO_URI": "mongodb://localhost/secret"}
-
-
-def test_database_connection_secret_ignores_unknown_adapter_and_empty_file(tmp_path):
-    secret_file = tmp_path / "database_connection"
+def test_database_url_secret_ignores_empty_file(tmp_path):
+    secret_file = tmp_path / "database_url"
     secret_file.write_text("\n", encoding="utf-8")
-    assert (
-        load_file_secrets(
-            {
-                "DB_ADAPTER": "redis",
-                "DATABASE_CONNECTION_FILE": str(secret_file),
-            }
-        )
-        == {}
-    )
+
+    assert load_file_secrets({"DATABASE_URL_FILE": str(secret_file)}) == {}
 
 
 @pytest.mark.parametrize(
@@ -156,11 +132,7 @@ def test_database_connection_secret_ignores_unknown_adapter_and_empty_file(tmp_p
         ({"JWT_ALG": "none"}, "JWT_ALG"),
         ({"JWT_SECRET": "short"}, "muito curto"),
         ({"APP_ENV": "staging"}, "APP_ENV"),
-        ({"DB_ADAPTER": "sqlite"}, "DB_ADAPTER"),
-        ({"DB_ADAPTER": "postgres", "DATABASE_URL": ""}, "DATABASE_URL"),
-        ({"DB_ADAPTER": "mongo", "DATABASE_URL": "", "MONGO_URI": ""}, "MONGO_URI"),
-        ({"DB_ADAPTER": "postgres", "MONGO_URI": "mongodb://localhost/test"}, "apenas um adapter"),
-        ({"DB_ADAPTER": "mongo", "MONGO_URI": "mongodb://localhost/test"}, "apenas um adapter"),
+        ({"DATABASE_URL": ""}, "DATABASE_URL"),
         ({"COOKIE_SAMESITE": "invalid"}, "COOKIE_SAMESITE"),
         ({"REFRESH_COOKIE_NAME": "bad name"}, "REFRESH_COOKIE_NAME"),
         ({"COOKIE_SAMESITE": "none", "COOKIE_SECURE": False}, "COOKIE_SECURE"),
@@ -192,35 +164,6 @@ def test_asymmetric_algorithms_require_a_nonempty_secret():
         valid_settings(JWT_ALG="ES256", JWT_SECRET="")
 
 
-def test_mongo_adapter_can_be_enabled_explicitly():
-    settings = valid_settings(DB_ADAPTER="MONGO", DATABASE_URL="  ", MONGO_URI=" mongodb://localhost/test ")
-    assert settings.database_adapter == "mongo"
-    assert settings.database_url == ""
-    assert settings.mongo_uri == "mongodb://localhost/test"
-
-
-def test_adapter_validation_discovers_future_connection_fields_automatically():
-    class FutureSettings(Settings):
-        redis_uri: str = Field(
-            default="",
-            validation_alias="REDIS_URI",
-            json_schema_extra={"database_adapter": "redis"},
-        )
-
-    settings = valid_settings(
-        FutureSettings,
-        DB_ADAPTER="redis",
-        DATABASE_URL="",
-        REDIS_URI="redis://localhost/database",
-    )
-    assert settings.database_adapter == "redis"
-    assert settings.redis_uri == "redis://localhost/database"
-    assert FutureSettings.database_connection_fields()["redis"] == "redis_uri"
-    assert FutureSettings.database_connection_label("redis_uri") == "REDIS_URI"
-
-    with pytest.raises(ValidationError, match="apenas um adapter"):
-        valid_settings(
-            FutureSettings,
-            DB_ADAPTER="redis",
-            REDIS_URI="redis://localhost/database",
-        )
+def test_postgres_dsn_alias_is_supported():
+    settings = valid_settings(_drop=("DATABASE_URL",), POSTGRES_DSN="postgresql://alias/test")
+    assert settings.database_url == "postgresql://alias/test"

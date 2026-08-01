@@ -1,7 +1,6 @@
 import os
 
 os.environ.setdefault("API_BASE", "/api/v1")
-os.environ.setdefault("DB_ADAPTER", "postgres")
 os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/weslei_bassotto_test")
 os.environ.setdefault("APP_ENV", "dev")
 os.environ.setdefault("JWT_ALG", "HS256")
@@ -22,12 +21,13 @@ os.environ.setdefault("REFRESH_COOKIE_PATH", "/api/v1/auth")
 import httpx
 import pytest
 import pytest_asyncio
-from bson import ObjectId
 from fastapi import FastAPI
-from mongomock_motor import AsyncMongoMockClient
 
 from app.core.security import create_access_token, hash_password
+from app.db.contracts import RecordId
+from app.db.postgres import PostgresDocumentDatabase
 from app.routers import ROUTERS
+from tests.support import MemoryPool
 
 
 def pytest_collection_modifyitems(items):
@@ -45,8 +45,7 @@ def pytest_collection_modifyitems(items):
 
 @pytest_asyncio.fixture
 async def db():
-    database = AsyncMongoMockClient().test_database
-    yield database
+    yield PostgresDocumentDatabase(MemoryPool())
 
 
 @pytest_asyncio.fixture
@@ -68,7 +67,7 @@ async def client(app):
 async def user_factory(db):
     async def create(email="user@example.com", password="secret123", roles=None):
         doc = {
-            "_id": ObjectId(),
+            "_id": RecordId(),
             "email": email.lower(),
             "password_hash": hash_password(password),
             "roles": roles or ["user"],

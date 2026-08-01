@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.deps import get_current_user
-from app.db.mongo import get_db
+from app.db import get_db
 from app.domain.plans import contract_period, get_plan
 from app.routers.consultancy_admin import router as admin_router
 from app.routers.consultancy_common import (

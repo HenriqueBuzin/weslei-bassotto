@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from bson import ObjectId
 from fastapi import HTTPException
 
+from app.db.contracts import RecordId
 from app.schemas.consultancy import QuestionOut, SubmissionOut
 
 
@@ -11,10 +11,10 @@ def now() -> datetime:
     return datetime.now(UTC)
 
 
-def parse_object_id(value: str) -> ObjectId:
-    if not ObjectId.is_valid(value):
+def parse_record_id(value: str) -> RecordId:
+    if not RecordId.is_valid(value):
         raise HTTPException(status_code=400, detail="ID inválido")
-    return ObjectId(value)
+    return RecordId(value)
 
 
 def question_out(doc: dict[str, Any]) -> QuestionOut:
@@ -69,7 +69,7 @@ async def build_answer_snapshot(db, answers_data) -> list[dict[str, Any]]:
 
 
 async def find_owned_submission(db, submission_id: str, user: dict[str, Any]) -> dict[str, Any]:
-    doc = await db.consultancy_submissions.find_one({"_id": parse_object_id(submission_id)})
+    doc = await db.consultancy_submissions.find_one({"_id": parse_record_id(submission_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Contrato não encontrado")
     if doc.get("customer", {}).get("email", "").lower() != user.get("email", "").lower():
