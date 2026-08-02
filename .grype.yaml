@@ -1,3 +1,7 @@
 ignore:
   - vulnerability: CVE-2026-15308
     reason: Fix requires Python 3.15; keep Python 3.14 LTS until a compatible fix exists.
+  - vulnerability: CVE-2026-11940
+    reason: Fix requires pre-release Python 3.15; the application does not extract untrusted tar archives.
+  - vulnerability: CVE-2026-11972
+    reason: Fix requires pre-release Python 3.15; the application does not parse tar archives in streaming mode.
