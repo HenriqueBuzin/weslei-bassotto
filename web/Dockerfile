@@ -1,5 +1,5 @@
 # --- Stage 1: build do React ---
-FROM node:24.18.0-bookworm-slim AS build
+FROM node:24.18.1-bookworm-slim AS build
 WORKDIR /app
 ENV TZ=America/Sao_Paulo
 

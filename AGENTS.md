@@ -22,7 +22,7 @@ existentes.
 
 - `api`: Python 3.14.6, Poetry 2.4.1, FastAPI/Uvicorn.
 - `frontend`: React/React DOM 19.2.8, somente TypeScript estrito.
-- Node 24.18.0 LTS, npm 11.16.0, TypeScript 6.0.3, Vite 8.1.5,
+- Node 24.18.1 LTS, npm 11.16.0, TypeScript 6.0.3, Vite 8.1.5,
   Vitest 4.1.10 e Playwright 1.62.0.
 - produção web: Caddy 2.11.4; Nginx não é permitido.
 - qualidade Python: Black, isort e Flake8 nas versões do lock.
@@ -63,7 +63,7 @@ Existem exatamente `docker-compose.yml` para dev e
 `docker-compose-prod.yml` para produção, sem `version` e profiles. Projetos:
 `weslei-bassotto-dev` e `weslei-bassotto`. Serviços têm nomes funcionais
 `backend`, `frontend` e `web`. Comandos ficam nos Dockerfiles, nunca no
-Compose. Targets/imagens usam Node 24.18.0, Python 3.14.6 e Caddy 2.11.4.
+Compose. Targets/imagens usam Node 24.18.1, Python 3.14.6 e Caddy 2.11.4.
 
 Todo serviço define init, graceful stop, restart, healthcheck, labels, logs
 rotacionados e `no-new-privileges`. Imagens levam SHA e `-dev` somente em dev.

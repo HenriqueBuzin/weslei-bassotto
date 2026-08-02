@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/playwright:v1.62.0-noble
 
-ARG NODE_VERSION=24.18.0
+ARG NODE_VERSION=24.18.1
 ENV TZ=America/Sao_Paulo
 
 RUN set -eux; \
