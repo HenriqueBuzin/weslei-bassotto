@@ -3,7 +3,7 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from app.db import postgres
+from app.db import document_ops, postgres
 from app.db.contracts import DuplicateKeyError, RecordId, ReturnDocument
 
 
@@ -180,27 +180,27 @@ async def test_sparse_compound_unique_and_disconnect(db):
 @pytest.mark.asyncio
 async def test_adapter_edges_and_private_helpers(db):
     with pytest.raises(TypeError, match="set"):
-        postgres._to_json({"bad": {1, 2}})
+        document_ops.to_json({"bad": {1, 2}})
 
-    legacy_id = RecordId()
-    assert postgres._restore_ids({"$oid": str(legacy_id)}) == legacy_id
-    assert postgres._restore_ids({"$id": str(legacy_id)}) == legacy_id
-    assert postgres._restore_ids({"$oid": "not-valid"}) == {"$oid": "not-valid"}
-    assert postgres._restore_ids(str(legacy_id), "_id") == legacy_id
-    assert postgres._restore_ids("plain") == "plain"
+    record_id = RecordId()
+    assert document_ops.restore_types(str(record_id), "_id") == record_id
+    assert document_ops.restore_types("plain") == "plain"
 
     doc = {}
-    postgres._set_path(doc, "profile.score", 10)
+    document_ops.set_path(doc, "profile.score", 10)
     assert doc == {"profile": {"score": 10}}
-    assert postgres._apply_update(doc, {"$push": {"items": "a"}, "$addToSet": {"tags": "x"}, "$inc": {"count": 1}})
+    assert document_ops.apply_update(
+        doc,
+        {"$push": {"items": "a"}, "$addToSet": {"tags": "x"}, "$inc": {"count": 1}},
+    )
     assert doc == {"profile": {"score": 10}, "items": ["a"], "tags": ["x"], "count": 1}
-    assert postgres._apply_update(doc, {"$push": {"items": "b"}})
+    assert document_ops.apply_update(doc, {"$push": {"items": "b"}})
     assert doc["items"] == ["a", "b"]
-    assert postgres._apply_update(doc, {"$addToSet": {"tags": "x"}}) is False
-    assert postgres._apply_update(doc, {"$unset": {"profile.score": ""}})
-    assert postgres._apply_update(doc, {"$unset": {"profile.missing": ""}}) is False
-    assert postgres._apply_update(doc, {"$unset": {"missing.path": ""}}) is False
-    assert postgres._apply_update(doc, {}) is False
+    assert document_ops.apply_update(doc, {"$addToSet": {"tags": "x"}}) is False
+    assert document_ops.apply_update(doc, {"$unset": {"profile.score": ""}})
+    assert document_ops.apply_update(doc, {"$unset": {"profile.missing": ""}}) is False
+    assert document_ops.apply_update(doc, {"$unset": {"missing.path": ""}}) is False
+    assert document_ops.apply_update(doc, {}) is False
 
     await db.users.insert_one({"email": "plain@example.com", "profile": {"score": 1}})
     assert await db.users.find({}).to_list(10)

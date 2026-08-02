@@ -20,8 +20,8 @@ export const authApi = axios.create({
 });
 
 // “injeção” do access token em memória (setado pelo AuthContext)
-let getAccessToken = () => undefined;
-export function bindAccessTokenGetter(fn) {
+let getAccessToken: () => string | undefined = () => undefined;
+export function bindAccessTokenGetter(fn: () => string | undefined) {
   getAccessToken = fn;
 }
 api.interceptors.request.use((config) => {

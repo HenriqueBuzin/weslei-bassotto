@@ -58,8 +58,6 @@ services:
       - SMTP_FROM=${SMTP_FROM}
       - DATABASE_URL_FILE=/run/secrets/database_url
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
-      - ADMIN_EMAIL_FILE=/run/secrets/admin_email
-      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
       - ADMIN_ACCOUNTS_FILE=/run/secrets/admin_accounts
       - MERCADO_PAGO_ACCESS_TOKEN_FILE=/run/secrets/mercado_pago_access_token
       - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
@@ -69,8 +67,6 @@ services:
     secrets:
       - database_url
       - jwt_secret
-      - admin_email
-      - admin_password
       - admin_accounts
       - mercado_pago_access_token
       - mercado_pago_webhook_secret
@@ -104,9 +100,6 @@ services:
       args:
         - VITE_API_BASE=${VITE_API_BASE}
         - VITE_APP_NAME=${VITE_APP_NAME}
-        - VITE_MP_TRIMESTRAL_URL=${VITE_MP_TRIMESTRAL_URL}
-        - VITE_MP_SEMESTRAL_URL=${VITE_MP_SEMESTRAL_URL}
-        - VITE_MP_ANUAL_URL=${VITE_MP_ANUAL_URL}
         - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
         - VITE_WHATSAPP_NUMBER=${VITE_WHATSAPP_NUMBER}
     expose:
@@ -116,8 +109,6 @@ services:
         condition: service_healthy
     environment:
       - API_PORT=${API_PORT}
-      - CADDY_DOMAIN=${CADDY_DOMAIN}
-      - CADDY_EMAIL=${CADDY_EMAIL}
       - TZ=America/Sao_Paulo
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
@@ -141,10 +132,6 @@ secrets:
     environment: DATABASE_URL
   jwt_secret:
     environment: JWT_SECRET
-  admin_email:
-    environment: ADMIN_EMAIL
-  admin_password:
-    environment: ADMIN_PASSWORD
   admin_accounts:
     environment: ADMIN_ACCOUNTS
   mercado_pago_access_token:

@@ -108,8 +108,3 @@ async def payment_webhook(gateway_name: str, req: Request):
     except (GatewayError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, "processed": processed}
-
-
-@router.post("/webhook/mercado-pago", include_in_schema=False)
-async def legacy_mercado_pago_webhook(req: Request):
-    return await payment_webhook("mercado_pago", req)

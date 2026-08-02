@@ -101,7 +101,7 @@ async def test_database_scan_skips_empty_collections_before_finding_data():
 
 
 @pytest.mark.asyncio
-async def test_seed_index_exception_handlers():
+async def test_seed_index_exception_handlers(monkeypatch):
     class Collection:
         async def create_index(self, *args, **kwargs):
             raise RuntimeError("exists")
@@ -111,17 +111,11 @@ async def test_seed_index_exception_handlers():
 
     db = SimpleNamespace(roles=Collection(), users=Collection())
     await seed_roles(db)
-    original = __import__("app.seeder.seed", fromlist=["settings"]).settings
-    old_accounts = original.admin_accounts
-    old_email, old_password = original.admin_email, original.admin_password
-    try:
-        original.admin_accounts = []
-        original.admin_email = "admin@example.com"
-        original.admin_password = "secret123"
-        await seed_admin(db)
-    finally:
-        original.admin_accounts = old_accounts
-        original.admin_email, original.admin_password = old_email, old_password
+    monkeypatch.setattr(
+        "app.seeder.seed.settings",
+        SimpleNamespace(configured_admin_accounts=[{"email": "admin@example.com", "password": "secret123"}]),
+    )
+    await seed_admin(db)
 
 
 async def _collection_names():

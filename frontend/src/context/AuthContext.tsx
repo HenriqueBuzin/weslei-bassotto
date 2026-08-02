@@ -1,28 +1,47 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, authApi, bindAccessTokenGetter } from "../lib/api";
 import { isExpired, readRoles } from "../lib/jwt";
 
-const Ctx = createContext(null);
+type StorageLike = {
+  getItem?: (key: string) => string | null;
+  setItem?: (key: string, value: string) => void;
+  removeItem?: (key: string) => void;
+};
+
+type AuthContextValue = {
+  accessToken: string | undefined;
+  roles: string[];
+  isAuthenticated: boolean;
+  login: (email: string, password: string, remember?: boolean) => Promise<string>;
+  register: (email: string, password: string) => Promise<string>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<string>;
+};
+
+type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+const Ctx = createContext<AuthContextValue | null>(null);
 const REMEMBER_SESSION_KEY = "wb_auth_remember_session";
 const ACTIVE_SESSION_KEY = "wb_auth_active_session";
 
-export function storageGet(storage, key) {
+export function storageGet(storage: StorageLike | null | undefined, key: string) {
   try {
-    return storage?.getItem(key);
+    return storage?.getItem?.(key);
   } catch {
     return null;
   }
 }
 
-export function storageSet(storage, key, value) {
+export function storageSet(storage: StorageLike | null | undefined, key: string, value: string) {
   try {
-    if (storage) storage.setItem(key, value);
+    storage?.setItem?.(key, value);
   } catch {}
 }
 
-export function storageRemove(storage, key) {
+export function storageRemove(storage: StorageLike | null | undefined, key: string) {
   try {
-    if (storage) storage.removeItem(key);
+    storage?.removeItem?.(key);
   } catch {}
 }
 
@@ -50,8 +69,8 @@ export function clearSessionMarker() {
   storageRemove(window.localStorage, REMEMBER_SESSION_KEY);
 }
 
-export function AuthProvider({ children }) {
-  const [accessToken, setAT] = useState(undefined);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [accessToken, setAT] = useState<string | undefined>(undefined);
 
   authApi.defaults.withCredentials = true;
 
@@ -60,7 +79,7 @@ export function AuthProvider({ children }) {
   const roles = useMemo(() => readRoles(accessToken), [accessToken]);
   const isAuthenticated = !!accessToken && !isExpired(accessToken);
 
-  const login = useCallback(async (email, password, remember = false) => {
+  const login = useCallback(async (email: string, password: string, remember = false) => {
     const form = new URLSearchParams();
     form.set("username", email);
     form.set("password", password);
@@ -77,7 +96,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(
-    async (email, password) => {
+    async (email: string, password: string) => {
       await api.post("/auth/register", { email, password });
       return login(email, password, false);
     },
@@ -113,13 +132,13 @@ export function AuthProvider({ children }) {
     })();
   }, [doRefresh]);
 
-  const refreshPromiseRef = useRef(null);
+  const refreshPromiseRef = useRef<Promise<string> | null>(null);
   useEffect(() => {
     const id = api.interceptors.response.use(
       (r) => r,
-      async (error) => {
-        const original = error.config || {};
-        if (error?.response?.status !== 401 || original._retry) {
+      async (error: AxiosError) => {
+        const original = error.config as RetryConfig | undefined;
+        if (error.response?.status !== 401 || !original || original._retry) {
           return Promise.reject(error);
         }
         original._retry = true;

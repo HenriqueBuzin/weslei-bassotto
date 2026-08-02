@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../lib/api";
+import { apiErrorMessage } from "../lib/errors";
 import "./Login.css";
 
 export default function ResetPassword() {
@@ -15,7 +16,7 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  async function onSubmit(event) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setMessage("");
@@ -34,7 +35,7 @@ export default function ResetPassword() {
       setMessage("Senha alterada com sucesso. Você já pode entrar.");
       setTimeout(() => nav("/login"), 1200);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Não foi possível alterar sua senha.");
+      setError(apiErrorMessage(err, "Não foi possível alterar sua senha."));
     } finally {
       setBusy(false);
     }

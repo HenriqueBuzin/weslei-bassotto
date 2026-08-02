@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { formatDateBR } from "../../lib/date";
 import { selectPlan, usePlanCatalog } from "../../hooks/usePlanCatalog";
 import QuestionField from "../../components/QuestionField";
+import { apiErrorMessage } from "../../lib/errors";
+import type { AnswerValue, Customer, Question, Submission } from "../../types/consultancy";
 
-function formatPhoneBR(value) {
+function formatPhoneBR(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits;
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
@@ -25,13 +27,13 @@ export default function Questionnaire() {
   const paymentToken = params.get("payment_token") || "";
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const paymentConfirmed = paymentStatus === "approved";
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [customer, setCustomer] = useState({ name: "", email: "", phone: "" });
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const [customer, setCustomer] = useState<Customer>({ name: "", email: "", phone: "" });
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(null);
+  const [success, setSuccess] = useState<Submission | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -77,11 +79,11 @@ export default function Questionnaire() {
     return customer.name.trim() && customer.email.trim() && customer.phone.trim() && requiredAnswered;
   }, [answers, customer, questions]);
 
-  function setAnswer(questionId, value) {
+  function setAnswer(questionId: string, value: string) {
     setAnswers((current) => ({ ...current, [questionId]: value }));
   }
 
-  async function onSubmit(event) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -97,11 +99,7 @@ export default function Questionnaire() {
       const { data } = await api.post("/consultancy/submissions", payload);
       setSuccess(data);
     } catch (err) {
-      setError(
-        err?.response?.data?.detail?.missing_questions?.join(", ") ||
-          err?.response?.data?.detail ||
-          "Não foi possível enviar suas respostas.",
-      );
+      setError(apiErrorMessage(err, "Não foi possível enviar suas respostas."));
     } finally {
       setBusy(false);
     }

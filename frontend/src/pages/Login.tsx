@@ -1,9 +1,10 @@
 // src/pages/Login.jsx
 
-import React, { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { readRoles } from "../lib/jwt";
+import { apiErrorMessage } from "../lib/errors";
 import "./Login.css";
 
 export default function Login() {
@@ -18,10 +19,10 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
-  const [err, setErr] = useState(null);
+  const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function onSubmit(e) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr(null);
     setBusy(true);
@@ -29,9 +30,8 @@ export default function Login() {
       const token = await login(email, password, remember);
       const roles = readRoles(token);
       nav(roles.includes("admin") ? "/app" : params.get("returnTo") || "/assinante");
-    } catch (e) {
-      const msg = e?.response?.data?.detail || e?.response?.data?.message || e?.message || "Falha no login";
-      setErr(msg);
+    } catch (error) {
+      setErr(apiErrorMessage(error, "Falha no login", true));
     } finally {
       setBusy(false);
     }

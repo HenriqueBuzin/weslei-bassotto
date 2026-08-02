@@ -12,7 +12,7 @@ from app.routers.consultancy_common import (
     question_out,
     submission_out,
 )
-from app.schemas.consultancy import AnswersUpdateIn, QuestionOut, RenewalIn, SubmissionIn, SubmissionOut
+from app.schemas.consultancy import AnswersUpdateIn, QuestionOut, SubmissionIn, SubmissionOut
 from app.services.contracts import create_admin_event
 from app.services.payments import get_claimed_approved_payment
 
@@ -117,12 +117,6 @@ async def update_my_answers(submission_id: str, req: Request, data: AnswersUpdat
     )
     await create_admin_event(db, "answers_changed", submission_id=current["_id"])
     return submission_out(await db.consultancy_submissions.find_one({"_id": current["_id"]}))
-
-
-@router.post("/me/submissions/{submission_id}/renew", response_model=SubmissionOut)
-async def deprecated_renewal(submission_id: str, req: Request, data: RenewalIn, user=Depends(get_current_user)):
-    await find_owned_submission(get_db(req), submission_id, user)
-    raise HTTPException(status_code=410, detail="Use o checkout de renovação; as datas são atualizadas pelo pagamento")
 
 
 router.include_router(admin_router)

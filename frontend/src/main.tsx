@@ -11,7 +11,10 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./routes";
 import { AuthProvider } from "./context/AuthContext";
 
-createRoot(document.getElementById("root")).render(
+const root = document.getElementById("root");
+if (!root) throw new Error("Elemento #root não encontrado");
+
+createRoot(root).render(
   <React.StrictMode>
     <AuthProvider>
       <Suspense fallback={<div>Carregando…</div>}>

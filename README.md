@@ -70,8 +70,7 @@ origem dos secrets, sem enviá-los como variáveis de ambiente para a API:
 .env -> Docker Compose -> /run/secrets/<nome> -> VARIAVEL_FILE -> FastAPI
 ```
 
-São protegidos `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`,
-`ADMIN_PASSWORD`, `ADMIN_ACCOUNTS`, `MERCADO_PAGO_ACCESS_TOKEN`,
+São protegidos `DATABASE_URL`, `JWT_SECRET`, `ADMIN_ACCOUNTS`, `MERCADO_PAGO_ACCESS_TOKEN`,
 `MERCADO_PAGO_WEBHOOK_SECRET` e `SMTP_PASSWORD`. Dentro do container, a API
 recebe apenas referências como
 `DATABASE_URL_FILE=/run/secrets/database_url`.
@@ -142,7 +141,7 @@ Use uma lista JSON extensível no ambiente. Em produção, configure inicialment
 ADMIN_ACCOUNTS=[{"email":"admin1@dominio.com","password":"senha-forte-1"},{"email":"admin2@dominio.com","password":"senha-forte-2"}]
 ```
 
-Com `SEED_ON_START=true`, o seeder cria roles e administradores somente quando o banco inteiro não possui documentos. Depois da primeira carga, qualquer dado existente faz o seed ser ignorado: deploys futuros não alteram contas, senhas, roles nem dados operacionais. `ADMIN_EMAIL` e `ADMIN_PASSWORD` continuam aceitos apenas como compatibilidade para ambientes antigos.
+Com `SEED_ON_START=true`, o seeder cria roles e administradores somente quando o banco inteiro não possui documentos. Depois da primeira carga, qualquer dado existente faz o seed ser ignorado: deploys futuros não alteram contas, senhas, roles nem dados operacionais.
 
 ## Webhook do Mercado Pago
 

@@ -1,5 +1,15 @@
-export default function QuestionField({ question, value = "", onChange }) {
-  const update = (event) => onChange(question.id, event.target.value);
+import type { ChangeEvent } from "react";
+import type { AnswerValue, Question } from "../types/consultancy";
+
+type Props = {
+  question: Question;
+  value?: AnswerValue;
+  onChange: (questionId: string, value: string) => void;
+};
+
+export default function QuestionField({ question, value = "", onChange }: Props) {
+  const update = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    onChange(question.id, event.target.value);
 
   return (
     <label className="question-field">

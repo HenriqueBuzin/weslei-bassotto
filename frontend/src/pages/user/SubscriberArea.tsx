@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { formatDateBR } from "../../lib/date";
 import { Plan, usePlanCatalog } from "../../hooks/usePlanCatalog";
 import QuestionField from "../../components/QuestionField";
+import { apiErrorMessage } from "../../lib/errors";
+import type { AnswerValue, Question, Submission } from "../../types/consultancy";
 
-function answersToMap(submission) {
+function answersToMap(submission?: Submission) {
   return Object.fromEntries((submission?.answers || []).map((answer) => [answer.question_id, answer.value || ""]));
 }
 
@@ -14,10 +16,10 @@ export default function SubscriberArea() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [questions, setQuestions] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-  const [answers, setAnswers] = useState({});
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -64,11 +66,11 @@ export default function SubscriberArea() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
-  function setAnswer(questionId, value) {
+  function setAnswer(questionId: string, value: string) {
     setAnswers((current) => ({ ...current, [questionId]: value }));
   }
 
-  async function saveAnswers(event) {
+  async function saveAnswers(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -81,13 +83,13 @@ export default function SubscriberArea() {
       setSubmissions((items) => items.map((item) => (item.id === selected.id ? data : item)));
       setNotice("Respostas atualizadas. O admin será sinalizado até visualizar a alteração.");
     } catch (err) {
-      setError(err?.response?.data?.detail?.missing_questions?.join(", ") || "Não foi possível salvar suas respostas.");
+      setError(apiErrorMessage(err, "Não foi possível salvar suas respostas."));
     } finally {
       setBusy(false);
     }
   }
 
-  function renewPlan(planSlug) {
+  function renewPlan(planSlug: string) {
     setError("");
     setNotice("");
     navigate(`/checkout?plano=${planSlug}&renew=${selected.id}`);

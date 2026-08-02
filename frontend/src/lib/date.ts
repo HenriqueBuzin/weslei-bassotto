@@ -1,4 +1,4 @@
-export function formatDateBR(value) {
+export function formatDateBR(value: string | null | undefined) {
   if (!value) return "";
   const [datePart] = String(value).split("T");
   const [year, month, day] = datePart.split("-");

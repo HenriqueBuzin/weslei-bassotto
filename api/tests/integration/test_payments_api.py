@@ -100,6 +100,23 @@ async def test_mercado_pago_webhook_rejects_bad_signature(client):
 
 
 @pytest.mark.asyncio
+async def test_mercado_pago_webhook_accepts_valid_signature(client, monkeypatch):
+    gateway = FakeGateway()
+    gateway.name = "mercado_pago"
+    registry = GatewayRegistry([gateway], ["mercado_pago"])
+    monkeypatch.setattr("app.routers.payments.verify_webhook_signature", lambda **_kwargs: True)
+    monkeypatch.setattr("app.routers.payments.build_gateway_registry", lambda: registry)
+
+    response = await client.post(
+        "/api/v1/payments/webhooks/mercado_pago",
+        json={"type": "payment", "data": {"id": "123"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True, "processed": False}
+
+
+@pytest.mark.asyncio
 async def test_payment_api_reports_invalid_ids_missing_contracts_and_gateway_errors(
     client, user_factory, auth_headers, monkeypatch
 ):
@@ -138,14 +155,6 @@ async def test_basic_admin_and_profile_routes(client, user_factory, auth_headers
 
 
 @pytest.mark.asyncio
-async def test_webhook_unknown_gateway_and_legacy_route(client, monkeypatch):
+async def test_webhook_unknown_gateway(client):
     unknown = await client.post("/api/v1/payments/webhooks/unknown", json={})
     assert unknown.status_code == 400
-    monkeypatch.setattr("app.routers.payments.verify_webhook_signature", lambda **kwargs: True)
-    monkeypatch.setattr("app.routers.payments.apply_webhook", lambda *args: _processed())
-    legacy = await client.post("/api/v1/payments/webhook/mercado-pago", json={"data": {"id": "1"}})
-    assert legacy.json() == {"ok": True, "processed": True}
-
-
-async def _processed():
-    return True

@@ -18,8 +18,6 @@ def valid_settings(_settings_class=Settings, _drop=(), **overrides):
         "REFRESH_TOKEN_EXPIRES_LONG_DAYS": 30,
         "CORS_ALLOWED_ORIGINS": ["https://example.com"],
         "SEED_ON_START": False,
-        "ADMIN_EMAIL": None,
-        "ADMIN_PASSWORD": None,
         "ADMIN_ACCOUNTS": [],
         "COOKIE_DOMAIN": "",
         "COOKIE_SECURE": False,
@@ -33,12 +31,10 @@ def valid_settings(_settings_class=Settings, _drop=(), **overrides):
     return _settings_class(_env_file=None, **values)
 
 
-def test_settings_normalize_values_and_legacy_admin():
+def test_settings_normalize_values():
     settings = valid_settings(
         CORS_ALLOWED_ORIGINS="https://one.test, https://two.test",
         PAYMENT_GATEWAY_ORDER="first, second",
-        ADMIN_EMAIL="ADMIN@EXAMPLE.COM",
-        ADMIN_PASSWORD="secret123",
     )
     assert settings.api_base == "/api/v1"
     assert settings.database_url.startswith("postgresql://")
@@ -46,11 +42,11 @@ def test_settings_normalize_values_and_legacy_admin():
     assert settings.payment_gateway_order == ["first", "second"]
     assert settings.refresh_cookie_path == "/api/v1/auth"
     assert settings.cookie_domain is None
-    assert settings.configured_admin_accounts == [{"email": "admin@example.com", "password": "secret123"}]
+    assert settings.configured_admin_accounts == []
     assert settings.is_dev and not settings.is_prod
     assert settings.ACCESS_TOKEN_EXPIRES.total_seconds() == 1800
     assert settings.REFRESH_TOKEN_EXPIRES_SHORT.total_seconds() == 28800
-    assert settings.REFRESH_TOKEN_EXPIRES == settings.REFRESH_TOKEN_EXPIRES_LONG
+    assert settings.REFRESH_TOKEN_EXPIRES_LONG.total_seconds() == 2592000
 
 
 def test_admin_accounts_array_takes_precedence_and_prod_requires_two():
@@ -71,8 +67,6 @@ def test_admin_accounts_array_takes_precedence_and_prod_requires_two():
 def test_sensitive_settings_can_be_loaded_from_file_environment(tmp_path):
     secrets = {
         "JWT_SECRET": "secret-file-value-with-at-least-thirty-two-characters",
-        "ADMIN_EMAIL": "",
-        "ADMIN_PASSWORD": "",
         "ADMIN_ACCOUNTS": (
             '[{"email":"admin1@example.com","password":"secret-one"},'
             '{"email":"admin2@example.com","password":"secret-two"}]'
@@ -120,10 +114,12 @@ def test_file_secret_loader_ignores_missing_file_variables():
 
 
 def test_database_url_secret_ignores_empty_file(tmp_path):
-    secret_file = tmp_path / "database_url"
-    secret_file.write_text("\n", encoding="utf-8")
+    database_file = tmp_path / "database_url"
+    database_file.write_text("\n", encoding="utf-8")
+    jwt_file = tmp_path / "jwt_secret"
+    jwt_file.write_text("\n", encoding="utf-8")
 
-    assert load_file_secrets({"DATABASE_URL_FILE": str(secret_file)}) == {}
+    assert load_file_secrets({"DATABASE_URL_FILE": str(database_file), "JWT_SECRET_FILE": str(jwt_file)}) == {}
 
 
 @pytest.mark.parametrize(
@@ -162,8 +158,3 @@ def test_asymmetric_algorithms_require_a_nonempty_secret():
     assert settings.jwt_alg == "RS256"
     with pytest.raises(ValidationError, match="não pode ser vazio"):
         valid_settings(JWT_ALG="ES256", JWT_SECRET="")
-
-
-def test_postgres_dsn_alias_is_supported():
-    settings = valid_settings(_drop=("DATABASE_URL",), POSTGRES_DSN="postgresql://alias/test")
-    assert settings.database_url == "postgresql://alias/test"

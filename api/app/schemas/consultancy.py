@@ -55,12 +55,6 @@ class AnswersUpdateIn(BaseModel):
     answers: list[AnswerIn]
 
 
-class RenewalIn(BaseModel):
-    plan_slug: PlanSlug
-    payment_reference: str | None = None
-    payment_gateway: str | None = None
-
-
 class SubscriptionPatch(BaseModel):
     status: SubmissionStatus | None = None
     start_date: date | None = None

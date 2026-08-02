@@ -181,7 +181,7 @@ async def test_question_and_submission_edge_cases(client, db, user_factory, auth
             json={"plan_slug": "anual"},
             headers=user_headers,
         )
-    ).status_code == 410
+    ).status_code == 404
     assert (await client.get("/api/v1/consultancy/me/submissions", headers=user_headers)).status_code == 200
 
     assert (

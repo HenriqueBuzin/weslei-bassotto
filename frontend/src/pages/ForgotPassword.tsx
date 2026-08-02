@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { authApi } from "../lib/api";
+import { apiErrorMessage } from "../lib/errors";
 import "./Login.css";
 
 export default function ForgotPassword() {
@@ -12,7 +13,7 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState("");
   const [resetUrl, setResetUrl] = useState("");
 
-  async function onSubmit(event) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -27,7 +28,7 @@ export default function ForgotPassword() {
       }
       if (data.reset_url) setResetUrl(data.reset_url);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Não foi possível solicitar a recuperação agora.");
+      setError(apiErrorMessage(err, "Não foi possível solicitar a recuperação agora."));
     } finally {
       setBusy(false);
     }

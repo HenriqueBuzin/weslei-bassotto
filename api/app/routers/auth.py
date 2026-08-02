@@ -1,8 +1,5 @@
 # app/routers/auth.py
 
-import asyncio
-import hashlib
-import secrets
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
@@ -12,17 +9,15 @@ from jose import JWTError
 from app.core.security import create_access_token, decode_token, hash_password, verify_password
 from app.core.settings import settings
 from app.db import get_db
-from app.db.contracts import ReturnDocument
-from app.schemas.auth import ForgotPasswordIn, ForgotPasswordOut, ResetPasswordIn, TokenOut
+from app.routers.auth_passwords import router as password_router
+from app.schemas.auth import TokenOut
 from app.schemas.user import UserCreate, UserOut
 from app.services.auth_sessions import (
     issue_refresh_session,
     refresh_identity,
     revoke_refresh_session,
-    revoke_user_sessions,
     rotate_refresh_session,
 )
-from app.services.email import send_reset_email, smtp_configured
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -69,18 +64,10 @@ def _user_out(doc) -> UserOut:
     return UserOut(id=str(doc["_id"]), email=doc["email"], roles=doc.get("roles", []))
 
 
-def _token_hash(token: str) -> str:
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
 def _as_utc(value: datetime | None) -> datetime | None:
     if value is None:
         return None
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
-
-
-def _reset_url(token: str) -> str:
-    return f"{settings.frontend_public_url.rstrip('/')}/redefinir-senha?token={token}"
 
 
 # ===== Endpoints =====
@@ -197,71 +184,6 @@ async def logout(response: Response, request: Request):
     clear_refresh_cookie(response)
 
 
-@router.post("/forgot-password", response_model=ForgotPasswordOut)
-async def forgot_password(req: Request, data: ForgotPasswordIn):
-    db = get_db(req)
-    email = data.email.strip().lower()
-    user = await db.users.find_one({"email": email})
-    if not user:
-        return ForgotPasswordOut()
-
-    token = secrets.token_urlsafe(32)
-    now = datetime.now(UTC)
-    expires_at = now + timedelta(minutes=settings.password_reset_expires_minutes)
-    await db.password_reset_tokens.update_many(
-        {"user_id": user["_id"], "used_at": None},
-        {"$set": {"used_at": now}},
-    )
-    await db.password_reset_tokens.insert_one(
-        {
-            "user_id": user["_id"],
-            "token_hash": _token_hash(token),
-            "created_at": now,
-            "expires_at": expires_at,
-            "used_at": None,
-        }
-    )
-
-    reset_url = _reset_url(token)
-    if not smtp_configured():
-        return ForgotPasswordOut(ok=True, email_sent=False, reset_url=reset_url if settings.is_dev else None)
-
-    await asyncio.to_thread(send_reset_email, email, reset_url)
-    return ForgotPasswordOut(ok=True, email_sent=True, reset_url=reset_url if settings.is_dev else None)
-
-
-@router.post("/reset-password")
-async def reset_password(req: Request, data: ResetPasswordIn):
-    db = get_db(req)
-    now = datetime.now(UTC)
-    token_doc = await db.password_reset_tokens.find_one_and_update(
-        {
-            "token_hash": _token_hash(data.token),
-            "used_at": None,
-            "expires_at": {"$gt": now},
-        },
-        {"$set": {"used_at": now}},
-        return_document=ReturnDocument.AFTER,
-    )
-    if not token_doc:
-        raise HTTPException(status_code=400, detail="Link inválido, expirado ou já utilizado")
-
-    update_result = await db.users.update_one(
-        {"_id": token_doc["user_id"]},
-        {"$set": {"password_hash": hash_password(data.password)}},
-    )
-    if update_result.matched_count != 1:
-        raise HTTPException(status_code=400, detail="Link inválido, expirado ou já utilizado")
-
-    await revoke_user_sessions(db, token_doc["user_id"], "password_reset")
-
-    await db.password_reset_tokens.update_many(
-        {"user_id": token_doc["user_id"], "used_at": None},
-        {"$set": {"used_at": now}},
-    )
-    return {"ok": True}
-
-
 @router.post("/register", response_model=UserOut, status_code=201)
 async def register(req: Request, data: UserCreate):
     db = get_db(req)
@@ -279,3 +201,6 @@ async def register(req: Request, data: UserCreate):
     res = await db.users.insert_one(doc)
     doc["_id"] = res.inserted_id
     return _user_out(doc)
+
+
+router.include_router(password_router)

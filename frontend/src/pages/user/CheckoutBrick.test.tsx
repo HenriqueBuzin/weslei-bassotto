@@ -290,7 +290,7 @@ describe("CheckoutBrick", () => {
     );
     await waitFor(() => expect(state.brickOptions).not.toBeNull());
     act(() => state.brickOptions.callbacks.onError({}));
-    expect(screen.getByText(/Erro no formulario/)).toBeInTheDocument();
+    expect(screen.getByText(/Erro no formulário/)).toBeInTheDocument();
     await expect(
       state.brickOptions.callbacks.onSubmit({ payer: { email: "card@example.com" }, token: "token" }),
     ).rejects.toEqual({});

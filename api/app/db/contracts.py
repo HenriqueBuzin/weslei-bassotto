@@ -13,7 +13,7 @@ class ReturnDocument(Enum):
 
 
 class RecordId(str):
-    """Stable 24-character identifier compatible with records already persisted."""
+    """Stable 24-character identifier used by API records."""
 
     _pattern = re.compile(r"^[0-9a-fA-F]{24}$")
 

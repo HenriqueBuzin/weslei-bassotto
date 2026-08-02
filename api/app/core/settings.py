@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Annotated
 
 from pydantic import (
-    AliasChoices,
     BaseModel,
     EmailStr,
     Field,
@@ -21,8 +20,6 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 FILE_SECRET_NAMES = (
     "JWT_SECRET",
-    "ADMIN_EMAIL",
-    "ADMIN_PASSWORD",
     "ADMIN_ACCOUNTS",
     "MERCADO_PAGO_ACCESS_TOKEN",
     "MERCADO_PAGO_WEBHOOK_SECRET",
@@ -58,10 +55,7 @@ class AdminAccount(BaseModel):
 class Settings(BaseSettings):
     # --- Básicos ---
     api_base: str = Field(validation_alias="API_BASE")
-    database_url: str = Field(
-        min_length=1,
-        validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_DSN"),
-    )
+    database_url: str = Field(min_length=1, validation_alias="DATABASE_URL")
     database_pool_size: int = Field(default=5, gt=0, validation_alias="DATABASE_POOL_SIZE")
     app_env: str = Field(validation_alias="APP_ENV")  # "dev" | "prod"
 
@@ -73,17 +67,15 @@ class Settings(BaseSettings):
     login_attempt_window_minutes: int = Field(default=15, gt=0, validation_alias="LOGIN_ATTEMPT_WINDOW_MINUTES")
     login_lock_minutes: int = Field(default=15, gt=0, validation_alias="LOGIN_LOCK_MINUTES")
 
-    # --- Refresh curto/long (sem legado) ---
+    # --- Refresh curto/long ---
     refresh_token_expires_short_hours: int = Field(validation_alias="REFRESH_TOKEN_EXPIRES_SHORT_HOURS")
     refresh_token_expires_long_days: int = Field(validation_alias="REFRESH_TOKEN_EXPIRES_LONG_DAYS")
 
     # --- CORS ---
     cors_allowed_origins: list[str] = Field(validation_alias="CORS_ALLOWED_ORIGINS")
 
-    # --- Seeder / Admin inicial (opcionais) ---
+    # --- Seeder / Admin inicial ---
     seed_on_start: bool = Field(validation_alias="SEED_ON_START")
-    admin_email: EmailStr | None = Field(validation_alias="ADMIN_EMAIL")
-    admin_password: str | None = Field(validation_alias="ADMIN_PASSWORD")
     admin_accounts: list[AdminAccount] = Field(default_factory=list, validation_alias="ADMIN_ACCOUNTS")
 
     # --- Cookies (refresh em HttpOnly) ---
@@ -259,12 +251,6 @@ class Settings(BaseSettings):
     def REFRESH_TOKEN_EXPIRES_LONG(self) -> timedelta:
         return timedelta(days=self.refresh_token_expires_long_days)
 
-    # Alias de compatibilidade (se algo ainda ler REFRESH_TOKEN_EXPIRES)
-    @computed_field
-    @property
-    def REFRESH_TOKEN_EXPIRES(self) -> timedelta:
-        return self.REFRESH_TOKEN_EXPIRES_LONG
-
     @computed_field
     @property
     def is_dev(self) -> bool:
@@ -278,13 +264,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def configured_admin_accounts(self) -> list[dict[str, str]]:
-        if self.admin_accounts:
-            return [
-                {"email": str(account.email).lower(), "password": account.password} for account in self.admin_accounts
-            ]
-        if self.admin_email and self.admin_password:
-            return [{"email": str(self.admin_email).lower(), "password": self.admin_password}]
-        return []
+        return [{"email": str(account.email).lower(), "password": account.password} for account in self.admin_accounts]
 
 
 settings = Settings(**load_file_secrets())

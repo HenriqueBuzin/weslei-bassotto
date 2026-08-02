@@ -5,7 +5,7 @@ import pytest
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.core.settings import settings
 from app.db.contracts import RecordId
-from app.routers.auth import _token_hash
+from app.routers.auth_passwords import token_hash
 from app.services.auth_sessions import issue_refresh_session, refresh_jti_hash
 from app.services.email import send_reset_email
 
@@ -79,7 +79,7 @@ async def test_password_reset_is_single_use_and_expires(client, db, user_factory
     await db.password_reset_tokens.insert_one(
         {
             "user_id": user["_id"],
-            "token_hash": _token_hash(token),
+            "token_hash": token_hash(token),
             "used_at": None,
             "created_at": datetime.now(UTC),
             "expires_at": datetime.now(UTC) + timedelta(minutes=30),
@@ -95,7 +95,7 @@ async def test_password_reset_is_single_use_and_expires(client, db, user_factory
     await db.password_reset_tokens.insert_one(
         {
             "user_id": user["_id"],
-            "token_hash": _token_hash("expired"),
+            "token_hash": token_hash("expired"),
             "used_at": None,
             "created_at": datetime.now(UTC) - timedelta(hours=2),
             "expires_at": datetime.now(UTC) - timedelta(minutes=1),
@@ -135,7 +135,7 @@ async def test_forgot_password_hides_unknown_user_and_returns_dev_link(client, u
     unknown = await client.post("/api/v1/auth/forgot-password", json={"email": "unknown@example.com"})
     assert unknown.json() == {"ok": True, "email_sent": False, "reset_url": None}
     await user_factory()
-    monkeypatch.setattr("app.routers.auth.settings.smtp_password", "")
+    monkeypatch.setattr("app.routers.auth_passwords.settings.smtp_password", "")
     response = await client.post("/api/v1/auth/forgot-password", json={"email": "USER@example.com"})
     assert response.status_code == 200
     assert response.json()["reset_url"].startswith(settings.frontend_public_url)
@@ -145,9 +145,9 @@ async def test_forgot_password_hides_unknown_user_and_returns_dev_link(client, u
 async def test_forgot_password_sends_email_when_smtp_is_configured(client, user_factory, monkeypatch):
     await user_factory()
     sent = []
-    monkeypatch.setattr("app.routers.auth.settings.smtp_user", "sender@example.com")
-    monkeypatch.setattr("app.routers.auth.settings.smtp_password", "app-password")
-    monkeypatch.setattr("app.routers.auth.asyncio.to_thread", lambda fn, *args: _capture_async(sent, args))
+    monkeypatch.setattr("app.routers.auth_passwords.settings.smtp_user", "sender@example.com")
+    monkeypatch.setattr("app.routers.auth_passwords.settings.smtp_password", "app-password")
+    monkeypatch.setattr("app.routers.auth_passwords.asyncio.to_thread", lambda fn, *args: _capture_async(sent, args))
     response = await client.post("/api/v1/auth/forgot-password", json={"email": "user@example.com"})
     assert response.json()["email_sent"] is True
     assert sent[0][0] == "user@example.com"
@@ -201,7 +201,7 @@ async def test_reset_rejects_token_whose_user_was_removed(client, db):
     await db.password_reset_tokens.insert_one(
         {
             "user_id": RecordId(),
-            "token_hash": _token_hash(token),
+            "token_hash": token_hash(token),
             "used_at": None,
             "created_at": datetime.now(UTC),
             "expires_at": datetime.now(UTC) + timedelta(minutes=1),

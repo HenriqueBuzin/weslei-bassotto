@@ -1,151 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { api } from "../../lib/api";
+import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { selectPlan, usePlanCatalog } from "../../hooks/usePlanCatalog";
+import { useCheckoutPayment } from "./checkout/useCheckoutPayment";
 
-const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
-
-function brl(value) {
+function brl(value: number) {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
-}
-
-function loadMercadoPagoScript() {
-  if (window.MercadoPago) return Promise.resolve();
-  return new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://sdk.mercadopago.com/js/v2";
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = reject;
-    document.body.appendChild(script);
-  });
-}
-
-function safeUnmountBrick(controller) {
-  try {
-    controller?.unmount?.();
-  } catch {
-    // The SDK can throw when React already removed the Brick container.
-  }
 }
 
 export default function CheckoutBrick() {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   const [params] = useSearchParams();
   const requestedPlanSlug = params.get("plano") || "trimestral";
   const { plans, loading: plansLoading, error: plansError } = usePlanCatalog();
   const plan = selectPlan(plans, requestedPlanSlug);
-  const hasPlan = Boolean(plan);
   const planSlug = plan?.slug || requestedPlanSlug;
   const renewId = params.get("renew") || "";
-  const [paymentMode, setPaymentMode] = useState("subscription");
-  const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const controllerRef = useRef(null);
-
-  const amount = useMemo(
-    () => (plan ? String(paymentMode === "cash" ? plan.cash : plan.monthly) : "0"),
-    [paymentMode, plan],
-  );
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function mountBrick() {
-      if (!isAuthenticated || !hasPlan) return;
-      if (!publicKey) {
-        setError("VITE_MP_PUBLIC_KEY não configurada.");
-        return;
-      }
-
-      try {
-        setError("");
-        setReady(false);
-        safeUnmountBrick(controllerRef.current);
-        controllerRef.current = null;
-        await loadMercadoPagoScript();
-        if (!mounted) return;
-
-        const MercadoPago = window.MercadoPago as NonNullable<typeof window.MercadoPago>;
-        const mp = new MercadoPago(publicKey, { locale: "pt-BR" });
-        const bricksBuilder = mp.bricks();
-        controllerRef.current = await bricksBuilder.create("cardPayment", "cardPaymentBrick_container", {
-          initialization: { amount },
-          customization: {
-            visual: { style: { theme: "dark" } },
-            paymentMethods: { maxInstallments: 1 },
-          },
-          callbacks: {
-            onReady: () => {
-              setReady(true);
-              setError("");
-            },
-            onSubmit: (cardFormData) =>
-              new Promise<void>((resolve, reject) => {
-                const payerEmail = cardFormData?.payer?.email;
-                const token = cardFormData?.token || cardFormData?.card_token_id;
-                const paymentMethodId = cardFormData?.payment_method_id || cardFormData?.paymentMethodId;
-
-                if (!payerEmail || !token) {
-                  setError("Preencha o e-mail do proprietário do cartão e os dados do cartão.");
-                  reject();
-                  return;
-                }
-
-                setBusy(true);
-                setError("");
-                const endpoint = renewId ? `/payments/me/renewals/${renewId}` : "/payments/card-subscription";
-                api
-                  .post(endpoint, {
-                    plan_slug: planSlug,
-                    payer_email: payerEmail,
-                    card_token_id: token,
-                    payment_method_id: paymentMethodId,
-                    payment_mode: paymentMode,
-                  })
-                  .then(({ data }) => {
-                    resolve();
-                    if (renewId) {
-                      navigate(`/assinante?pagamento=${data.status}`);
-                      return;
-                    }
-                    navigate(
-                      `/questionario?plano=${planSlug}&payment_id=${data.payment_id}&payment_token=${encodeURIComponent(
-                        data.payment_token,
-                      )}`,
-                    );
-                  })
-                  .catch((err) => {
-                    setError(err?.response?.data?.detail || "Não foi possível autorizar o pagamento.");
-                    reject(err);
-                  })
-                  .finally(() => setBusy(false));
-              }),
-            onError: (err) => setError(err?.message || "Erro no formulario do Mercado Pago."),
-          },
-        });
-
-        if (mounted) {
-          setReady(true);
-          setError("");
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err?.message || "Não foi possível carregar o Checkout Bricks do Mercado Pago.");
-        }
-      }
-    }
-
-    mountBrick();
-
-    return () => {
-      mounted = false;
-      safeUnmountBrick(controllerRef.current);
-    };
-  }, [amount, hasPlan, isAuthenticated, navigate, paymentMode, planSlug, renewId]);
+  const [paymentMode, setPaymentMode] = useState<"cash" | "subscription">("subscription");
+  const { ready, busy, error } = useCheckoutPayment({ isAuthenticated, plan, planSlug, renewId, paymentMode });
 
   if (!isAuthenticated) {
     const returnTo = `/checkout?plano=${planSlug}${renewId ? `&renew=${renewId}` : ""}`;

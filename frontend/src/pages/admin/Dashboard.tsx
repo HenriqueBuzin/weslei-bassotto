@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
 import { EventsPanel, QuestionsPanel, SubmissionsPanel } from "./DashboardPanels";
+import type { AdminEvent, Question, QuestionForm, Submission, SubmissionPatch } from "../../types/consultancy";
 
-const emptyQuestion = {
+const emptyQuestion: QuestionForm = {
   label: "",
   type: "textarea",
   options: "",
@@ -12,14 +13,14 @@ const emptyQuestion = {
   order: 0,
 };
 
-function normalizeQuestion(question) {
+function normalizeQuestion(question: Question): QuestionForm {
   return {
     ...question,
     options: Array.isArray(question.options) ? question.options.join("\n") : "",
   };
 }
 
-function payloadFromQuestion(question) {
+function payloadFromQuestion(question: QuestionForm) {
   return {
     label: question.label,
     type: question.type,
@@ -36,12 +37,12 @@ function payloadFromQuestion(question) {
 export default function Dashboard() {
   const { logout } = useAuth();
   const [tab, setTab] = useState("submissions");
-  const [questions, setQuestions] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
-  const [events, setEvents] = useState([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [events, setEvents] = useState<AdminEvent[]>([]);
   const [questionForm, setQuestionForm] = useState(emptyQuestion);
-  const [editingId, setEditingId] = useState(null);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -71,11 +72,11 @@ export default function Dashboard() {
     loadAll();
   }, []);
 
-  function updateQuestionForm(field, value) {
+  function updateQuestionForm(field: keyof QuestionForm, value: string | boolean) {
     setQuestionForm((current) => ({ ...current, [field]: value }));
   }
 
-  async function saveQuestion(event) {
+  async function saveQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -96,7 +97,7 @@ export default function Dashboard() {
     }
   }
 
-  async function removeQuestion(id) {
+  async function removeQuestion(id: string) {
     setBusy(true);
     setError("");
     try {
@@ -109,7 +110,7 @@ export default function Dashboard() {
     }
   }
 
-  async function updateSubmission(id, patch) {
+  async function updateSubmission(id: string, patch: SubmissionPatch) {
     setBusy(true);
     setError("");
     try {
@@ -122,7 +123,7 @@ export default function Dashboard() {
     }
   }
 
-  async function markAnswersSeen(id) {
+  async function markAnswersSeen(id: string) {
     setBusy(true);
     setError("");
     try {
@@ -135,7 +136,7 @@ export default function Dashboard() {
     }
   }
 
-  async function markEventSeen(id) {
+  async function markEventSeen(id: string) {
     try {
       await api.post(`/consultancy/admin/events/${id}/seen`);
       setEvents((items) =>
@@ -146,7 +147,7 @@ export default function Dashboard() {
     }
   }
 
-  function editQuestion(question) {
+  function editQuestion(question: Question) {
     setEditingId(question.id);
     setQuestionForm(normalizeQuestion(question));
   }

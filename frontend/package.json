@@ -15,7 +15,7 @@
     "test": "vitest run --maxWorkers=1",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --maxWorkers=1",
-    "test:unit": "vitest run src/lib/date.test.ts src/lib/jwt.test.ts src/hooks src/context --maxWorkers=1",
+    "test:unit": "vitest run src/lib/date.test.ts src/lib/errors.test.ts src/lib/jwt.test.ts src/hooks src/context --maxWorkers=1",
     "test:integration": "vitest run src/pages/admin/Dashboard.integration.test.tsx src/pages/user/Questionnaire.integration.test.tsx src/pages/user/SubscriberArea.integration.test.tsx --maxWorkers=1",
     "test:functional": "vitest run src/pages/Login.test.tsx src/pages/Register.test.tsx src/pages/PasswordFlows.test.tsx src/pages/user/CheckoutBrick.test.tsx --maxWorkers=1",
     "test:regression": "vitest run src/auth src/pages/PasswordErrors.test.tsx src/pages/user/CheckoutBrick.env.test.tsx src/pages/user/Home.env.test.tsx --maxWorkers=1",

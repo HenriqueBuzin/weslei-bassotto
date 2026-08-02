@@ -24,7 +24,7 @@ async def seed_roles(db):
 async def seed_admin(db):
     accounts = settings.configured_admin_accounts
     if not accounts:
-        print("[SEED] ADMIN_EMAIL/ADMIN_PASSWORD não definidos; pulando criação de admin.")
+        print("[SEED] ADMIN_ACCOUNTS não definido; pulando criação de admin.")
         return
 
     # índice único em users.email (idempotente)

@@ -165,9 +165,6 @@ pipeline {
                         echo "🐳 Construindo produção..."
                         docker compose -f docker-compose-prod.yml build --no-cache
 
-                        echo "🧹 Removendo containers legados de produção..."
-                        docker rm -f wesleibassotto-web-1 wesleibassotto-api-1 2>/dev/null || true
-
                         echo "🚀 Subindo produção..."
                         if ! docker compose -f docker-compose-prod.yml up -d --remove-orphans --wait --wait-timeout 180; then
                             echo "❌ Falha ao iniciar o ambiente de produção. Estado dos serviços:"
@@ -215,12 +212,6 @@ pipeline {
 
                         echo "🐳 Construindo dev..."
                         docker compose -f docker-compose.yml build --no-cache
-
-                        echo "🧹 Removendo containers legados de dev..."
-                        docker rm -f \
-                            wesleibassotto-caddy-1 \
-                            wesleibassotto-frontend-1 \
-                            wesleibassotto-api_dev-1 2>/dev/null || true
 
                         echo "🚀 Subindo dev..."
                         if ! docker compose -f docker-compose.yml up -d --remove-orphans --wait --wait-timeout 180; then
