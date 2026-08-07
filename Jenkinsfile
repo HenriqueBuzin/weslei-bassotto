@@ -26,12 +26,7 @@ pipeline {
                           sh -c '
                             set -e
                             composer install --no-interaction --no-progress
-                            vendor/bin/pint --test
-                            php -d memory_limit=1G vendor/bin/phpstan analyse --no-progress
-                            php -d memory_limit=2G vendor/bin/phpunit \
-                              --coverage-clover=coverage/clover.xml \
-                              --coverage-filter app
-                            php scripts/coverage-gate.php
+                            composer gates
                           '
                         '''
                     }
@@ -97,8 +92,12 @@ pipeline {
                         sh '''
                             set -eu
                             suffix=""
-                            [ "$PIPELINE_BRANCH" = "dev" ] && suffix="-dev"
-                            env_file="/root/projects/envs/weslei-bassotto${suffix}.env"
+                            stage_dir="prod"
+                            if [ "$PIPELINE_BRANCH" = "dev" ]; then
+                              suffix="-dev"
+                              stage_dir="dev"
+                            fi
+                            env_file="/root/projects/envs/weslei-bassotto/${stage_dir}/weslei-bassotto${suffix}.env"
                             test -f "$env_file"
                             ln -sfn "$env_file" .env
                             if [ "$PIPELINE_BRANCH" = "main" ]; then
@@ -156,7 +155,7 @@ pipeline {
                         cd "\${target}"
 
                         echo "🔗 Aplicando .env produção..."
-                        ln -sfn /root/projects/envs/${project}.env .env
+                        ln -sfn /root/projects/envs/weslei-bassotto/prod/${project}.env .env
                         export COMPOSE_PROJECT_NAME=${project}
                         export IMAGE_TAG="\${image_tag}"
 
@@ -204,7 +203,7 @@ pipeline {
                         cd "\${target}"
 
                         echo "🔗 Aplicando .env dev..."
-                        ln -sfn /root/projects/envs/${project}-dev.env .env
+                        ln -sfn /root/projects/envs/weslei-bassotto/dev/${project}-dev.env .env
                         export COMPOSE_PROJECT_NAME=${project}-dev
                         export IMAGE_TAG="\${image_tag}"
 

@@ -56,10 +56,14 @@ imagens e projetos separados.
 
 Segredos chegam por Compose Secrets e `*_FILE`, incluindo `APP_KEY`, conexão,
 JWT, Mercado Pago e SMTP. Senha de administrador nunca vive no env: o seeder
-cria com placeholder e `must_change_password`. `.env` é link para
-`/root/projects/envs/weslei-bassotto.env` ou
-`/root/projects/envs/weslei-bassotto-dev.env`.
-Valores nunca entram em imagem, logs ou Git.
+cria com placeholder e `must_change_password`.
+
+Cada ambiente vive em `/root/projects/envs/weslei-bassotto/<dev|prod>/`, com a
+configuração comum em um `.env` e cada segredo em um arquivo dentro de
+`secrets/`. `.env` é link simbólico para esse arquivo e `SECRETS_DIR` aponta o
+diretório dos segredos. As entradas de `secrets:` usam `file:`, nunca
+`environment:`: com `environment:` o valor entraria no ambiente do processo do
+Compose. Valores nunca entram em imagem, logs ou Git.
 
 ## Testes
 

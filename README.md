@@ -62,24 +62,36 @@ Na VPS, `/root/projects/envs/weslei-bassotto.env` configura produção e `/root/
 
 ## Docker Secrets
 
-O Jenkins mantém o link simbólico `.env` apontando para o arquivo de cada
-ambiente. O Docker Compose lê esse arquivo e usa os valores sensíveis como
-origem dos secrets, sem enviá-los como variáveis de ambiente para a API:
+Cada ambiente tem um diretório na VPS com a configuração comum em um arquivo e
+cada valor sensível em um arquivo próprio:
 
 ```text
-.env -> Docker Compose -> /run/secrets/<nome> -> VARIAVEL_FILE -> Laravel
+/root/projects/envs/weslei-bassotto/
+  dev/
+    weslei-bassotto-dev.env
+    secrets/{app_key,database_url,jwt_secret,
+             mercado_pago_access_token,mercado_pago_webhook_secret,smtp_password}
+  prod/
+    weslei-bassotto.env
+    secrets/{...}
+```
+
+O Jenkins mantém o link simbólico `.env` apontando para o arquivo do ambiente, e
+`SECRETS_DIR` dentro dele diz ao Compose onde estão os segredos:
+
+```text
+secrets/<nome> -> Docker secret -> /run/secrets/<nome> -> VARIAVEL_FILE -> Laravel
 ```
 
 São protegidos `APP_KEY`, `DATABASE_URL`, `JWT_SECRET`, `MERCADO_PAGO_ACCESS_TOKEN`,
 `MERCADO_PAGO_WEBHOOK_SECRET` e `SMTP_PASSWORD`. Dentro do container, a API
-recebe apenas referências como
-`DATABASE_URL_FILE=/run/secrets/database_url`.
-O restante das configurações continua no ambiente do container.
+recebe apenas referências como `DATABASE_URL_FILE=/run/secrets/database_url`; o
+restante das configurações continua no ambiente do container.
 
-O arquivo `.env` da VPS não muda de formato e continua sendo a fonte única das
-configurações. Ele deve permanecer fora do Git e com acesso restrito no host.
-Este projeto usa Docker Compose Secrets sem Swarm; a origem `environment` é
-resolvida pelo Compose a partir do `.env`. A chave `VITE_MP_PUBLIC_KEY`
+Os segredos são lidos de arquivo (`file:`) e não de variável (`environment:`),
+então o valor nunca entra no ambiente do processo do Compose nem convive com a
+configuração comum. Os arquivos devem ficar fora do Git, com `chmod 600`. Este
+projeto usa Docker Compose Secrets sem Swarm. A chave `VITE_MP_PUBLIC_KEY`
 permanece pública porque é incorporada ao JavaScript entregue ao navegador.
 
 Para adicionar outro gateway, implemente `PaymentGateway`, registre-o no `GatewayRegistry` e inclua seu nome em `PAYMENT_GATEWAY_ORDER`. O fallback só ocorre quando o adapter informa indisponibilidade antes de uma cobrança ser aceita. Recusas ou respostas ambíguas não são reenviadas automaticamente, evitando cobrança duplicada.

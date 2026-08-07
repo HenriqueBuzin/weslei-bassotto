@@ -201,16 +201,19 @@ networks:
     external: true
     name: ${POSTGRES_NETWORK:-postgres-network}
 
+# Lidos de arquivo, e não de variável: assim o valor do segredo nunca entra no
+# ambiente do processo do Compose nem no mesmo arquivo da configuração comum.
+# SECRETS_DIR vem do env de cada ambiente.
 secrets:
   app_key:
-    environment: APP_KEY
+    file: ${SECRETS_DIR}/app_key
   database_url:
-    environment: DATABASE_URL
+    file: ${SECRETS_DIR}/database_url
   jwt_secret:
-    environment: JWT_SECRET
+    file: ${SECRETS_DIR}/jwt_secret
   mercado_pago_access_token:
-    environment: MERCADO_PAGO_ACCESS_TOKEN
+    file: ${SECRETS_DIR}/mercado_pago_access_token
   mercado_pago_webhook_secret:
-    environment: MERCADO_PAGO_WEBHOOK_SECRET
+    file: ${SECRETS_DIR}/mercado_pago_webhook_secret
   smtp_password:
-    environment: SMTP_PASSWORD
+    file: ${SECRETS_DIR}/smtp_password
