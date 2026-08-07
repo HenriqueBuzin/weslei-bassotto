@@ -1,0 +1,16 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - config
+        - database
+        - routes
+        - tests
+
+    # Level 7 é o que o código passa limpo. Acima disso o custo salta: 8 tem 40
+    # achados, 9 tem 128 e 10 tem 168, quase todos exigindo eliminar `mixed` em
+    # cadeia a partir de config() e input(). Subir daqui é uma campanha própria,
+    # não um ajuste.
+    level: 7

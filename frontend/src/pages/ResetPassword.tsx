@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../lib/api";
 import { apiErrorMessage } from "../lib/errors";
 import "./Login.css";
+import { PATHS } from "../routes/paths";
 
 export default function ResetPassword() {
   const nav = useNavigate();
@@ -33,7 +34,7 @@ export default function ResetPassword() {
     try {
       await authApi.post("/auth/reset-password", { token, password });
       setMessage("Senha alterada com sucesso. Você já pode entrar.");
-      setTimeout(() => nav("/login"), 1200);
+      setTimeout(() => nav(PATHS.login), 1200);
     } catch (err) {
       setError(apiErrorMessage(err, "Não foi possível alterar sua senha."));
     } finally {
@@ -97,7 +98,7 @@ export default function ResetPassword() {
                 </form>
 
                 <div className="text-center mt-3">
-                  <Link to="/login" className="link-light-subtle small">
+                  <Link to={PATHS.login} className="link-light-subtle small">
                     Voltar para login
                   </Link>
                 </div>

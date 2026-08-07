@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import SiteNavbar from "../../components/SiteNavbar";
+import { PATHS } from "../../routes/paths";
 
 const whatsappNumber = (import.meta.env.VITE_WHATSAPP_NUMBER || "555491126308").replace(/\D/g, "");
 const whatsappUrl = `https://wa.me/${whatsappNumber}`;
@@ -118,7 +119,7 @@ export default function Home() {
             <a className="btn btn-brand btn-lg" href="#planos">
               Quero fazer parte
             </a>
-            <Link className="btn btn-outline-light btn-lg" to="/assinante">
+            <Link className="btn btn-outline-light btn-lg" to={PATHS.subscriberArea}>
               Área do assinante
             </Link>
           </div>
@@ -209,7 +210,7 @@ export default function Home() {
                     <li>Dieta personalizada elaborada por nutricionista</li>
                     <li>Ajustes semanais de treino e dieta</li>
                   </ul>
-                  <Link className="btn btn-brand w-100" to={`/checkout?plano=${plan.slug}`}>
+                  <Link className="btn btn-brand w-100" to={`${PATHS.checkout}?plano=${plan.slug}`}>
                     Assinar
                   </Link>
                 </article>

@@ -7,6 +7,7 @@ import { Plan, usePlanCatalog } from "../../hooks/usePlanCatalog";
 import QuestionField from "../../components/QuestionField";
 import { apiErrorMessage } from "../../lib/errors";
 import type { AnswerValue, Question, Submission } from "../../types/consultancy";
+import { PATHS } from "../../routes/paths";
 
 function answersToMap(submission?: Submission) {
   return Object.fromEntries((submission?.answers || []).map((answer) => [answer.question_id, answer.value || ""]));
@@ -92,7 +93,7 @@ export default function SubscriberArea() {
   function renewPlan(planSlug: string) {
     setError("");
     setNotice("");
-    navigate(`/checkout?plano=${planSlug}&renew=${selected.id}`);
+    navigate(`${PATHS.checkout}?plano=${planSlug}&renew=${selected.id}`);
   }
 
   return (
@@ -180,6 +181,13 @@ export default function SubscriberArea() {
 
                   <form className="admin-form subscriber-form" onSubmit={saveAnswers}>
                     <h2>Editar respostas</h2>
+                    {/* Sem isto, uma pergunta nova ou reescrita só aparecia como
+                        erro de validação sem contexto na hora de salvar. */}
+                    {selected.questionnaire_changed_at && (
+                      <div className="form-alert">
+                        A anamnese foi atualizada. Revise suas respostas e preencha o que estiver em branco.
+                      </div>
+                    )}
                     {questions.map((question) => (
                       <QuestionField
                         question={question}

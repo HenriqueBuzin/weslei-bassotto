@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { authApi } from "../lib/api";
 import { apiErrorMessage } from "../lib/errors";
 import "./Login.css";
+import { PATHS } from "../routes/paths";
 
 export default function ForgotPassword() {
   const appName = import.meta.env.VITE_APP_NAME;
@@ -79,7 +80,7 @@ export default function ForgotPassword() {
                 </form>
 
                 <div className="text-center mt-3">
-                  <Link to="/login" className="link-light-subtle small">
+                  <Link to={PATHS.login} className="link-light-subtle small">
                     Voltar para login
                   </Link>
                 </div>

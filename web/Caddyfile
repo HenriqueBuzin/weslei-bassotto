@@ -4,8 +4,19 @@
   root * /usr/share/caddy
 
   route {
+    # PHP-FPM speaks FastCGI, not HTTP: a plain reverse_proxy would hand it raw
+    # HTTP and get nothing back. Every API request enters through index.php, so
+    # SCRIPT_FILENAME is fixed and Caddy never needs the PHP files locally.
     @api path /api/*
-    reverse_proxy @api backend:{$API_PORT}
+    handle @api {
+      reverse_proxy backend:{$API_PORT} {
+        transport fastcgi {
+          env SCRIPT_FILENAME /app/public/index.php
+          env SCRIPT_NAME /index.php
+          env DOCUMENT_ROOT /app/public
+        }
+      }
+    }
 
     @assets path /assets/*
     handle @assets {

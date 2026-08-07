@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true"
+         failOnDeprecation="true"
+         beStrictAboutOutputDuringTests="true"
+         cacheDirectory=".phpunit.cache"
+>
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+        <testsuite name="api">
+            <directory>tests/Api</directory>
+        </testsuite>
+        <testsuite name="functional">
+            <directory>tests/Functional</directory>
+        </testsuite>
+        <testsuite name="regression">
+            <directory>tests/Regression</directory>
+        </testsuite>
+        <testsuite name="smoke">
+            <directory>tests/Smoke</directory>
+        </testsuite>
+    </testsuites>
+
+    <source ignoreIndirectDeprecations="true" restrictNotices="true" restrictWarnings="true">
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+
+    <php>
+        <env name="APP_ENV" value="dev"/>
+        <env name="APP_KEY" value="base64:AckfSECXIvnK5r28GVIWUAxmbBSjTsmF/0rZoKCErXQ="/>
+        <env name="APP_URL" value="http://localhost:8080"/>
+        <env name="API_BASE" value="/api/v1"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DATABASE_URL" value="sqlite::memory:"/>
+        <env name="JWT_ALG" value="HS256"/>
+        <env name="JWT_SECRET" value="testing-secret-with-at-least-32-characters"/>
+        <env name="ACCESS_TOKEN_EXPIRES_MINUTES" value="15"/>
+        <env name="REFRESH_TOKEN_EXPIRES_SHORT_HOURS" value="8"/>
+        <env name="REFRESH_TOKEN_EXPIRES_LONG_DAYS" value="30"/>
+        <env name="LOGIN_MAX_ATTEMPTS" value="5"/>
+        <env name="LOGIN_ATTEMPT_WINDOW_MINUTES" value="15"/>
+        <env name="LOGIN_LOCK_MINUTES" value="15"/>
+        <env name="CORS_ALLOWED_ORIGINS" value="http://localhost:5173"/>
+        <env name="COOKIE_DOMAIN" value=""/>
+        <env name="COOKIE_SECURE" value="false"/>
+        <env name="COOKIE_SAMESITE" value="lax"/>
+        <env name="REFRESH_COOKIE_NAME" value="rt"/>
+        <env name="REFRESH_COOKIE_PATH" value="/api/v1/auth"/>
+        <env name="SEED_ON_START" value="false"/>
+        <env name="PAYMENT_GATEWAY_ORDER" value="mercado_pago"/>
+        <env name="MERCADO_PAGO_ACCESS_TOKEN" value="test-access-token"/>
+        <env name="MERCADO_PAGO_WEBHOOK_SECRET" value="test-webhook-secret"/>
+        <env name="PASSWORD_RESET_EXPIRES_MINUTES" value="30"/>
+        <env name="SMTP_USER" value=""/>
+        <env name="SMTP_PASSWORD" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="LOG_CHANNEL" value="null"/>
+        <env name="ARGON_MEMORY" value="1024"/>
+        <env name="ARGON_TIME" value="1"/>
+        <env name="ARGON_THREADS" value="1"/>
+    </php>
+</phpunit>

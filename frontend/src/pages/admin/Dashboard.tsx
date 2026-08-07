@@ -1,8 +1,18 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { NavLink, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
+import { DASHBOARD_TABS, PATHS, type DashboardTab } from "../../routes/paths";
 import { EventsPanel, QuestionsPanel, SubmissionsPanel } from "./DashboardPanels";
 import type { AdminEvent, Question, QuestionForm, Submission, SubmissionPatch } from "../../types/consultancy";
+
+const EDIT_PARAM = "editar";
+
+const TAB_PATHS: Record<DashboardTab, string> = {
+  submissions: PATHS.dashboardSubmissions,
+  questions: PATHS.dashboardQuestions,
+  events: PATHS.dashboardEvents,
+};
 
 const emptyQuestion: QuestionForm = {
   label: "",
@@ -34,21 +44,63 @@ function payloadFromQuestion(question: QuestionForm) {
   };
 }
 
+/**
+ * The whole panel is addressable: the tab comes from the path, the open student
+ * from its segment and the question being edited from the query string. A
+ * reload therefore returns to the same screen with freshly loaded data.
+ */
 export default function Dashboard() {
   const { logout } = useAuth();
-  const [tab, setTab] = useState("submissions");
+  const navigate = useNavigate();
+  const { submissionId } = useParams();
+  const [params, setParams] = useSearchParams();
+
+  const location = useLocation();
+
+  const tab: DashboardTab = useMemo(() => {
+    // Drop the trailing student id so /painel/alunos/<id> still means "alunos".
+    const path = location.pathname.replace(/\/[0-9a-fA-F]{24}$/, "");
+
+    return DASHBOARD_TABS[path as keyof typeof DASHBOARD_TABS] ?? "submissions";
+  }, [location.pathname]);
+
+  const editingId = params.get(EDIT_PARAM);
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [questionForm, setQuestionForm] = useState(emptyQuestion);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
 
   const selectedSubmission = useMemo(
-    () => submissions.find((item) => item.id === selectedSubmissionId) || submissions[0],
-    [selectedSubmissionId, submissions],
+    () => submissions.find((item) => item.id === submissionId) || submissions[0],
+    [submissionId, submissions],
+  );
+
+  const setSelectedSubmissionId = useCallback(
+    (id: string) => navigate(`${PATHS.dashboardSubmissions}/${id}`),
+    [navigate],
+  );
+
+  const setEditingId = useCallback(
+    (id: string | null) => {
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (id === null) {
+            next.delete(EDIT_PARAM);
+          } else {
+            next.set(EDIT_PARAM, id);
+          }
+
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
   );
 
   async function loadAll() {
@@ -62,15 +114,40 @@ export default function Dashboard() {
       setQuestions(questionRes.data);
       setSubmissions(submissionRes.data);
       setEvents(eventRes.data);
-      setSelectedSubmissionId((current) => current || submissionRes.data[0]?.id || null);
     } catch {
       setError("Não foi possível carregar o painel administrativo.");
+    } finally {
+      setLoaded(true);
     }
   }
 
   useEffect(() => {
     loadAll();
   }, []);
+
+  // A reload lands with ?editar=<id> already set, so the form refills itself
+  // from whatever the API just returned rather than from stale local state.
+  useEffect(() => {
+    if (editingId === null) {
+      setQuestionForm(emptyQuestion);
+
+      return;
+    }
+
+    const question = questions.find((item) => item.id === editingId);
+
+    if (question) {
+      setQuestionForm(normalizeQuestion(question));
+
+      return;
+    }
+
+    // The link outlived the question. Drop the parameter so the panel offers a
+    // new question instead of patching an id the API no longer knows.
+    if (loaded) {
+      setEditingId(null);
+    }
+  }, [editingId, loaded, questions, setEditingId]);
 
   function updateQuestionForm(field: keyof QuestionForm, value: string | boolean) {
     setQuestionForm((current) => ({ ...current, [field]: value }));
@@ -149,12 +226,10 @@ export default function Dashboard() {
 
   function editQuestion(question: Question) {
     setEditingId(question.id);
-    setQuestionForm(normalizeQuestion(question));
   }
 
   function cancelEditing() {
     setEditingId(null);
-    setQuestionForm(emptyQuestion);
   }
 
   return (
@@ -165,15 +240,15 @@ export default function Dashboard() {
           <h1>Admin consultoria</h1>
         </div>
         <nav>
-          <button className={tab === "submissions" ? "active" : ""} onClick={() => setTab("submissions")}>
+          <NavLink className={tab === "submissions" ? "active" : ""} to={TAB_PATHS.submissions}>
             Alunos e respostas
-          </button>
-          <button className={tab === "questions" ? "active" : ""} onClick={() => setTab("questions")}>
+          </NavLink>
+          <NavLink className={tab === "questions" ? "active" : ""} to={TAB_PATHS.questions}>
             Perguntas
-          </button>
-          <button className={tab === "events" ? "active" : ""} onClick={() => setTab("events")}>
+          </NavLink>
+          <NavLink className={tab === "events" ? "active" : ""} to={TAB_PATHS.events}>
             Alertas ({events.filter((event) => !event.seen_at).length})
-          </button>
+          </NavLink>
         </nav>
         <button className="admin-logout" onClick={logout}>
           Sair

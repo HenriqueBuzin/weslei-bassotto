@@ -12,7 +12,7 @@ describe("password API failures", () => {
 
   it("shows a forgot-password failure", async () => {
     post.mockImplementationOnce(async () => {
-      throw { response: { data: { detail: "SMTP indisponível" } } };
+      throw { response: { data: { message: "SMTP indisponível" } } };
     });
     render(
       <MemoryRouter>
@@ -26,7 +26,7 @@ describe("password API failures", () => {
 
   it("shows a reset failure", async () => {
     post.mockImplementationOnce(async () => {
-      throw { response: { data: { detail: "Link expirado" } } };
+      throw { response: { data: { code: "password_reset_token_invalid", detail: "The reset link is invalid" } } };
     });
     render(
       <MemoryRouter initialEntries={["/redefinir-senha?token=abc"]}>
@@ -36,7 +36,7 @@ describe("password API failures", () => {
     fireEvent.change(screen.getByLabelText("Nova senha"), { target: { value: "secret123" } });
     fireEvent.change(screen.getByLabelText("Confirmar senha"), { target: { value: "secret123" } });
     fireEvent.submit(screen.getByRole("button", { name: "Alterar senha" }).closest("form"));
-    expect(await screen.findByText("Link expirado")).toBeInTheDocument();
+    expect(await screen.findByText("Link inválido, expirado ou já utilizado.")).toBeInTheDocument();
   });
 
   it("uses generic password error fallbacks", async () => {

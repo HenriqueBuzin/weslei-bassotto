@@ -49,36 +49,35 @@ jobs:
         working-directory: api
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.14.6"
-          cache: pip
-          cache-dependency-path: api/pyproject.toml
+      # The image's test target already carries PHP 8.5, pdo_pgsql and the Xdebug
+      # that branch coverage needs, so the toolchain is not reassembled here.
+      - name: Build the toolchain image
+        run: docker build --target test --build-arg API_PORT=8000 --tag weslei-bassotto-api:ci .
       - name: Install
-        run: |
-          python -m pip install poetry==2.4.1
-          poetry config virtualenvs.create false
-          poetry install
-      - name: Black
-        run: poetry run black --check .
-      - name: isort
-        run: poetry run isort --check-only .
-      - name: Flake8
-        run: poetry run flake8 .
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer install --no-interaction --no-progress
+      - name: Pint
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/pint --test
+      - name: PHPStan
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci php -d memory_limit=1G vendor/bin/phpstan analyse --no-progress
+      # PHPUnit has no --coverage-fail-under, so the floor lives in coverage-gate.php.
       - name: Verify
-        run: poetry run pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100 -q
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci sh -lc '
+            php -d memory_limit=2G vendor/bin/phpunit --coverage-clover=coverage/clover.xml --coverage-filter app
+            php scripts/coverage-gate.php
+          '
       - name: Unit tests
-        run: poetry run pytest -m unit -q
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite unit
       - name: Integration tests
-        run: poetry run pytest -m integration -q
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite integration
       - name: API tests
-        run: poetry run pytest -m api -q
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite api
       - name: Functional tests
-        run: poetry run pytest -m functional -q
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite functional
       - name: Regression tests
-        run: poetry run pytest -m regression -q
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite regression
       - name: Smoke tests
-        run: poetry run pytest -m smoke -q
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite smoke
 
   frontend:
     name: Frontend - tests and 100% coverage

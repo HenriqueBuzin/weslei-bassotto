@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { apiErrorMessage } from "../lib/errors";
+import { loginWithRedirect, PATHS, REDIRECT_PARAM, safeRedirect } from "../routes/paths";
 import "./Login.css";
 
 export default function Register() {
@@ -12,7 +14,7 @@ export default function Register() {
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const destination = params.get("returnTo") || "/assinante";
+  const destination = safeRedirect(params.get(REDIRECT_PARAM), PATHS.subscriberArea);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,8 +28,7 @@ export default function Register() {
       await register(email, password);
       navigate(destination);
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(detail || "Não foi possível criar sua conta.");
+      setError(apiErrorMessage(err, "Não foi possível criar sua conta."));
     } finally {
       setBusy(false);
     }
@@ -85,7 +86,7 @@ export default function Register() {
                 </form>
                 <p className="text-white-50 text-center mt-3 mb-0">
                   Já possui conta?{" "}
-                  <Link className="link-light" to={`/login?returnTo=${encodeURIComponent(destination)}`}>
+                  <Link className="link-light" to={loginWithRedirect(destination)}>
                     Entrar
                   </Link>
                 </p>

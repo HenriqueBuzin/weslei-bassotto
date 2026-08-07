@@ -45,6 +45,35 @@ describe("SubscriberArea", () => {
     );
   });
 
+  it("asks the subscriber to review once the questionnaire changed", async () => {
+    api.get.mockImplementation((url) =>
+      Promise.resolve({
+        data: url.includes("questions")
+          ? [question]
+          : [{ ...submission, questionnaire_changed_at: "2026-02-01T10:00:00Z" }],
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <SubscriberArea />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/A anamnese foi atualizada/)).toBeInTheDocument();
+  });
+
+  it("stays quiet while the questionnaire is unchanged", async () => {
+    render(
+      <MemoryRouter>
+        <SubscriberArea />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Editar respostas" })).toBeInTheDocument();
+    expect(screen.queryByText(/A anamnese foi atualizada/)).not.toBeInTheDocument();
+  });
+
   it("shows contract dates in Brazilian format", async () => {
     render(
       <MemoryRouter>
@@ -137,7 +166,9 @@ describe("SubscriberArea", () => {
   });
 
   it("shows required-question errors when saving", async () => {
-    api.patch.mockRejectedValue({ response: { data: { detail: { missing_questions: ["Objetivo"] } } } });
+    api.patch.mockRejectedValue({
+      response: { data: { code: "required_questions_missing", missing_questions: ["Objetivo"] } },
+    });
     render(
       <MemoryRouter>
         <SubscriberArea />

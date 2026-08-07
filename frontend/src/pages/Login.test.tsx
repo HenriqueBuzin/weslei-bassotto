@@ -26,7 +26,9 @@ describe("Login", () => {
   });
 
   it("shows the API error", async () => {
-    login.mockRejectedValueOnce({ response: { data: { detail: "Credenciais inválidas" } } });
+    login.mockRejectedValueOnce({
+      response: { data: { code: "invalid_credentials", detail: "Invalid e-mail or password" } },
+    });
     render(
       <MemoryRouter>
         <Login />
@@ -36,7 +38,7 @@ describe("Login", () => {
     await user.type(screen.getByLabelText("E-mail"), "user@example.com");
     await user.type(screen.getByLabelText("Senha"), "wrong123");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
-    expect(await screen.findByText("Credenciais inválidas")).toBeInTheDocument();
+    expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
   });
 
   it.each([

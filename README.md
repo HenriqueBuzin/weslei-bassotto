@@ -67,10 +67,10 @@ ambiente. O Docker Compose lê esse arquivo e usa os valores sensíveis como
 origem dos secrets, sem enviá-los como variáveis de ambiente para a API:
 
 ```text
-.env -> Docker Compose -> /run/secrets/<nome> -> VARIAVEL_FILE -> FastAPI
+.env -> Docker Compose -> /run/secrets/<nome> -> VARIAVEL_FILE -> Laravel
 ```
 
-São protegidos `DATABASE_URL`, `JWT_SECRET`, `ADMIN_ACCOUNTS`, `MERCADO_PAGO_ACCESS_TOKEN`,
+São protegidos `APP_KEY`, `DATABASE_URL`, `JWT_SECRET`, `MERCADO_PAGO_ACCESS_TOKEN`,
 `MERCADO_PAGO_WEBHOOK_SECRET` e `SMTP_PASSWORD`. Dentro do container, a API
 recebe apenas referências como
 `DATABASE_URL_FILE=/run/secrets/database_url`.
@@ -82,22 +82,26 @@ Este projeto usa Docker Compose Secrets sem Swarm; a origem `environment` é
 resolvida pelo Compose a partir do `.env`. A chave `VITE_MP_PUBLIC_KEY`
 permanece pública porque é incorporada ao JavaScript entregue ao navegador.
 
-Para adicionar outro gateway, implemente `PaymentGateway`, registre-o em `build_gateway_registry()` e inclua seu nome em `PAYMENT_GATEWAY_ORDER`. O fallback só ocorre quando o adapter informa indisponibilidade antes de uma cobrança ser aceita. Recusas ou respostas ambíguas não são reenviadas automaticamente, evitando cobrança duplicada.
+Para adicionar outro gateway, implemente `PaymentGateway`, registre-o no `GatewayRegistry` e inclua seu nome em `PAYMENT_GATEWAY_ORDER`. O fallback só ocorre quando o adapter informa indisponibilidade antes de uma cobrança ser aceita. Recusas ou respostas ambíguas não são reenviadas automaticamente, evitando cobrança duplicada.
 
 ## Testes
 
 ```bash
-cd api
-poetry install
-poetry run black .
-poetry run isort .
-poetry run flake8 .
-poetry run pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100
-poetry run pytest -m unit
-poetry run pytest -m "integration and api"
-poetry run pytest -m functional
-poetry run pytest -m regression
-poetry run pytest -m smoke
+# A imagem `test` da API traz PHP 8.5, pdo_pgsql e Xdebug (cobertura de branches
+# exige Xdebug; pcov só mede linhas).
+docker build --target test --build-arg API_PORT=8000 -t weslei-bassotto/api-ci:local api
+API="docker run --rm -e MSYS_NO_PATHCONV=1 -v ./api:/app -w /app weslei-bassotto/api-ci:local"
+
+$API composer install
+$API vendor/bin/pint             # formatação, no lugar de black + isort
+$API vendor/bin/phpstan analyse  # análise estática, no lugar do flake8
+$API sh -lc 'php -d memory_limit=2G vendor/bin/phpunit --coverage-clover=coverage/clover.xml --coverage-filter app && php scripts/coverage-gate.php'
+$API vendor/bin/phpunit --testsuite unit
+$API vendor/bin/phpunit --testsuite integration
+$API vendor/bin/phpunit --testsuite api
+$API vendor/bin/phpunit --testsuite functional
+$API vendor/bin/phpunit --testsuite regression
+$API vendor/bin/phpunit --testsuite smoke
 
 cd ../frontend
 npm ci
@@ -131,17 +135,19 @@ Ative uma vez o hook versionado para impedir commits quando qualquer teste, cobe
 git config core.hooksPath .githooks
 ```
 
-O ambiente Poetry local deste projeto fica em `C:\Users\henri\Documents\Projects\venv\weslei-bassotto`. O hook `pre-commit` executa Black, isort e Flake8 no backend; Prettier e ESLint no frontend; e depois `scripts/validate.py`. O workflow `.github/workflows/quality.yml` repete as validações em todo push e pull request para `main` e `dev`, mesmo quando o hook local não estiver instalado. O Jenkins permanece responsável pela validação final e pelo deploy.
+O hook `pre-commit` executa Pint no backend; Prettier e ESLint no frontend; e depois `scripts/validate.py`, que roda as portas do backend dentro da imagem `test` (Pint, PHPStan, PHPUnit e o piso de 100% de linhas em `api/scripts/coverage-gate.php`). O workflow `.github/workflows/quality.yml` repete as validações em todo push e pull request para `main` e `dev`, mesmo quando o hook local não estiver instalado. O Jenkins permanece responsável pela validação final e pelo deploy.
 
 ## Administradores iniciais
 
-Use uma lista JSON extensível no ambiente. Em produção, configure inicialmente dois administradores:
+Nenhuma senha de administrador vive no ENV. Com `SEED_ON_START=true` e o banco
+vazio, o seeder cria as roles e os administradores com uma senha placeholder e
+`must_change_password`; a senha real é definida no primeiro acesso.
 
-```env
-ADMIN_ACCOUNTS=[{"email":"admin1@dominio.com","password":"senha-forte-1"},{"email":"admin2@dominio.com","password":"senha-forte-2"}]
-```
+Depois da primeira carga, qualquer dado existente faz o seed ser ignorado. O
+seeder usa `firstOrCreate`, então deploys futuros não reescrevem a senha
+escolhida nem alteram roles e dados operacionais.
 
-Com `SEED_ON_START=true`, o seeder cria roles e administradores somente quando o banco inteiro não possui documentos. Depois da primeira carga, qualquer dado existente faz o seed ser ignorado: deploys futuros não alteram contas, senhas, roles nem dados operacionais.
+Para gerar um hash à mão: `php artisan platform:hash-password`.
 
 ## Webhook do Mercado Pago
 

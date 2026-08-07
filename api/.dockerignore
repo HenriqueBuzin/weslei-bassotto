@@ -1,0 +1,10 @@
+vendor/
+node_modules/
+.env
+.env.*
+.phpunit.cache/
+coverage/
+storage/logs/*
+storage/framework/cache/*
+bootstrap/cache/*.php
+database/*.sqlite

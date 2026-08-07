@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { readRoles } from "../lib/jwt";
+import { PATHS, REDIRECT_PARAM, safeRedirect } from "../routes/paths";
 import { apiErrorMessage } from "../lib/errors";
 import "./Login.css";
 
@@ -29,7 +30,9 @@ export default function Login() {
     try {
       const token = await login(email, password, remember);
       const roles = readRoles(token);
-      nav(roles.includes("admin") ? "/app" : params.get("returnTo") || "/assinante");
+      const fallback = roles.includes("admin") ? PATHS.dashboardSubmissions : PATHS.subscriberArea;
+
+      nav(roles.includes("admin") ? fallback : safeRedirect(params.get(REDIRECT_PARAM), fallback));
     } catch (error) {
       setErr(apiErrorMessage(error, "Falha no login", true));
     } finally {
@@ -106,7 +109,7 @@ export default function Login() {
                         Lembrar de mim
                       </label>
                     </div>
-                    <Link to="/recuperar" className="link-light-subtle small">
+                    <Link to={PATHS.forgotPassword} className="link-light-subtle small">
                       Esqueci minha senha
                     </Link>
                   </div>
@@ -127,7 +130,7 @@ export default function Login() {
 
                 <p className="text-center text-white-50 small mt-3 mb-0">
                   Ainda não possui conta?{" "}
-                  <Link className="link-light" to="/cadastro">
+                  <Link className="link-light" to={PATHS.register}>
                     Criar conta
                   </Link>
                 </p>

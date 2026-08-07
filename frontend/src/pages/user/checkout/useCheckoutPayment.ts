@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { Plan } from "../../../hooks/usePlanCatalog";
 import { api } from "../../../lib/api";
 import { type BrickController, loadMercadoPagoScript, safeUnmountBrick } from "./mercadoPago";
+import { PATHS } from "../../../routes/paths";
 
 const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
 
@@ -97,7 +98,7 @@ export function useCheckoutPayment({ isAuthenticated, plan, planSlug, renewId, p
                   .then(({ data }) => {
                     resolve();
                     if (renewId) {
-                      navigate(`/assinante?pagamento=${data.status}`);
+                      navigate(`${PATHS.subscriberArea}?pagamento=${data.status}`);
                       return;
                     }
                     navigate(

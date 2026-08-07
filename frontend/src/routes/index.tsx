@@ -1,8 +1,7 @@
-// src/routes/index.jsx
-
 import { lazy } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate, useLocation, type RouteObject } from "react-router-dom";
 import ProtectedRoute from "../auth/ProtectedRoute";
+import { LEGACY_REDIRECTS, PATHS } from "./paths";
 
 export const routeLoaders = {
   home: () => import("../pages/user/Home"),
@@ -14,6 +13,7 @@ export const routeLoaders = {
   questionnaire: () => import("../pages/user/Questionnaire"),
   subscriberArea: () => import("../pages/user/SubscriberArea"),
   checkoutBrick: () => import("../pages/user/CheckoutBrick"),
+  notAuthorized: () => import("../pages/NotAuthorized"),
   notFound: () => import("../pages/NotFound"),
 };
 
@@ -26,25 +26,54 @@ const Dashboard = lazy(routeLoaders.dashboard);
 const Questionnaire = lazy(routeLoaders.questionnaire);
 const SubscriberArea = lazy(routeLoaders.subscriberArea);
 const CheckoutBrick = lazy(routeLoaders.checkoutBrick);
+const NotAuthorized = lazy(routeLoaders.notAuthorized);
 const NotFound = lazy(routeLoaders.notFound);
 
-const routes = [
-  { path: "/", element: <Home /> },
-  { path: "/checkout", element: <CheckoutBrick /> },
+/**
+ * The admin panel is one component reading its tab from the path, so every tab
+ * and every selected student is a link somebody can paste or reload into.
+ */
+const adminRoutes: RouteObject[] = [
+  { path: PATHS.dashboard, element: <Navigate to={PATHS.dashboardSubmissions} replace /> },
+  { path: PATHS.dashboardSubmissions, element: <Dashboard /> },
+  { path: `${PATHS.dashboardSubmissions}/:submissionId`, element: <Dashboard /> },
+  { path: PATHS.dashboardQuestions, element: <Dashboard /> },
+  { path: PATHS.dashboardEvents, element: <Dashboard /> },
+];
+
+/**
+ * Keeps the query string when forwarding an old link: dropping it would turn a
+ * bookmarked /checkout?plano=anual into a checkout with no plan selected.
+ */
+export function LegacyRedirect({ to }: { to: string }) {
+  const { search } = useLocation();
+
+  return <Navigate to={`${to}${search}`} replace />;
+}
+
+const legacyRoutes: RouteObject[] = Object.entries(LEGACY_REDIRECTS).map(([from, to]) => ({
+  path: from,
+  element: <LegacyRedirect to={to} />,
+}));
+
+const routes: RouteObject[] = [
+  { path: PATHS.home, element: <Home /> },
+  { path: PATHS.checkout, element: <CheckoutBrick /> },
+  { path: PATHS.login, element: <Login /> },
+  { path: PATHS.register, element: <Register /> },
+  { path: PATHS.forgotPassword, element: <ForgotPassword /> },
+  { path: PATHS.resetPassword, element: <ResetPassword /> },
+  { path: PATHS.notAuthorized, element: <NotAuthorized /> },
   {
-    path: "/questionario",
+    path: PATHS.questionnaire,
     element: (
       <ProtectedRoute>
         <Questionnaire />
       </ProtectedRoute>
     ),
   },
-  { path: "/login", element: <Login /> },
-  { path: "/cadastro", element: <Register /> },
-  { path: "/recuperar", element: <ForgotPassword /> },
-  { path: "/redefinir-senha", element: <ResetPassword /> },
   {
-    path: "/assinante",
+    path: PATHS.subscriberArea,
     element: (
       <ProtectedRoute>
         <SubscriberArea />
@@ -52,13 +81,10 @@ const routes = [
     ),
   },
   {
-    path: "/app",
-    element: (
-      <ProtectedRoute roles={["admin"]}>
-        <Dashboard />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute roles={["admin"]} />,
+    children: adminRoutes,
   },
+  ...legacyRoutes,
   { path: "*", element: <NotFound /> },
 ];
 

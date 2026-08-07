@@ -52,6 +52,7 @@ export type Submission = {
   recurrence_status?: string | null;
   recurrence_issue?: string | null;
   answers_changed_at?: string | null;
+  questionnaire_changed_at?: string | null;
   answers_seen_at?: string | null;
 };
 

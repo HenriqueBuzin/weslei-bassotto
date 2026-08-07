@@ -23,22 +23,23 @@ services:
     logging: *default-logging
     build:
       context: ./api
+      target: dev
       args:
         API_PORT: ${API_PORT}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - API_BASE=${API_BASE}
       - APP_ENV=${APP_ENV}
-      - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE}
+      - APP_URL=${APP_URL}
+      - API_BASE=${API_BASE}
       - API_PORT=${API_PORT}
       - JWT_ALG=${JWT_ALG}
       - ACCESS_TOKEN_EXPIRES_MINUTES=${ACCESS_TOKEN_EXPIRES_MINUTES}
+      - REFRESH_TOKEN_EXPIRES_SHORT_HOURS=${REFRESH_TOKEN_EXPIRES_SHORT_HOURS}
+      - REFRESH_TOKEN_EXPIRES_LONG_DAYS=${REFRESH_TOKEN_EXPIRES_LONG_DAYS}
       - LOGIN_MAX_ATTEMPTS=${LOGIN_MAX_ATTEMPTS}
       - LOGIN_ATTEMPT_WINDOW_MINUTES=${LOGIN_ATTEMPT_WINDOW_MINUTES}
       - LOGIN_LOCK_MINUTES=${LOGIN_LOCK_MINUTES}
-      - REFRESH_TOKEN_EXPIRES_SHORT_HOURS=${REFRESH_TOKEN_EXPIRES_SHORT_HOURS}
-      - REFRESH_TOKEN_EXPIRES_LONG_DAYS=${REFRESH_TOKEN_EXPIRES_LONG_DAYS}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - COOKIE_DOMAIN=${COOKIE_DOMAIN}
       - COOKIE_SECURE=${COOKIE_SECURE}
@@ -47,27 +48,25 @@ services:
       - REFRESH_COOKIE_PATH=${REFRESH_COOKIE_PATH}
       - SEED_ON_START=${SEED_ON_START}
       - PAYMENT_GATEWAY_ORDER=${PAYMENT_GATEWAY_ORDER}
-      - APP_PUBLIC_URL=${APP_PUBLIC_URL}
-      - FRONTEND_PUBLIC_URL=${FRONTEND_PUBLIC_URL}
       - PASSWORD_RESET_EXPIRES_MINUTES=${PASSWORD_RESET_EXPIRES_MINUTES}
+      - MAIL_MAILER=smtp
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USE_TLS=${SMTP_USE_TLS}
       - SMTP_USE_SSL=${SMTP_USE_SSL}
       - SMTP_USER=${SMTP_USER}
       - SMTP_FROM=${SMTP_FROM}
+      - APP_KEY_FILE=/run/secrets/app_key
       - DATABASE_URL_FILE=/run/secrets/database_url
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
-      - ADMIN_ACCOUNTS_FILE=/run/secrets/admin_accounts
       - MERCADO_PAGO_ACCESS_TOKEN_FILE=/run/secrets/mercado_pago_access_token
       - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
       - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
-      - UVICORN_RELOAD=true
       - TZ=America/Sao_Paulo
     secrets:
+      - app_key
       - database_url
       - jwt_secret
-      - admin_accounts
       - mercado_pago_access_token
       - mercado_pago_webhook_secret
       - smtp_password
@@ -77,14 +76,102 @@ services:
         hard: 0
     volumes:
       - ./api:/app
+      # Keeps the container's Linux vendor tree out of the host's, which the
+      # bind mount would otherwise shadow.
+      - api_vendor:/app/vendor
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import os,sys,urllib.request,json; p=os.getenv('API_PORT','8000'); j=json.loads(urllib.request.urlopen(f'http://localhost:{p}/health', timeout=2).read().decode()); sys.exit(0 if j.get('status')=='ok' else 1)\""]
+      # Deliberately free of dollar signs: compose would read them as its own
+      # variables and blank them out before the shell ever sees them.
+      test:
+        - CMD
+        - php
+        - -r
+        - 'exit((@json_decode(@file_get_contents("http://127.0.0.1:" . getenv("API_PORT") . "/health"), true)["status"] ?? "") === "ok" ? 0 : 1);'
       interval: 3s
-      timeout: 2s
+      timeout: 3s
       retries: 40
-      start_period: 2s
+      start_period: 10s
     networks:
       - proxy-network
+      - postgres-network
+
+
+  # routes/console.php agenda platform:prune, e sem este processo o
+  # agendamento nunca dispara: o backend sobe apenas o servidor HTTP/FPM.
+  scheduler:
+    image: weslei-bassotto/scheduler:${IMAGE_TAG:-local}-dev
+    labels: *default-labels
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    build:
+      context: ./api
+      target: dev-scheduler
+      args:
+        API_PORT: ${API_PORT}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - APP_ENV=${APP_ENV}
+      - APP_URL=${APP_URL}
+      - API_BASE=${API_BASE}
+      - API_PORT=${API_PORT}
+      - JWT_ALG=${JWT_ALG}
+      - ACCESS_TOKEN_EXPIRES_MINUTES=${ACCESS_TOKEN_EXPIRES_MINUTES}
+      - REFRESH_TOKEN_EXPIRES_SHORT_HOURS=${REFRESH_TOKEN_EXPIRES_SHORT_HOURS}
+      - REFRESH_TOKEN_EXPIRES_LONG_DAYS=${REFRESH_TOKEN_EXPIRES_LONG_DAYS}
+      - LOGIN_MAX_ATTEMPTS=${LOGIN_MAX_ATTEMPTS}
+      - LOGIN_ATTEMPT_WINDOW_MINUTES=${LOGIN_ATTEMPT_WINDOW_MINUTES}
+      - LOGIN_LOCK_MINUTES=${LOGIN_LOCK_MINUTES}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN}
+      - COOKIE_SECURE=${COOKIE_SECURE}
+      - COOKIE_SAMESITE=${COOKIE_SAMESITE}
+      - REFRESH_COOKIE_NAME=${REFRESH_COOKIE_NAME}
+      - REFRESH_COOKIE_PATH=${REFRESH_COOKIE_PATH}
+      - SEED_ON_START=${SEED_ON_START}
+      - PAYMENT_GATEWAY_ORDER=${PAYMENT_GATEWAY_ORDER}
+      - PASSWORD_RESET_EXPIRES_MINUTES=${PASSWORD_RESET_EXPIRES_MINUTES}
+      - MAIL_MAILER=smtp
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - SMTP_USE_SSL=${SMTP_USE_SSL}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_FROM=${SMTP_FROM}
+      - APP_KEY_FILE=/run/secrets/app_key
+      - DATABASE_URL_FILE=/run/secrets/database_url
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - MERCADO_PAGO_ACCESS_TOKEN_FILE=/run/secrets/mercado_pago_access_token
+      - MERCADO_PAGO_WEBHOOK_SECRET_FILE=/run/secrets/mercado_pago_webhook_secret
+      - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
+      - TZ=America/Sao_Paulo
+    secrets:
+      - app_key
+      - database_url
+      - jwt_secret
+      - mercado_pago_access_token
+      - mercado_pago_webhook_secret
+      - smtp_password
+    ulimits:
+      core:
+        soft: 0
+        hard: 0
+    volumes:
+      - ./api:/app
+      # Keeps the container's Linux vendor tree out of the host's, which the
+      # bind mount would otherwise shadow.
+      - api_vendor:/app/vendor
+    healthcheck:
+      test: ["CMD", "php", "artisan", "platform:health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
       - postgres-network
 
   frontend:
@@ -102,12 +189,12 @@ services:
       args:
         - VITE_PORT=${VITE_PORT}
     environment:
-      - VITE_API_BASE=${VITE_API_BASE}
+      - VITE_API_BASE=${API_BASE}
       - VITE_PORT=${VITE_PORT}
       - VITE_APP_NAME=${VITE_APP_NAME}
       - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
       - VITE_WHATSAPP_NUMBER=${VITE_WHATSAPP_NUMBER}
-      - VITE_PROXY_TARGET=http://backend:8000
+      - VITE_PROXY_TARGET=http://backend:${API_PORT}
       - VITE_HMR_DISABLED=${VITE_HMR_DISABLED}
       - VITE_HMR_HOST=${VITE_HMR_HOST}
       - VITE_HMR_PROTOCOL=${VITE_HMR_PROTOCOL}
@@ -170,7 +257,8 @@ services:
 
 volumes:
   react_node_modules:
-    
+  api_vendor:
+
 networks:
   proxy-network:
     external: true
@@ -179,12 +267,12 @@ networks:
     name: ${POSTGRES_NETWORK:-postgres-network}
 
 secrets:
+  app_key:
+    environment: APP_KEY
   database_url:
     environment: DATABASE_URL
   jwt_secret:
     environment: JWT_SECRET
-  admin_accounts:
-    environment: ADMIN_ACCOUNTS
   mercado_pago_access_token:
     environment: MERCADO_PAGO_ACCESS_TOKEN
   mercado_pago_webhook_secret:

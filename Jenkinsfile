@@ -14,23 +14,24 @@ pipeline {
                         sh '''
                         set -e
 
+                        # The image's test target already ships PHP 8.5, pdo_pgsql and
+                        # Xdebug, so the toolchain is not assembled a second time here.
+                        IMAGE="weslei-bassotto/api-ci:$(git rev-parse --short=12 HEAD)"
+                        docker build --target test --build-arg API_PORT=8000 -t "$IMAGE" "$WORKSPACE/api"
+
                         docker run --rm \
                           --volumes-from jenkins \
                           -w "$WORKSPACE/api" \
-                          python:3.14-slim \
+                          "$IMAGE" \
                           sh -c '
-                            pip install -q poetry==2.4.1 &&
-                            poetry config virtualenvs.create false &&
-                            poetry install --no-interaction &&
-                            poetry run black --check . &&
-                            poetry run isort --check-only . &&
-                            poetry run flake8 . &&
-                            poetry run pytest \
-                              --cov=app \
-                              --cov-branch \
-                              --cov-report=term-missing \
-                              --cov-fail-under=100 \
-                              -q
+                            set -e
+                            composer install --no-interaction --no-progress
+                            vendor/bin/pint --test
+                            php -d memory_limit=1G vendor/bin/phpstan analyse --no-progress
+                            php -d memory_limit=2G vendor/bin/phpunit \
+                              --coverage-clover=coverage/clover.xml \
+                              --coverage-filter app
+                            php scripts/coverage-gate.php
                           '
                         '''
                     }

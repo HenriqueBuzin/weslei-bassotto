@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { selectPlan, usePlanCatalog } from "../../hooks/usePlanCatalog";
 import { useCheckoutPayment } from "./checkout/useCheckoutPayment";
+import { loginWithRedirect, PATHS, registerWithRedirect } from "../../routes/paths";
 
 function brl(value: number) {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
@@ -20,7 +21,7 @@ export default function CheckoutBrick() {
   const { ready, busy, error } = useCheckoutPayment({ isAuthenticated, plan, planSlug, renewId, paymentMode });
 
   if (!isAuthenticated) {
-    const returnTo = `/checkout?plano=${planSlug}${renewId ? `&renew=${renewId}` : ""}`;
+    const target = `${PATHS.checkout}?plano=${planSlug}${renewId ? `&renew=${renewId}` : ""}`;
     return (
       <main className="questionnaire-page">
         <div className="questionnaire-shell">
@@ -28,10 +29,10 @@ export default function CheckoutBrick() {
             <p className="eyebrow">Área do assinante</p>
             <h1>Entre ou crie sua conta para assinar.</h1>
             <p>O e-mail da conta identifica o aluno. No cartão, o titular poderá informar outro e-mail.</p>
-            <Link className="btn btn-brand" to={`/cadastro?returnTo=${encodeURIComponent(returnTo)}`}>
+            <Link className="btn btn-brand" to={registerWithRedirect(target)}>
               Criar conta
             </Link>
-            <Link className="btn btn-outline-light" to={`/login?returnTo=${encodeURIComponent(returnTo)}`}>
+            <Link className="btn btn-outline-light" to={loginWithRedirect(target)}>
               Entrar
             </Link>
           </section>

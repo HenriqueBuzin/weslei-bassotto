@@ -217,7 +217,9 @@ describe("Questionnaire payment gate", () => {
             : [question],
       }),
     );
-    api.post.mockRejectedValue({ response: { data: { detail: { missing_questions: ["Doenças"] } } } });
+    api.post.mockRejectedValue({
+      response: { data: { code: "required_questions_missing", missing_questions: ["Doenças"] } },
+    });
     render(
       <MemoryRouter initialEntries={["/questionario?payment_id=p1&payment_token=secret"]}>
         <Questionnaire />
@@ -279,7 +281,9 @@ describe("Questionnaire payment gate", () => {
             : {},
       }),
     );
-    api.post.mockRejectedValueOnce({ response: { data: { detail: "Pagamento já utilizado" } } });
+    api.post.mockRejectedValueOnce({
+      response: { data: { code: "payment_already_used", detail: "This payment was already used" } },
+    });
     render(
       <MemoryRouter initialEntries={["/questionario?payment_id=p1&payment_token=secret"]}>
         <Questionnaire />
@@ -290,6 +294,6 @@ describe("Questionnaire payment gate", () => {
     await user.type(screen.getByLabelText(/Nome completo/), "Aluno");
     await user.type(screen.getByLabelText(/WhatsApp/), "54999990000");
     await user.click(screen.getByRole("button", { name: /Enviar questionário/ }));
-    expect(await screen.findByText("Pagamento já utilizado")).toBeInTheDocument();
+    expect(await screen.findByText("Este pagamento já foi utilizado.")).toBeInTheDocument();
   });
 });

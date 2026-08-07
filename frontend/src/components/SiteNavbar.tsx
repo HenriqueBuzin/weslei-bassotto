@@ -1,4 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
+import { PATHS } from "../routes/paths";
 
 export default function SiteNavbar() {
   const appName = import.meta.env.VITE_APP_NAME || "Weslei Bassotto";
@@ -45,7 +46,7 @@ export default function SiteNavbar() {
               </a>
             </li>
             <li className="nav-item">
-              <NavLink className="btn btn-sm btn-brand ms-lg-2" to="/assinante">
+              <NavLink className="btn btn-sm btn-brand ms-lg-2" to={PATHS.subscriberArea}>
                 Área do assinante
               </NavLink>
             </li>

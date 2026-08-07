@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,6 +21,20 @@ const submission = {
 };
 const event = { id: "e1", type: "payment_failed", created_at: "2026-01-03T12:00:00Z", seen_at: null };
 
+/** The panel reads its tab and selection from the URL, so it needs a router. */
+function renderDashboard(path = "/painel/alunos") {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/painel/alunos" element={<Dashboard />} />
+        <Route path="/painel/alunos/:submissionId" element={<Dashboard />} />
+        <Route path="/painel/perguntas" element={<Dashboard />} />
+        <Route path="/painel/alertas" element={<Dashboard />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 describe("Dashboard", () => {
   beforeEach(() => {
     Object.values(api).forEach((mock) => mock.mockReset());
@@ -30,22 +45,35 @@ describe("Dashboard", () => {
     });
   });
 
+  it("ignores an editar link pointing at a question that no longer exists", async () => {
+    api.get.mockImplementation((url) => {
+      if (url.endsWith("/questions")) return Promise.resolve({ data: [] });
+      if (url.endsWith("/submissions")) return Promise.resolve({ data: [submission] });
+      return Promise.resolve({ data: [] });
+    });
+
+    renderDashboard("/painel/perguntas?editar=jainexiste");
+
+    // The pasted link is stale, so the form stays blank instead of breaking.
+    expect(await screen.findByRole("heading", { name: "Nova pergunta" })).toBeInTheDocument();
+  });
+
   it("shows unseen answers and payment alerts", async () => {
-    render(<Dashboard />);
+    renderDashboard();
     expect(await screen.findByText("Respostas novas/alteradas")).toBeInTheDocument();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Alertas (1)" }));
+    await user.click(screen.getByRole("link", { name: "Alertas (1)" }));
     expect(screen.getByText("Falha no pagamento")).toBeInTheDocument();
   });
 
   it("marks an alert as seen", async () => {
     api.post.mockResolvedValueOnce({ data: { ok: true } });
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Alertas (1)" }));
+    await user.click(await screen.findByRole("link", { name: "Alertas (1)" }));
     await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
     expect(api.post).toHaveBeenCalledWith("/consultancy/admin/events/e1/seen");
-    expect(screen.getByRole("button", { name: "Alertas (0)" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Alertas (0)" })).toBeInTheDocument();
   });
 
   it("creates, edits and deletes questionnaire questions", async () => {
@@ -62,9 +90,9 @@ describe("Dashboard", () => {
     api.post.mockResolvedValue({ data: question });
     api.patch.mockResolvedValue({ data: question });
     api.delete.mockResolvedValue({});
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+    await user.click(await screen.findByRole("link", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Editar" }));
     expect(screen.getByRole("heading", { name: "Editar pergunta" })).toBeInTheDocument();
     await user.clear(screen.getByLabelText("Pergunta"));
@@ -74,7 +102,7 @@ describe("Dashboard", () => {
       "/consultancy/admin/questions/q1",
       expect.objectContaining({ label: "Nova frequência" }),
     );
-    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("link", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Apagar" }));
     expect(api.delete).toHaveBeenCalledWith("/consultancy/admin/questions/q1");
   });
@@ -82,9 +110,9 @@ describe("Dashboard", () => {
   it("creates a new select question with normalized options", async () => {
     api.get.mockResolvedValue({ data: [] });
     api.post.mockResolvedValue({ data: {} });
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+    await user.click(await screen.findByRole("link", { name: "Perguntas" }));
     await user.type(screen.getByLabelText("Pergunta"), "Qual seu nível?");
     await user.selectOptions(screen.getByLabelText("Tipo"), "select");
     await user.type(screen.getByLabelText(/Opções/), "Iniciante\nAvançado");
@@ -101,7 +129,7 @@ describe("Dashboard", () => {
   it("updates contract fields and marks changed answers as seen", async () => {
     api.patch.mockResolvedValue({ data: { ...submission, status: "finished", answers_seen_at: "2026-01-03" } });
     api.post.mockResolvedValue({ data: { ...submission, answers_seen_at: "2026-01-03" } });
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
     const status = await screen.findByDisplayValue("Ativo");
     await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
@@ -112,7 +140,7 @@ describe("Dashboard", () => {
 
   it("shows a load error", async () => {
     api.get.mockRejectedValue(new Error("offline"));
-    render(<Dashboard />);
+    renderDashboard();
     expect(await screen.findByText(/Não foi possível carregar o painel/)).toBeInTheDocument();
   });
 
@@ -129,7 +157,7 @@ describe("Dashboard", () => {
       answers_seen_at: "2026-01-02T01:00:00Z",
     };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/submissions") ? [detailed] : [] }));
-    render(<Dashboard />);
+    renderDashboard();
     expect(await screen.findByText(/Problema na recorrência/)).toBeInTheDocument();
     expect(screen.getByText(/Cartão recusado/)).toBeInTheDocument();
     expect(screen.getByText("Histórico de renovação")).toBeInTheDocument();
@@ -147,9 +175,9 @@ describe("Dashboard", () => {
       order: 0,
     };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/questions") ? [question] : [] }));
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+    await user.click(await screen.findByRole("link", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Editar" }));
     await user.click(screen.getByRole("button", { name: /Cancelar edição/ }));
     expect(screen.getByRole("heading", { name: "Nova pergunta" })).toBeInTheDocument();
@@ -176,17 +204,17 @@ describe("Dashboard", () => {
         data: url.endsWith("/questions") ? [question] : url.endsWith("/submissions") ? [submission] : [event],
       }),
     );
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
     if (action === "save") {
       api.post.mockRejectedValueOnce(new Error());
-      await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+      await user.click(await screen.findByRole("link", { name: "Perguntas" }));
       await user.type(screen.getByLabelText("Pergunta"), "Nova pergunta");
       await user.click(screen.getByRole("button", { name: "Salvar pergunta" }));
     }
     if (action === "delete") {
       api.delete.mockRejectedValueOnce(new Error());
-      await user.click(await screen.findByRole("button", { name: "Perguntas" }));
+      await user.click(await screen.findByRole("link", { name: "Perguntas" }));
       await user.click(screen.getByRole("button", { name: "Apagar" }));
     }
     if (action === "submission") {
@@ -199,7 +227,7 @@ describe("Dashboard", () => {
     }
     if (action === "event") {
       api.post.mockRejectedValueOnce(new Error());
-      await user.click(await screen.findByRole("button", { name: "Alertas (1)" }));
+      await user.click(await screen.findByRole("link", { name: "Alertas (1)" }));
       await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
     }
     expect(
@@ -237,7 +265,7 @@ describe("Dashboard", () => {
     api.patch.mockImplementation((url, patch) =>
       Promise.resolve({ data: { ...(url.includes("s2") ? second : submission), ...patch } }),
     );
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: /Segundo aluno/ }));
     expect(screen.getByText("Sem resposta")).toBeInTheDocument();
@@ -245,7 +273,7 @@ describe("Dashboard", () => {
     fireEvent.change(dates[0], { target: { value: "2026-02-01" } });
     fireEvent.change(dates[1], { target: { value: "2026-05-01" } });
     await user.type(screen.getByLabelText("Referência Mercado Pago"), "ref-2");
-    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("link", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Editar" }));
     await user.clear(screen.getByLabelText("Ordem"));
     await user.type(screen.getByLabelText("Ordem"), "5");
@@ -253,21 +281,21 @@ describe("Dashboard", () => {
     await user.click(screen.getByLabelText("Ativa"));
     expect(screen.getByLabelText("Obrigatória")).toBeChecked();
     expect(screen.getByLabelText("Ativa")).toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Alunos e respostas" }));
+    await user.click(screen.getByRole("link", { name: "Alunos e respostas" }));
     await user.click(screen.getByRole("button", { name: /Aluno\s*Respostas/ }));
-    await user.click(screen.getByRole("button", { name: /Alertas/ }));
+    await user.click(screen.getByRole("link", { name: /Alertas/ }));
     expect(screen.getByText("custom")).toBeInTheDocument();
   });
 
   it("renders empty lists and recurrence without a detail", async () => {
     const recurrence = { ...submission, recurrence_status: "failed", recurrence_issue: "", answers_changed_at: null };
     api.get.mockImplementation((url) => Promise.resolve({ data: url.endsWith("/submissions") ? [recurrence] : [] }));
-    render(<Dashboard />);
+    renderDashboard();
     expect(await screen.findByText(/Recorrência com atenção: failed/)).toBeInTheDocument();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("link", { name: "Perguntas" }));
     expect(screen.getByText(/Cadastre a primeira pergunta/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Alertas (0)" }));
+    await user.click(screen.getByRole("link", { name: "Alertas (0)" }));
     expect(screen.getByText(/Nenhum alerta registrado/)).toBeInTheDocument();
   });
 
@@ -294,13 +322,13 @@ describe("Dashboard", () => {
         data: url.includes("answers/seen") ? { ...submission, answers_seen_at: "2026-01-05" } : { ok: true },
       }),
     );
-    render(<Dashboard />);
+    renderDashboard();
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Marcar como visto" }));
-    await user.click(screen.getByRole("button", { name: "Perguntas" }));
+    await user.click(screen.getByRole("link", { name: "Perguntas" }));
     await user.click(screen.getByRole("button", { name: "Editar" }));
     expect(screen.getByLabelText(/Opções/)).toHaveValue("");
-    await user.click(screen.getByRole("button", { name: /Alertas/ }));
+    await user.click(screen.getByRole("link", { name: /Alertas/ }));
     await user.click(screen.getByRole("button", { name: "Marcar como visto" }));
     expect(screen.getAllByText(/Falha no pagamento/)).toHaveLength(2);
   });

@@ -1,17 +1,23 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useSearchParams } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => ({ value: { isAuthenticated: false, roles: [] } }));
 vi.mock("../context/AuthContext", () => ({ useAuth: () => auth.value }));
 import ProtectedRoute from "./ProtectedRoute";
 
+function LoginProbe() {
+  const [params] = useSearchParams();
+
+  return <span data-testid="redirect">{params.get("redirecionar")}</span>;
+}
+
 function renderRoute(roles) {
   return render(
     <MemoryRouter initialEntries={["/private"]}>
       <Routes>
-        <Route path="/login" element={<p>Login page</p>} />
-        <Route path="/not-authorized" element={<p>Denied page</p>} />
+        <Route path="/entrar" element={<p>Login page</p>} />
+        <Route path="/sem-permissao" element={<p>Denied page</p>} />
         <Route
           path="/private"
           element={
@@ -36,6 +42,26 @@ describe("ProtectedRoute", () => {
     auth.value = { isAuthenticated: true, roles: ["user"] };
     renderRoute(["admin"]);
     expect(screen.getByText("Denied page")).toBeInTheDocument();
+  });
+
+  it("sends the blocked destination along so login can return to it", () => {
+    auth.value = { isAuthenticated: false, roles: [] };
+    render(
+      <MemoryRouter initialEntries={["/painel/alunos/abc?aba=1"]}>
+        <Routes>
+          <Route path="/entrar" element={<LoginProbe />} />
+          <Route
+            path="/painel/alunos/:id"
+            element={
+              <ProtectedRoute>
+                <p>Private page</p>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("redirect").textContent).toBe("/painel/alunos/abc?aba=1");
   });
 
   it("renders authorized content", () => {

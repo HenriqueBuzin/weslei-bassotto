@@ -39,7 +39,9 @@ describe("Register", () => {
   });
 
   it("shows registration API errors", async () => {
-    register.mockRejectedValueOnce({ response: { data: { detail: "E-mail já cadastrado" } } });
+    register.mockRejectedValueOnce({
+      response: { data: { code: "email_already_registered", detail: "This e-mail is already registered" } },
+    });
     render(
       <MemoryRouter>
         <Register />
@@ -50,7 +52,7 @@ describe("Register", () => {
     await user.type(screen.getByLabelText("Senha"), "secret123");
     await user.type(screen.getByLabelText("Confirmar senha"), "secret123");
     await user.click(screen.getByRole("button", { name: "Criar conta" }));
-    expect(await screen.findByText("E-mail já cadastrado")).toBeInTheDocument();
+    expect(await screen.findByText("Este e-mail já está cadastrado.")).toBeInTheDocument();
   });
 
   it("uses the generic registration error", async () => {

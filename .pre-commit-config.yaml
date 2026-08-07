@@ -1,23 +1,13 @@
 repos:
   - repo: local
     hooks:
-      - id: black
-        name: black
-        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe -m black --config api/pyproject.toml
+      # Pint is the PHP counterpart of black + isort: one formatter, no debate.
+      - id: pint
+        name: pint api
+        entry: python scripts/pint.py
         language: system
-        types: [python]
-
-      - id: isort
-        name: isort
-        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe -m isort --settings-path api/pyproject.toml
-        language: system
-        types: [python]
-
-      - id: flake8
-        name: flake8
-        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe -m flake8 --config api/.flake8
-        language: system
-        types: [python]
+        types: [php]
+        pass_filenames: false
 
       - id: prettier
         name: prettier frontend
@@ -33,9 +23,11 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # Covers what flake8 and pytest used to: phpstan for static analysis and
+      # phpunit with the 100% line floor, plus every frontend gate.
       - id: quality-gates
         name: full quality gates
-        entry: C:/Users/henri/Documents/Projects/venv/weslei-bassotto/Scripts/python.exe scripts/validate.py
+        entry: python scripts/validate.py
         language: system
         pass_filenames: false
         always_run: true

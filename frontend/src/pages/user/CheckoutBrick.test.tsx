@@ -87,7 +87,7 @@ describe("CheckoutBrick", () => {
     expect(screen.getByRole("heading", { name: "Entre ou crie sua conta para assinar." })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Criar conta" })).toHaveAttribute(
       "href",
-      expect.stringContaining("returnTo"),
+      expect.stringContaining("redirecionar"),
     );
     expect(document.querySelector("#cardPaymentBrick_container")).not.toBeInTheDocument();
   });

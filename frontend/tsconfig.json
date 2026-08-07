@@ -17,7 +17,7 @@
     "jsx": "react-jsx",
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "vite.config.js", "eslint.config.js"],
+  "include": ["src", "e2e", "scripts", "vite.config.ts", "eslint.config.ts", "playwright.config.ts"],
   "exclude": [
     "dist",
     "coverage",
