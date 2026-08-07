@@ -1,18 +1,40 @@
 #!/bin/sh
+# Cada lado usa seu próprio task runner: Composer no backend, npm no frontend.
+# O único papel deste hook é chamar os dois, então ele não precisa de runtime
+# nenhum além do que o projeto já exige.
 set -eu
 
 ROOT="$(git rev-parse --show-toplevel)"
-VENV="C:/Users/henri/Documents/Projects/venv/weslei-bassotto"
-PYTHON="$VENV/Scripts/python.exe"
-
-if [ ! -f "$PYTHON" ]; then
-  echo "Dedicated environment not found at $VENV" >&2
-  exit 1
-fi
-
-export PATH="$VENV/Scripts:$PATH"
-export VIRTUAL_ENV="$VENV"
-export POETRY_VIRTUALENVS_CREATE=false
 cd "$ROOT"
 
-exec "$PYTHON" -m pre_commit run --config .pre-commit-config.yaml --hook-stage pre-commit
+API_IMAGE="${WESLEI_API_IMAGE:-weslei-bassotto/api-ci:local}"
+
+# Sem isto o MSYS reescreve os caminhos do container para C:/Program Files/Git/...
+export MSYS_NO_PATHCONV=1
+
+api() {
+  docker run --rm -v "$ROOT/api:/app" -w /app "$API_IMAGE" "$@"
+}
+
+echo "==> Imagem de ferramentas do backend"
+# A imagem `test` já traz PHP 8.5, pdo_pgsql e o Xdebug que a cobertura exige.
+docker build --target test --build-arg API_PORT=8000 -t "$API_IMAGE" "$ROOT/api"
+
+echo "==> Backend: dependências"
+api composer install --no-interaction --no-progress
+
+echo "==> Backend: formatação"
+api composer lint:fix
+
+echo "==> Backend: portas de qualidade"
+api composer gates
+
+echo "==> Frontend: formatação"
+npm --prefix frontend run format
+
+echo "==> Frontend: portas de qualidade"
+npm --prefix frontend run gates
+
+# O E2E fica fora do hook: são mais de dez minutos e o Jenkins já o executa.
+# Rode à mão antes de abrir PR: npm --prefix frontend run test:e2e
+echo "==> OK. E2E não roda aqui; use: npm --prefix frontend run test:e2e"

@@ -74,8 +74,12 @@ medição, não por teste faltando: o Xdebug emite uma aresta de exceção por
 chamada interna (`str_contains`, `trim`, `implode`) que nenhum input alcança —
 inspecione com `api/scripts/branch-gaps.php` antes de perseguir o número.
 
-`scripts/validate.py` é o gate local agregado e roda as portas do backend
-dentro da imagem `test`. E2E usa Playwright.
+Cada stack traz seu próprio task runner e o repositório não carrega um
+terceiro runtime para orquestrá-los: os alvos do backend são scripts do
+Composer em `api/composer.json` (`composer gates`), os do frontend são
+scripts npm (`npm run gates`), e `.githooks/pre-commit` é um shell script que
+chama os dois. Nenhum arquivo Python no repositório. E2E usa Playwright e
+fica fora do hook por levar mais de dez minutos.
 
 ## Docker, Compose e entrega
 

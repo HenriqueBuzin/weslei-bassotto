@@ -55,29 +55,21 @@ jobs:
         run: docker build --target test --build-arg API_PORT=8000 --tag weslei-bassotto-api:ci .
       - name: Install
         run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer install --no-interaction --no-progress
-      - name: Pint
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/pint --test
-      - name: PHPStan
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci php -d memory_limit=1G vendor/bin/phpstan analyse --no-progress
-      # PHPUnit has no --coverage-fail-under, so the floor lives in coverage-gate.php.
-      - name: Verify
-        run: |
-          docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci sh -lc '
-            php -d memory_limit=2G vendor/bin/phpunit --coverage-clover=coverage/clover.xml --coverage-filter app
-            php scripts/coverage-gate.php
-          '
+      # Os alvos vivem em api/composer.json, então CI e hook cobram o mesmo.
+      - name: Gates
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer gates
       - name: Unit tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite unit
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:unit
       - name: Integration tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite integration
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:integration
       - name: API tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite api
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:api
       - name: Functional tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite functional
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:functional
       - name: Regression tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite regression
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:regression
       - name: Smoke tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci vendor/bin/phpunit --testsuite smoke
+        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:smoke
 
   frontend:
     name: Frontend - tests and 100% coverage

@@ -90,18 +90,18 @@ Para adicionar outro gateway, implemente `PaymentGateway`, registre-o no `Gatewa
 # A imagem `test` da API traz PHP 8.5, pdo_pgsql e Xdebug (cobertura de branches
 # exige Xdebug; pcov só mede linhas).
 docker build --target test --build-arg API_PORT=8000 -t weslei-bassotto/api-ci:local api
-API="docker run --rm -e MSYS_NO_PATHCONV=1 -v ./api:/app -w /app weslei-bassotto/api-ci:local"
+API="docker run --rm -v $PWD/api:/app -w /app weslei-bassotto/api-ci:local"
 
 $API composer install
-$API vendor/bin/pint             # formatação, no lugar de black + isort
-$API vendor/bin/phpstan analyse  # análise estática, no lugar do flake8
-$API sh -lc 'php -d memory_limit=2G vendor/bin/phpunit --coverage-clover=coverage/clover.xml --coverage-filter app && php scripts/coverage-gate.php'
-$API vendor/bin/phpunit --testsuite unit
-$API vendor/bin/phpunit --testsuite integration
-$API vendor/bin/phpunit --testsuite api
-$API vendor/bin/phpunit --testsuite functional
-$API vendor/bin/phpunit --testsuite regression
-$API vendor/bin/phpunit --testsuite smoke
+$API composer gates            # formatação, análise estática e cobertura
+$API composer lint:fix         # formata, no lugar de black + isort
+$API composer analyse          # análise estática, no lugar do flake8
+$API composer test:unit
+$API composer test:integration
+$API composer test:api
+$API composer test:functional
+$API composer test:regression
+$API composer test:smoke
 
 cd ../frontend
 npm ci
@@ -123,19 +123,27 @@ O Jenkins executa testes unitários, de API, funcionais, regressão, integraçã
 
 ### Validação automática
 
-Execute todos os mesmos gates localmente com um único comando:
+Cada lado é validado pelo seu próprio task runner, então não existe um terceiro
+runtime só para orquestrar:
 
 ```bash
-python scripts/validate.py
+docker run --rm -v $PWD/api:/app -w /app weslei-bassotto/api-ci:local composer gates
+npm --prefix frontend run gates
+npm --prefix frontend run test:e2e
 ```
 
-Ative uma vez o hook versionado para impedir commits quando qualquer teste, cobertura, build ou E2E falhar:
+Ative uma vez o hook versionado, que executa exatamente esses alvos (menos o
+E2E, que leva mais de dez minutos e fica com o Jenkins):
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-O hook `pre-commit` executa Pint no backend; Prettier e ESLint no frontend; e depois `scripts/validate.py`, que roda as portas do backend dentro da imagem `test` (Pint, PHPStan, PHPUnit e o piso de 100% de linhas em `api/scripts/coverage-gate.php`). O workflow `.github/workflows/quality.yml` repete as validações em todo push e pull request para `main` e `dev`, mesmo quando o hook local não estiver instalado. O Jenkins permanece responsável pela validação final e pelo deploy.
+O hook é um shell script: chama `composer` dentro da imagem de testes e `npm` no
+frontend. O workflow `.github/workflows/quality.yml` repete as validações em
+todo push e pull request para `main` e `dev`, mesmo quando o hook local não
+estiver instalado. O Jenkins permanece responsável pela validação final e pelo
+deploy.
 
 ## Administradores iniciais
 

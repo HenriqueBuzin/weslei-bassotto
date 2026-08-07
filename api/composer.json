@@ -41,8 +41,23 @@
         ],
         "lint": "pint --test",
         "lint:fix": "pint",
+        "analyse": "php -d memory_limit=1G vendor/bin/phpstan analyse --no-progress",
         "test": "phpunit",
-        "test:coverage": "phpunit --coverage-text --coverage-clover=coverage/clover.xml"
+        "test:coverage": [
+            "php -d memory_limit=2G vendor/bin/phpunit --coverage-clover=coverage/clover.xml --coverage-filter app",
+            "php scripts/coverage-gate.php"
+        ],
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "test:api": "phpunit --testsuite api",
+        "test:functional": "phpunit --testsuite functional",
+        "test:regression": "phpunit --testsuite regression",
+        "test:smoke": "phpunit --testsuite smoke",
+        "gates": [
+            "@lint",
+            "@analyse",
+            "@test:coverage"
+        ]
     },
     "extra": {
         "laravel": {
@@ -59,5 +74,8 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts-descriptions": {
+        "gates": "Roda formatação, análise estática e cobertura com piso de 100% de linhas."
+    }
 }
