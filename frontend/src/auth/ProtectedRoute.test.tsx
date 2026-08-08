@@ -18,6 +18,7 @@ function renderRoute(roles) {
       <Routes>
         <Route path="/entrar" element={<p>Login page</p>} />
         <Route path="/sem-permissao" element={<p>Denied page</p>} />
+        <Route path="/trocar-senha" element={<p>Change page</p>} />
         <Route
           path="/private"
           element={
@@ -62,6 +63,41 @@ describe("ProtectedRoute", () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId("redirect").textContent).toBe("/painel/alunos/abc?aba=1");
+  });
+
+  it("holds a user with a temporary password on the change screen", () => {
+    auth.value = { isAuthenticated: true, roles: ["admin"], mustChangePassword: true };
+    renderRoute(["admin"]);
+    expect(screen.getByText("Change page")).toBeInTheDocument();
+    expect(screen.queryByText("Private page")).not.toBeInTheDocument();
+  });
+
+  /** Sem a excecao o proprio destino redirecionaria para si mesmo em loop. */
+  it("lets the change screen itself render instead of looping", () => {
+    auth.value = { isAuthenticated: true, roles: ["admin"], mustChangePassword: true };
+    render(
+      <MemoryRouter initialEntries={["/trocar-senha"]}>
+        <Routes>
+          <Route
+            path="/trocar-senha"
+            element={
+              <ProtectedRoute>
+                <p>Change form</p>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("Change form")).toBeInTheDocument();
+  });
+
+  /** A troca vem antes do papel: um admin com senha temporaria nao ve o painel. */
+  it("checks the temporary password before the role", () => {
+    auth.value = { isAuthenticated: true, roles: ["user"], mustChangePassword: true };
+    renderRoute(["admin"]);
+    expect(screen.getByText("Change page")).toBeInTheDocument();
+    expect(screen.queryByText("Denied page")).not.toBeInTheDocument();
   });
 
   it("renders authorized content", () => {

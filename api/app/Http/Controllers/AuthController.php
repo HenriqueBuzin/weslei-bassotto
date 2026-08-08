@@ -108,6 +108,9 @@ class AuthController extends Controller
             new JsonResponse([
                 'access_token' => $this->tokens->createAccessToken($user->id, $user->roleNames()),
                 'token_type' => 'bearer',
+                // O refresh tambem carrega a flag: sem ela, um F5 renovaria a
+                // sessao sem o aviso e o admin escaparia da troca obrigatoria.
+                'must_change_password' => $user->must_change_password,
             ]),
             $rotated,
             $remember,

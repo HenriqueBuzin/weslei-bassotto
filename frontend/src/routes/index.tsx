@@ -14,6 +14,7 @@ export const routeLoaders = {
   subscriberArea: () => import("../pages/user/SubscriberArea"),
   checkoutBrick: () => import("../pages/user/CheckoutBrick"),
   notAuthorized: () => import("../pages/NotAuthorized"),
+  changePassword: () => import("../pages/ChangePassword"),
   notFound: () => import("../pages/NotFound"),
 };
 
@@ -27,6 +28,7 @@ const Questionnaire = lazy(routeLoaders.questionnaire);
 const SubscriberArea = lazy(routeLoaders.subscriberArea);
 const CheckoutBrick = lazy(routeLoaders.checkoutBrick);
 const NotAuthorized = lazy(routeLoaders.notAuthorized);
+const ChangePassword = lazy(routeLoaders.changePassword);
 const NotFound = lazy(routeLoaders.notFound);
 
 /**
@@ -63,6 +65,14 @@ const routes: RouteObject[] = [
   { path: PATHS.register, element: <Register /> },
   { path: PATHS.forgotPassword, element: <ForgotPassword /> },
   { path: PATHS.resetPassword, element: <ResetPassword /> },
+  {
+    path: PATHS.changePassword,
+    element: (
+      <ProtectedRoute>
+        <ChangePassword />
+      </ProtectedRoute>
+    ),
+  },
   { path: PATHS.notAuthorized, element: <NotAuthorized /> },
   {
     path: PATHS.questionnaire,

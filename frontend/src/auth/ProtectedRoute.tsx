@@ -9,7 +9,7 @@ type ProtectedRouteProps = {
 };
 
 export default function ProtectedRoute({ roles, children }: ProtectedRouteProps) {
-  const { isAuthenticated, roles: myRoles = [] } = useAuth();
+  const { isAuthenticated, roles: myRoles = [], mustChangePassword } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -18,6 +18,12 @@ export default function ProtectedRoute({ roles, children }: ProtectedRouteProps)
     const target = `${location.pathname}${location.search}`;
 
     return <Navigate to={loginWithRedirect(target)} replace />;
+  }
+
+  // A propria tela de troca e protegida, entao precisa da excecao: sem ela o
+  // redirecionamento apontaria para si mesmo em loop.
+  if (mustChangePassword && location.pathname !== PATHS.changePassword) {
+    return <Navigate to={PATHS.changePassword} replace />;
   }
 
   if (Array.isArray(roles) && roles.length > 0) {

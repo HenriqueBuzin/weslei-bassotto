@@ -19,6 +19,7 @@ export const PATHS = {
   dashboardSubmissions: "/painel/alunos",
   dashboardQuestions: "/painel/perguntas",
   dashboardEvents: "/painel/alertas",
+  changePassword: "/trocar-senha",
   notAuthorized: "/sem-permissao",
 } as const;
 

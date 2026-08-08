@@ -13,6 +13,8 @@ type AuthContextValue = {
   accessToken: string | undefined;
   roles: string[];
   isAuthenticated: boolean;
+  mustChangePassword: boolean;
+  markPasswordChanged: () => void;
   login: (email: string, password: string, remember?: boolean) => Promise<string>;
   register: (email: string, password: string) => Promise<string>;
   logout: () => Promise<void>;
@@ -71,6 +73,10 @@ export function clearSessionMarker() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAT] = useState<string | undefined>(undefined);
+  // Vem do login e do refresh: enquanto for true, o ProtectedRoute nao deixa o
+  // usuario chegar em outra tela. Fica em memoria junto do access token, e o
+  // refresh a repete para o F5 nao virar uma forma de escapar da troca.
+  const [mustChangePassword, setMustChange] = useState(false);
 
   authApi.defaults.withCredentials = true;
 
@@ -91,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     markSession(remember);
+    setMustChange(!!data.must_change_password);
     setAT(data.access_token);
     return data.access_token;
   }, []);
@@ -108,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authApi.post("/auth/logout", null, { headers: { "X-Requested-With": "XMLHttpRequest" } });
     } finally {
       clearSessionMarker();
+      setMustChange(false);
       setAT(undefined);
     }
   }, []);
@@ -117,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "X-Requested-With": "XMLHttpRequest" },
     });
     markSession(storageGet(window.localStorage, REMEMBER_SESSION_KEY) === "1");
+    setMustChange(!!data.must_change_password);
     setAT(data.access_token);
     return data.access_token;
   }, []);
@@ -131,6 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })();
   }, [doRefresh]);
+
+  const markPasswordChanged = useCallback(() => setMustChange(false), []);
 
   const refreshPromiseRef = useRef<Promise<string> | null>(null);
   useEffect(() => {
@@ -161,8 +172,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [doRefresh]);
 
   const value = useMemo(
-    () => ({ accessToken, roles, isAuthenticated, login, register, logout, refresh: doRefresh }),
-    [accessToken, roles, isAuthenticated, login, register, logout, doRefresh],
+    () => ({
+      accessToken,
+      roles,
+      isAuthenticated,
+      mustChangePassword,
+      markPasswordChanged,
+      login,
+      register,
+      logout,
+      refresh: doRefresh,
+    }),
+    [accessToken, roles, isAuthenticated, mustChangePassword, markPasswordChanged, login, register, logout, doRefresh],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

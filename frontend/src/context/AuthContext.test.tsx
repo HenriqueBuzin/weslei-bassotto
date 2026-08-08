@@ -35,6 +35,8 @@ function Probe() {
   return (
     <div>
       <span>{auth.isAuthenticated ? "authenticated" : "anonymous"}</span>
+      <span data-testid="must-change">{auth.mustChangePassword ? "must-change" : "free"}</span>
+      <button onClick={auth.markPasswordChanged}>mark changed</button>
       <button onClick={() => auth.login("user@example.com", "secret123", true)}>login</button>
       <button onClick={() => auth.register("new@example.com", "secret123")}>register</button>
       <button onClick={auth.logout}>logout</button>
@@ -83,6 +85,74 @@ describe("AuthContext", () => {
     expect(mocks.authPost).toHaveBeenCalledWith("/auth/logout", null, {
       headers: { "X-Requested-With": "XMLHttpRequest" },
     });
+  });
+
+  it("keeps the temporary-password flag from login and clears it when changed", async () => {
+    mocks.authPost.mockResolvedValue({ data: { access_token: "token", must_change_password: true } });
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "login" }));
+    expect(await screen.findByText("must-change")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "mark changed" }));
+    expect(await screen.findByText("free")).toBeInTheDocument();
+  });
+
+  /**
+   * O access token vive em memoria e um F5 recria a sessao pelo refresh. Se o
+   * refresh nao repetisse a flag, recarregar a pagina viraria a forma de escapar
+   * da troca obrigatoria.
+   */
+  it("keeps the flag across a reload, because refresh repeats it", async () => {
+    window.localStorage.setItem("wb_auth_remember_session", "1");
+    mocks.authPost.mockResolvedValue({ data: { access_token: "restored", must_change_password: true } });
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText("authenticated")).toBeInTheDocument();
+    expect(screen.getByTestId("must-change").textContent).toBe("must-change");
+  });
+
+  it("leaves the flag off when the API does not send it", async () => {
+    mocks.authPost.mockResolvedValue({ data: { access_token: "token" } });
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "login" }));
+    expect(await screen.findByText("authenticated")).toBeInTheDocument();
+    expect(screen.getByTestId("must-change").textContent).toBe("free");
+  });
+
+  it("drops the flag on logout", async () => {
+    mocks.authPost.mockImplementation((url) =>
+      url === "/auth/login"
+        ? Promise.resolve({ data: { access_token: "token", must_change_password: true } })
+        : Promise.resolve({ data: {} }),
+    );
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "login" }));
+    expect(await screen.findByText("must-change")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "logout" }));
+    expect(await screen.findByText("free")).toBeInTheDocument();
   });
 
   it("refreshes a remembered session on startup", async () => {

@@ -177,6 +177,16 @@ final class PasswordFlowTest extends TestCase
 
         $this->assertTrue($login->json('must_change_password'));
 
+        // O refresh tem de repetir a flag: o frontend guarda o estado em memoria,
+        // e sem ela um F5 renovaria a sessao sem a obrigacao de trocar.
+        $refreshToken = (string) $login->getCookie('rt', false)?->getValue();
+
+        $this->withCredentials()
+            ->withUnencryptedCookie('rt', $refreshToken)
+            ->postJson($this->apiUrl('auth/refresh'))
+            ->assertOk()
+            ->assertJsonPath('must_change_password', true);
+
         $this->withHeaders($this->authHeader($user))
             ->postJson($this->apiUrl('auth/change-password'), [
                 'current_password' => 'senha-inicial',

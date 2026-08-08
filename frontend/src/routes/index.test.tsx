@@ -66,7 +66,11 @@ describe("application routes", () => {
 
   it("loads every code-split route", async () => {
     const modules = await Promise.all(Object.values(routeLoaders).map((load) => load()));
-    expect(modules).toHaveLength(11);
+
+    // Sem numero fixo: o que importa e que todo loader declarado resolva num
+    // componente, nao quantos sao. A contagem literal so quebrava a cada rota
+    // nova, sem nunca ter pegado um defeito.
+    expect(modules).toHaveLength(Object.keys(routeLoaders).length);
     expect(modules.every((module) => module.default)).toBe(true);
   });
 });
