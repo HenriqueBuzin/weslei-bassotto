@@ -169,8 +169,8 @@ pipeline {
                         if ! docker compose -f docker-compose-prod.yml up -d --remove-orphans --wait --wait-timeout 180; then
                             echo "❌ Falha ao iniciar o ambiente de produção. Estado dos serviços:"
                             docker compose -f docker-compose-prod.yml ps || true
-                            echo "📋 Logs recentes da API:"
-                            docker compose -f docker-compose-prod.yml logs --no-color --tail=200 backend || true
+                            echo "📋 Logs recentes de todos os serviços:"
+                            docker compose -f docker-compose-prod.yml logs --no-color --tail=200 || true
                             echo "🌐 Containers conectados à rede compartilhada do PostgreSQL:"
                             docker network inspect "\${POSTGRES_NETWORK:-postgres-network}" \
                                 --format '{{range .Containers}}{{.Name}} {{end}}' || true
@@ -218,8 +218,8 @@ pipeline {
                         if ! docker compose -f docker-compose.yml up -d --remove-orphans --wait --wait-timeout 180; then
                             echo "❌ Falha ao iniciar o ambiente dev. Estado dos serviços:"
                             docker compose -f docker-compose.yml ps || true
-                            echo "📋 Logs recentes da API:"
-                            docker compose -f docker-compose.yml logs --no-color --tail=200 backend || true
+                            echo "📋 Logs recentes de todos os serviços:"
+                            docker compose -f docker-compose.yml logs --no-color --tail=200 || true
                             echo "🌐 Containers conectados à rede compartilhada do PostgreSQL:"
                             docker network inspect "\${POSTGRES_NETWORK:-postgres-network}" \
                                 --format '{{range .Containers}}{{.Name}} {{end}}' || true

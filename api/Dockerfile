@@ -127,9 +127,13 @@ FROM dev AS dev-scheduler
 
 # Herda de dev e não de prod porque o compose de desenvolvimento monta o código
 # por cima de /app; a imagem de produção traz o vendor embutido e o mount o
-# esconderia. O composer install repete o do backend porque os dois containers
-# compartilham o volume de vendor e a ordem de subida não é garantida.
-CMD ["sh","-lc","composer install --no-interaction; exec php artisan schedule:work"]
+# esconderia.
+#
+# Sem composer install de propósito: os dois containers compartilham o volume de
+# vendor, e instalar nos dois ao mesmo tempo faz um apagar os pacotes que o outro
+# está gravando ("Could not delete /app/vendor/doctrine"). O compose espera o
+# backend ficar saudável, o que só acontece depois do install dele.
+CMD ["sh","-lc","exec php artisan schedule:work"]
 
 
 # --- Scheduler de produção: mesma imagem de prod, só trocando o processo ---
