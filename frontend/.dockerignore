@@ -1,0 +1,16 @@
+# Sem este arquivo o contexto de build era o diretorio inteiro (~200 MB) e o
+# `COPY . .` sobrescrevia o /app/node_modules recem-instalado pelo npm ci com a
+# arvore da maquina de build, inchando cada imagem com centenas de MB.
+node_modules
+dist
+coverage
+test-results
+playwright-report
+
+.git
+.gitignore
+
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

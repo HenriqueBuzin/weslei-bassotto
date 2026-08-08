@@ -17,6 +17,10 @@ pipeline {
                         # The image's test target already ships PHP 8.5, pdo_pgsql and
                         # Xdebug, so the toolchain is not assembled a second time here.
                         IMAGE="weslei-bassotto/api-ci:$(git rev-parse --short=12 HEAD)"
+                        # Uma tag por commit sem remocao enchia o disco da VPS: cada
+                        # imagem passa de 500 MB por causa do Xdebug. O trap roda
+                        # tambem quando os gates falham.
+                        trap 'docker rmi -f "$IMAGE" >/dev/null 2>&1 || true' EXIT
                         docker build --target test --build-arg API_PORT=8000 -t "$IMAGE" "$WORKSPACE/api"
 
                         docker run --rm \
