@@ -12,6 +12,7 @@ use App\Http\Resources\UserResource;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\LoginThrottleService;
+use App\Services\PasswordHashService;
 use App\Services\RefreshSessionService;
 use App\Services\TokenService;
 use App\Support\RefreshCookie;
@@ -28,6 +29,7 @@ class AuthController extends Controller
         private readonly TokenService $tokens,
         private readonly RefreshSessionService $sessions,
         private readonly LoginThrottleService $throttle,
+        private readonly PasswordHashService $passwords,
     ) {}
 
     public function login(LoginRequest $request): JsonResponse
@@ -41,7 +43,7 @@ class AuthController extends Controller
 
         $user = User::with('roles')->where('email', $email)->first();
 
-        if ($user === null || ! Hash::check($request->string('password')->value(), $user->password_hash)) {
+        if ($user === null || ! $this->passwords->verifyAndUpgrade($user, $request->string('password')->value())) {
             $this->throttle->registerFailure($email);
 
             throw ApiException::unauthorized('invalid_credentials', 'Invalid e-mail or password');
@@ -166,7 +168,7 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (! Hash::check($request->string('current_password')->value(), $user->password_hash)) {
+        if (! $this->passwords->matches($request->string('current_password')->value(), $user->password_hash)) {
             throw ApiException::badRequest('current_password_invalid', 'The current password does not match');
         }
 

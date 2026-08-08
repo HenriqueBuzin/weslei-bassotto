@@ -77,6 +77,24 @@ final class AuthEndpointsTest extends TestCase
         $this->assertSame(1, RefreshSession::query()->count());
     }
 
+    public function test_logging_in_with_a_legacy_argon_hash_upgrades_it_to_the_current_driver(): void
+    {
+        $user = $this->createUser('legado@example.com', 'segredo123');
+        $legacyHash = password_hash('segredo123', PASSWORD_ARGON2ID);
+        $user->forceFill(['password_hash' => $legacyHash])->save();
+
+        $this->post($this->apiUrl('auth/login'), [
+            'username' => 'legado@example.com',
+            'password' => 'segredo123',
+        ])->assertOk();
+
+        $upgradedHash = $user->refresh()->password_hash;
+
+        $this->assertNotSame($legacyHash, $upgradedHash);
+        $this->assertTrue(Hash::check('segredo123', $upgradedHash));
+        $this->assertFalse(Hash::needsRehash($upgradedHash));
+    }
+
     public function test_remember_me_produces_a_persistent_cookie(): void
     {
         $this->createUser();
