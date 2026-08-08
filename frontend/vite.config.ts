@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       allowedHosts: [
+        "weslei-bassotto-dev",
         "dev.wesleibassotto.com.br",
         "wesleibassotto.com.br",
         "www.wesleibassotto.com.br",

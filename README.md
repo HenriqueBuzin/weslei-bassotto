@@ -36,17 +36,21 @@ docker compose -f docker-compose-prod.yml down
 ## Arquitetura de pagamentos
 
 - A home permanece isolada das regras de pagamento.
-- Planos e períodos ficam em `api/app/domain`.
-- Gateways implementam `PaymentGateway`, definido em `api/app/payments/contracts.py`.
+- Planos e períodos ficam em `api/app/Domain`.
+- Gateways implementam `PaymentGateway`, definido em `api/app/Payments/PaymentGateway.php`.
 - O serviço de pagamentos seleciona o adapter, registra tentativas e processa webhooks com idempotência.
 - Contratos, renovações, revisões da anamnese e alertas são persistidos no PostgreSQL compartilhado da VPS.
 
 ## Proxy e banco compartilhados
 
-O projeto não publica portas HTTP no host e não cria bancos internos. O Caddy deve estar conectado à `proxy-network` e encaminhar para:
+O projeto não publica portas HTTP no host e não cria bancos internos. O proxy externo deve estar conectado à `proxy-network` e encaminhar para:
 
-- desenvolvimento: `weslei-bassotto-dev:80`;
+- desenvolvimento: Vite em `weslei-bassotto-dev:5173`, com suporte a WebSocket habilitado para HMR;
 - produção: `weslei-bassotto:80`.
+
+Desenvolvimento não usa Caddy: o Vite recebe as requisições e encaminha `/api`
+para o Laravel em `backend:8000`. Produção continua usando Caddy para servir os
+assets compilados e FastCGI para falar com o PHP-FPM.
 
 API e PostgreSQL compartilham a rede externa definida por `POSTGRES_NETWORK` (padrão `postgres-network`). A `DATABASE_URL` usa o alias `postgres`, por exemplo `postgresql://usuario:senha@postgres:5432/weslei_bassotto`.
 
@@ -58,7 +62,7 @@ Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolado
 - desenvolvimento usa o projeto Compose `weslei-bassotto-dev`, banco `weslei_bassotto_dev` e um usuário exclusivo, como `weslei_dev`;
 - os dois compartilham somente o servidor PostgreSQL e as redes externas; não compartilham credenciais, banco, containers, imagens de projeto ou volumes.
 
-Na VPS, `/root/projects/envs/weslei-bassotto.env` configura produção e `/root/projects/envs/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. Os nomes dos projetos são definidos pelos arquivos Compose: `weslei-bassotto` em produção e `weslei-bassotto-dev` em desenvolvimento.
+Na VPS, `/root/projects/envs/weslei-bassotto/prod/weslei-bassotto.env` configura produção e `/root/projects/envs/weslei-bassotto/dev/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. Os nomes dos projetos são definidos pelos arquivos Compose: `weslei-bassotto` em produção e `weslei-bassotto-dev` em desenvolvimento.
 
 ## Docker Secrets
 
@@ -131,7 +135,7 @@ npm run test:e2e
 npm run build
 ```
 
-O Jenkins executa testes unitários, de API, funcionais, regressão, integração, smoke, E2E em desktop/mobile e o build antes do deploy. Backend e frontend exigem 100% de statements, linhas, branches e funções.
+O Jenkins executa testes unitários, de API, funcionais, regressão, integração, smoke, E2E em desktop/mobile e o build antes do deploy. O frontend exige 100% de statements, linhas, branches e funções; o backend exige 100% de linhas e audita as arestas de branch com os scripts de cobertura do projeto.
 
 ### Validação automática
 

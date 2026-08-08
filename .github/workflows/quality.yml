@@ -24,6 +24,8 @@ jobs:
         run: |
           docker compose --env-file .env.example -f docker-compose.yml config --quiet
           docker compose --env-file .env.example -f docker-compose-prod.yml config --quiet
+          ! docker compose --env-file .env.example -f docker-compose.yml config --services | grep -qx web
+          docker compose --env-file .env.example -f docker-compose-prod.yml config --services | grep -qx web
       - name: Container
         run: docker build --build-arg API_PORT=8000 --tag weslei-bassotto-backend:ci api
       - name: Generate SBOM

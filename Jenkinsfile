@@ -105,8 +105,10 @@ pipeline {
                             ln -sfn "$env_file" .env
                             if [ "$PIPELINE_BRANCH" = "main" ]; then
                               docker compose -f docker-compose-prod.yml config --quiet
+                              docker compose -f docker-compose-prod.yml config --services | grep -qx web
                             else
                               docker compose -f docker-compose.yml config --quiet
+                              ! docker compose -f docker-compose.yml config --services | grep -qx web
                             fi
                         '''
                     }
