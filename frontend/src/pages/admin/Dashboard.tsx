@@ -64,14 +64,13 @@ export default function Dashboard() {
     return DASHBOARD_TABS[path as keyof typeof DASHBOARD_TABS] ?? "submissions";
   }, [location.pathname]);
 
-  const editingId = params.get(EDIT_PARAM);
+  const requestedEditingId = params.get(EDIT_PARAM);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [questionForm, setQuestionForm] = useState(emptyQuestion);
   const [busy, setBusy] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
 
   const selectedSubmission = useMemo(
@@ -116,8 +115,6 @@ export default function Dashboard() {
       setEvents(eventRes.data);
     } catch {
       setError("Não foi possível carregar o painel administrativo.");
-    } finally {
-      setLoaded(true);
     }
   }
 
@@ -125,29 +122,22 @@ export default function Dashboard() {
     loadAll();
   }, []);
 
-  // A reload lands with ?editar=<id> already set, so the form refills itself
-  // from whatever the API just returned rather than from stale local state.
+  // A pergunta em edição é derivada, nunca imposta: um ?editar= que aponta para
+  // pergunta apagada simplesmente não resolve, e o painel oferece uma nova. A
+  // versão anterior limpava o parâmetro dentro de um efeito, o que dependia da
+  // ordem entre a navegação e o fim do carregamento e falhava sob carga.
+  const editingQuestion = useMemo(
+    () => questions.find((item) => item.id === requestedEditingId) ?? null,
+    [questions, requestedEditingId],
+  );
+
+  const editingId = editingQuestion?.id ?? null;
+
+  // Um F5 chega com ?editar=<id> já definido, então o formulário se preenche do
+  // que a API acabou de devolver, e não de estado local velho.
   useEffect(() => {
-    if (editingId === null) {
-      setQuestionForm(emptyQuestion);
-
-      return;
-    }
-
-    const question = questions.find((item) => item.id === editingId);
-
-    if (question) {
-      setQuestionForm(normalizeQuestion(question));
-
-      return;
-    }
-
-    // The link outlived the question. Drop the parameter so the panel offers a
-    // new question instead of patching an id the API no longer knows.
-    if (loaded) {
-      setEditingId(null);
-    }
-  }, [editingId, loaded, questions, setEditingId]);
+    setQuestionForm(editingQuestion === null ? emptyQuestion : normalizeQuestion(editingQuestion));
+  }, [editingQuestion]);
 
   function updateQuestionForm(field: keyof QuestionForm, value: string | boolean) {
     setQuestionForm((current) => ({ ...current, [field]: value }));

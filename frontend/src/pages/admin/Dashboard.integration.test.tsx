@@ -54,8 +54,11 @@ describe("Dashboard", () => {
 
     renderDashboard("/painel/perguntas?editar=jainexiste");
 
-    // The pasted link is stale, so the form stays blank instead of breaking.
+    // O link é obsoleto, então o painel oferece uma pergunta nova. A asserção é
+    // sobre o estado final derivado, não sobre uma limpeza de URL que acontecia
+    // em algum momento depois do carregamento.
     expect(await screen.findByRole("heading", { name: "Nova pergunta" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Editar pergunta" })).not.toBeInTheDocument();
   });
 
   it("shows unseen answers and payment alerts", async () => {
