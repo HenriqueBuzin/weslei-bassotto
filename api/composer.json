@@ -71,7 +71,9 @@
         "platform": {
             "php": "8.5.9",
             "ext-pdo_pgsql": "8.5.9"
-        }
+        },
+        "_process-timeout": "Sem limite: o padrao do Composer e 300s e o phpstan estourou isso quando main e dev rodaram juntas e saturaram a VPS. O limite real do build e o timeout de 60 min do Jenkins.",
+        "process-timeout": 0
     },
     "minimum-stability": "stable",
     "prefer-stable": true,

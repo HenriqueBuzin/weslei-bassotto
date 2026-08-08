@@ -92,7 +92,7 @@ services:
       retries: 40
       start_period: 10s
     networks:
-      - proxy-network
+      - internal
       - postgres-network
 
 
@@ -226,7 +226,7 @@ services:
       retries: 40
       start_period: 2s
     networks:
-      - proxy-network
+      - internal
 
   web:
     labels: *default-labels
@@ -256,6 +256,7 @@ services:
       timeout: 5s
       retries: 12
     networks:
+      internal:
       proxy-network:
         aliases:
           - weslei-bassotto-dev
@@ -265,6 +266,15 @@ volumes:
   api_vendor:
 
 networks:
+  # Rede interna deste projeto. O Compose a nomeia com o prefixo do projeto, entao
+  # dev e prod ficam isoladas mesmo usando os mesmos nomes de servico.
+  #
+  # Nada alem do `web` entra na proxy-network: com `backend` nos dois projetos na
+  # rede compartilhada, o DNS do Docker resolvia esse nome para os dois
+  # containers e o Caddy de producao caia em round-robin no backend de dev.
+  internal:
+    driver: bridge
+
   proxy-network:
     external: true
   postgres-network:
