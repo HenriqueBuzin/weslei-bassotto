@@ -49,7 +49,7 @@ O projeto não publica portas HTTP no host e não cria bancos internos. O proxy 
 - produção: `weslei-bassotto:80`.
 
 Desenvolvimento não usa Caddy: o Vite recebe as requisições e encaminha `/api`
-para o Laravel em `backend:8000`. Produção continua usando Caddy para servir os
+para o Laravel em `weslei-bassotto-dev-backend:8000`. Produção continua usando Caddy para servir os
 assets compilados e FastCGI para falar com o PHP-FPM.
 
 API e PostgreSQL compartilham a rede externa definida por `POSTGRES_NETWORK` (padrão `postgres-network`). A `DATABASE_URL` usa o alias `postgres`, por exemplo `postgresql://usuario:senha@postgres:5432/weslei_bassotto`.

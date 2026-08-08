@@ -82,8 +82,10 @@ services:
       retries: 40
       start_period: 15s
     networks:
-      - internal
-      - postgres-network
+      internal:
+        aliases:
+          - weslei-bassotto-backend
+      postgres-network:
 
 
   # routes/console.php agenda platform:prune, e sem este processo o

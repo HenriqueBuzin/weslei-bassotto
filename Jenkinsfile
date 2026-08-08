@@ -106,9 +106,11 @@ pipeline {
                             if [ "$PIPELINE_BRANCH" = "main" ]; then
                               docker compose -f docker-compose-prod.yml config --quiet
                               docker compose -f docker-compose-prod.yml config --services | grep -qx web
+                              grep -q 'reverse_proxy weslei-bassotto-backend:' web/Caddyfile
                             else
                               docker compose -f docker-compose.yml config --quiet
                               ! docker compose -f docker-compose.yml config --services | grep -qx web
+                              docker compose -f docker-compose.yml config | grep -q 'http://weslei-bassotto-dev-backend:8000'
                             fi
                         '''
                     }

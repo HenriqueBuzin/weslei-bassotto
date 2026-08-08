@@ -92,8 +92,10 @@ services:
       retries: 40
       start_period: 10s
     networks:
-      - internal
-      - postgres-network
+      internal:
+        aliases:
+          - weslei-bassotto-dev-backend
+      postgres-network:
 
 
   # routes/console.php agenda platform:prune, e sem este processo o
@@ -199,7 +201,7 @@ services:
       - VITE_APP_NAME=${VITE_APP_NAME}
       - VITE_MP_PUBLIC_KEY=${VITE_MP_PUBLIC_KEY}
       - VITE_WHATSAPP_NUMBER=${VITE_WHATSAPP_NUMBER}
-      - VITE_PROXY_TARGET=http://backend:${API_PORT}
+      - VITE_PROXY_TARGET=http://weslei-bassotto-dev-backend:${API_PORT}
       - VITE_HMR_DISABLED=${VITE_HMR_DISABLED}
       - VITE_HMR_HOST=${VITE_HMR_HOST}
       - VITE_HMR_PROTOCOL=${VITE_HMR_PROTOCOL}
