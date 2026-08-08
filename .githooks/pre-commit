@@ -12,8 +12,14 @@ API_IMAGE="${WESLEI_API_IMAGE:-weslei-bassotto/api-ci:local}"
 # Sem isto o MSYS reescreve os caminhos do container para C:/Program Files/Git/...
 export MSYS_NO_PATHCONV=1
 
+# .env.ci entra montado sobre /app/.env, sem tocar no .env real do desenvolvedor:
+# larastan sobe a aplicacao e ela valida o ambiente. Precisa ser arquivo, porque
+# variavel de processo popula $_SERVER e vence o <env force="true"> do phpunit.xml.
 api() {
-  docker run --rm -v "$ROOT/api:/app" -w /app "$API_IMAGE" "$@"
+  docker run --rm \
+    -v "$ROOT/api:/app" \
+    -v "$ROOT/api/.env.ci:/app/.env:ro" \
+    -w /app "$API_IMAGE" "$@"
 }
 
 echo "==> Imagem de ferramentas do backend"

@@ -53,23 +53,25 @@ jobs:
       # that branch coverage needs, so the toolchain is not reassembled here.
       - name: Build the toolchain image
         run: docker build --target test --build-arg API_PORT=8000 --tag weslei-bassotto-api:ci .
+      # O env vem montado como .env: por variavel de processo o $_SERVER venceria
+      # o <env force="true"> do phpunit.xml e a suite rodaria com outra config.
       - name: Install
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer install --no-interaction --no-progress
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer install --no-interaction --no-progress
       # Os alvos vivem em api/composer.json, então CI e hook cobram o mesmo.
       - name: Gates
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer gates
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer gates
       - name: Unit tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:unit
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer test:unit
       - name: Integration tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:integration
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer test:integration
       - name: API tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:api
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer test:api
       - name: Functional tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:functional
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer test:functional
       - name: Regression tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:regression
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer test:regression
       - name: Smoke tests
-        run: docker run --rm -v "$PWD:/app" -w /app weslei-bassotto-api:ci composer test:smoke
+        run: docker run --rm -v "$PWD:/app" -v "$PWD/.env.ci:/app/.env:ro" -w /app weslei-bassotto-api:ci composer test:smoke
 
   frontend:
     name: Frontend - tests and 100% coverage

@@ -25,6 +25,8 @@ pipeline {
                           "$IMAGE" \
                           sh -c '
                             set -e
+                            cp .env.ci .env
+                            trap "rm -f .env" EXIT
                             composer install --no-interaction --no-progress
                             composer gates
                           '
@@ -42,13 +44,10 @@ pipeline {
                           -e VITE_API_BASE=/api/v1 \
                           -e VITE_MP_PUBLIC_KEY=TEST-public-key \
                           -w "$WORKSPACE/frontend" \
-                          node:24-bookworm-slim \
+                          node:24.18.1-bookworm-slim \
                           sh -c '
                             npm ci --no-audit --no-fund &&
-                            npm run format:check &&
-                            npm run lint &&
-                            npm run test:coverage &&
-                            npm run build
+                            npm run gates
                           '
                         '''
                     }
@@ -151,6 +150,7 @@ pipeline {
                         tar -C "\${workspace}" \
                           --exclude='./.git' \
                           --exclude='./.env' \
+                          --exclude='./api/.env' \
                           -cf - . | tar -C "\${target}" -xf -
                         cd "\${target}"
 
@@ -199,6 +199,7 @@ pipeline {
                         tar -C "\${workspace}" \
                           --exclude='./.git' \
                           --exclude='./.env' \
+                          --exclude='./api/.env' \
                           -cf - . | tar -C "\${target}" -xf -
                         cd "\${target}"
 

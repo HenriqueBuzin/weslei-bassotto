@@ -36,40 +36,43 @@
         </include>
     </source>
 
+    <!-- force="true" e obrigatorio: sem ele o PHPUnit nao sobrepoe uma variavel
+         de ambiente ja definida, e a suite passaria a depender do ambiente de
+         quem a executa (CI, hook, shell do dev). -->
     <php>
-        <env name="APP_ENV" value="dev"/>
-        <env name="APP_KEY" value="base64:AckfSECXIvnK5r28GVIWUAxmbBSjTsmF/0rZoKCErXQ="/>
-        <env name="APP_URL" value="http://localhost:8080"/>
-        <env name="API_BASE" value="/api/v1"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="DATABASE_URL" value="sqlite::memory:"/>
-        <env name="JWT_ALG" value="HS256"/>
-        <env name="JWT_SECRET" value="testing-secret-with-at-least-32-characters"/>
-        <env name="ACCESS_TOKEN_EXPIRES_MINUTES" value="15"/>
-        <env name="REFRESH_TOKEN_EXPIRES_SHORT_HOURS" value="8"/>
-        <env name="REFRESH_TOKEN_EXPIRES_LONG_DAYS" value="30"/>
-        <env name="LOGIN_MAX_ATTEMPTS" value="5"/>
-        <env name="LOGIN_ATTEMPT_WINDOW_MINUTES" value="15"/>
-        <env name="LOGIN_LOCK_MINUTES" value="15"/>
-        <env name="CORS_ALLOWED_ORIGINS" value="http://localhost:5173"/>
-        <env name="COOKIE_DOMAIN" value=""/>
-        <env name="COOKIE_SECURE" value="false"/>
-        <env name="COOKIE_SAMESITE" value="lax"/>
-        <env name="REFRESH_COOKIE_NAME" value="rt"/>
-        <env name="REFRESH_COOKIE_PATH" value="/api/v1/auth"/>
-        <env name="SEED_ON_START" value="false"/>
-        <env name="PAYMENT_GATEWAY_ORDER" value="mercado_pago"/>
-        <env name="MERCADO_PAGO_ACCESS_TOKEN" value="test-access-token"/>
-        <env name="MERCADO_PAGO_WEBHOOK_SECRET" value="test-webhook-secret"/>
-        <env name="PASSWORD_RESET_EXPIRES_MINUTES" value="30"/>
-        <env name="SMTP_USER" value=""/>
-        <env name="SMTP_PASSWORD" value=""/>
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="LOG_CHANNEL" value="null"/>
-        <env name="ARGON_MEMORY" value="1024"/>
-        <env name="ARGON_TIME" value="1"/>
-        <env name="ARGON_THREADS" value="1"/>
+        <env name="APP_ENV" value="dev" force="true"/>
+        <env name="APP_KEY" value="base64:AckfSECXIvnK5r28GVIWUAxmbBSjTsmF/0rZoKCErXQ=" force="true"/>
+        <env name="APP_URL" value="http://localhost:8080" force="true"/>
+        <env name="API_BASE" value="/api/v1" force="true"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <env name="DATABASE_URL" value="sqlite::memory:" force="true"/>
+        <env name="JWT_ALG" value="HS256" force="true"/>
+        <env name="JWT_SECRET" value="testing-secret-with-at-least-32-characters" force="true"/>
+        <env name="ACCESS_TOKEN_EXPIRES_MINUTES" value="15" force="true"/>
+        <env name="REFRESH_TOKEN_EXPIRES_SHORT_HOURS" value="8" force="true"/>
+        <env name="REFRESH_TOKEN_EXPIRES_LONG_DAYS" value="30" force="true"/>
+        <env name="LOGIN_MAX_ATTEMPTS" value="5" force="true"/>
+        <env name="LOGIN_ATTEMPT_WINDOW_MINUTES" value="15" force="true"/>
+        <env name="LOGIN_LOCK_MINUTES" value="15" force="true"/>
+        <env name="CORS_ALLOWED_ORIGINS" value="http://localhost:5173" force="true"/>
+        <env name="COOKIE_DOMAIN" value="" force="true"/>
+        <env name="COOKIE_SECURE" value="false" force="true"/>
+        <env name="COOKIE_SAMESITE" value="lax" force="true"/>
+        <env name="REFRESH_COOKIE_NAME" value="rt" force="true"/>
+        <env name="REFRESH_COOKIE_PATH" value="/api/v1/auth" force="true"/>
+        <env name="SEED_ON_START" value="false" force="true"/>
+        <env name="PAYMENT_GATEWAY_ORDER" value="mercado_pago" force="true"/>
+        <env name="MERCADO_PAGO_ACCESS_TOKEN" value="test-access-token" force="true"/>
+        <env name="MERCADO_PAGO_WEBHOOK_SECRET" value="test-webhook-secret" force="true"/>
+        <env name="PASSWORD_RESET_EXPIRES_MINUTES" value="30" force="true"/>
+        <env name="SMTP_USER" value="" force="true"/>
+        <env name="SMTP_PASSWORD" value="" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="LOG_CHANNEL" value="null" force="true"/>
+        <env name="ARGON_MEMORY" value="1024" force="true"/>
+        <env name="ARGON_TIME" value="1" force="true"/>
+        <env name="ARGON_THREADS" value="1" force="true"/>
     </php>
 </phpunit>
