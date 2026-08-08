@@ -3,6 +3,9 @@
 .env
 .env.backup
 .env.production
+# Versionado de proposito: valores falsos que o CI e o hook usam para subir a
+# aplicacao nas portas de qualidade. Nao contem segredo.
+!.env.ci
 .phpactor.json
 .phpunit.result.cache
 /.codex
