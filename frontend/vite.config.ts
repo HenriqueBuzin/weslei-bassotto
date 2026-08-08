@@ -1,7 +1,9 @@
-// defineConfig vem de vitest/config, e não de vite, porque é ele que conhece
-// a chave `test` usada abaixo.
-import { loadEnv } from "vite";
-import { defineConfig } from "vitest/config";
+/// <reference types="vitest/config" />
+// A referência acima é só de tipos e some na compilação: ela ensina a chave
+// `test` sem que o arquivo importe vitest em tempo de execução. Importar de
+// "vitest/config" fazia o servidor de desenvolvimento exigir o pacote de teste
+// para subir, e ele quebrava com "Cannot find package 'vitest'".
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
 function readEnv(env: Record<string, string>, key: string, fallback = "") {
