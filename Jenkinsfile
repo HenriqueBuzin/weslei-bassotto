@@ -94,7 +94,7 @@ pipeline {
                     withEnv(["PIPELINE_BRANCH=${branch}"]) {
                         sh '''
                             set -eu
-                            suffix=""
+                            suffix="-prod"
                             stage_dir="prod"
                             if [ "$PIPELINE_BRANCH" = "dev" ]; then
                               suffix="-dev"
@@ -163,7 +163,7 @@ pipeline {
                         cd "\${target}"
 
                         echo "🔗 Aplicando .env produção..."
-                        ln -sfn /root/projects/envs/weslei-bassotto/prod/${project}.env .env
+                        ln -sfn /root/projects/envs/weslei-bassotto/prod/${project}-prod.env .env
                         export COMPOSE_PROJECT_NAME=${project}
                         export IMAGE_TAG="\${image_tag}"
 

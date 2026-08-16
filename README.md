@@ -62,7 +62,7 @@ Produção e desenvolvimento rodam simultaneamente e precisam permanecer isolado
 - desenvolvimento usa o projeto Compose `weslei-bassotto-dev`, banco `weslei_bassotto_dev` e um usuário exclusivo, como `weslei_dev`;
 - os dois compartilham somente o servidor PostgreSQL e as redes externas; não compartilham credenciais, banco, containers, imagens de projeto ou volumes.
 
-Na VPS, `/root/projects/envs/weslei-bassotto/prod/weslei-bassotto.env` configura produção e `/root/projects/envs/weslei-bassotto/dev/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. Os nomes dos projetos são definidos pelos arquivos Compose: `weslei-bassotto` em produção e `weslei-bassotto-dev` em desenvolvimento.
+Na VPS, `/root/projects/envs/weslei-bassotto/prod/weslei-bassotto-prod.env` configura produção e `/root/projects/envs/weslei-bassotto/dev/weslei-bassotto-dev.env` configura desenvolvimento. A senha de cada `DATABASE_URL` deve ser exatamente a senha da respectiva role no PostgreSQL. Os nomes dos projetos são definidos pelos arquivos Compose: `weslei-bassotto` em produção e `weslei-bassotto-dev` em desenvolvimento.
 
 ## Docker Secrets
 
@@ -76,7 +76,7 @@ cada valor sensível em um arquivo próprio:
     secrets/{app_key,database_url,jwt_secret,
              mercado_pago_access_token,mercado_pago_webhook_secret,smtp_password}
   prod/
-    weslei-bassotto.env
+    weslei-bassotto-prod.env
     secrets/{...}
 ```
 
