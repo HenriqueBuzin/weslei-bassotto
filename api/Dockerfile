@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7-labs
 
 # --- Stage comum: extensões e Composer ---
-FROM php:8.5.9-cli-alpine AS vendor
+FROM php:8.5.12-cli-alpine AS vendor
 
 ENV TZ=America/Sao_Paulo \
     COMPOSER_ALLOW_SUPERUSER=1 \
@@ -31,7 +31,7 @@ RUN composer dump-autoload --optimize --no-dev --no-scripts
 
 
 # --- Desenvolvimento: artisan serve sobre o código montado ---
-FROM php:8.5.9-cli-alpine AS dev
+FROM php:8.5.12-cli-alpine AS dev
 
 ENV TZ=America/Sao_Paulo \
     COMPOSER_ALLOW_SUPERUSER=1 \
@@ -70,7 +70,7 @@ CMD ["sh","-lc","composer install --no-interaction && vendor/bin/phpunit"]
 
 
 # --- Produção: PHP-FPM atrás do Caddy ---
-FROM php:8.5.9-fpm-alpine AS prod
+FROM php:8.5.12-fpm-alpine AS prod
 
 ENV TZ=America/Sao_Paulo
 
