@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
+use InvalidArgumentException;
 
 class HashPassword extends Command
 {
@@ -15,7 +16,12 @@ class HashPassword extends Command
 
     public function handle(): int
     {
-        $this->line(Hash::make((string) $this->argument('password')));
+        $password = $this->argument('password');
+        if (! is_string($password)) {
+            throw new InvalidArgumentException('The password argument must be a string.');
+        }
+
+        $this->line(Hash::make($password));
 
         return self::SUCCESS;
     }

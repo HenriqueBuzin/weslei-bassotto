@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Console\Commands\HashPassword;
 use App\Models\LoginAttempt;
 use App\Models\PasswordResetToken;
 use App\Models\PaymentWebhookEvent;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use InvalidArgumentException;
 use Tests\TestCase;
 
 final class ConsoleCommandTest extends TestCase
@@ -92,6 +94,17 @@ final class ConsoleCommandTest extends TestCase
         $this->assertSame(0, Artisan::call('platform:hash', ['password' => 'minha-senha']));
 
         $this->assertTrue(Hash::check('minha-senha', trim(Artisan::output())));
+    }
+
+    public function test_the_hash_command_rejects_non_string_passwords(): void
+    {
+        $command = $this->getMockBuilder(HashPassword::class)->onlyMethods(['argument'])->getMock();
+        $command->expects($this->once())->method('argument')->with('password')->willReturn(['invalid']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The password argument must be a string.');
+
+        $command->handle();
     }
 
     public function test_pruning_removes_expired_records_and_keeps_the_live_ones(): void
