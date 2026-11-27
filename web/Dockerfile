@@ -1,5 +1,5 @@
 # --- Stage 1: build do React ---
-FROM node:24.18.1-bookworm-slim AS build
+FROM node:24.22.3-bookworm-slim AS build
 WORKDIR /app
 ENV TZ=America/Sao_Paulo
 
@@ -30,7 +30,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # --- Stage 2: Caddy servindo estáticos ---
-FROM caddy:2.11.4-alpine
+FROM caddy:2.11.9-alpine
 ENV TZ=America/Sao_Paulo
 COPY --from=build /app/dist /usr/share/caddy
 COPY web/Caddyfile /etc/caddy/Caddyfile

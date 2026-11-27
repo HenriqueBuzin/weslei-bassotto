@@ -48,7 +48,7 @@ pipeline {
                           -e VITE_API_BASE=/api/v1 \
                           -e VITE_MP_PUBLIC_KEY=TEST-public-key \
                           -w "$WORKSPACE/frontend" \
-                          node:24.18.1-bookworm-slim \
+                          node:24.22.3-bookworm-slim \
                           sh -c '
                             npm ci --no-audit --no-fund &&
                             npm run gates
@@ -66,14 +66,14 @@ pipeline {
 
                 docker build \
                   --file "$WORKSPACE/frontend/Dockerfile.e2e" \
-                  --tag weslei-bassotto-e2e:playwright-1.62.0-node-24.18.1 \
+                  --tag weslei-bassotto-e2e:playwright-1.65.1-node-24.22.3 \
                   "$WORKSPACE/frontend"
 
                 docker run --rm \
                   --ipc=host \
                   --volumes-from jenkins \
                   -w "$WORKSPACE/frontend" \
-                  weslei-bassotto-e2e:playwright-1.62.0-node-24.18.1 \
+                  weslei-bassotto-e2e:playwright-1.65.1-node-24.22.3 \
                   sh -c '
                     npm ci --no-audit --no-fund &&
                     npm run test:e2e

@@ -23,9 +23,9 @@ existentes.
 - `api`: PHP 8.5.13, Composer 2.10.1, Laravel 13 API-only.
   Dev serve por `artisan serve`; produção por PHP-FPM atrás do Caddy.
 - `frontend`: React/React DOM 19.2.8, somente TypeScript estrito.
-- Node 24.18.1 LTS, npm 11.16.0, TypeScript 6.0.3, Vite 8.1.5,
-  Vitest 4.1.10 e Playwright 1.62.0.
-- produção web: Caddy 2.11.4; Nginx não é permitido.
+- Node 24.22.3 LTS, npm 11.19.1, TypeScript 6.0.3, Vite 8.4.0,
+  Vitest 4.1.12 e Playwright 1.65.1.
+- produção web: Caddy 2.11.9; Nginx não é permitido.
 - qualidade PHP: Pint (formatação) e PHPStan/Larastan nível 7 (análise
   estática), nas versões do lock. Cobertura de branches exige Xdebug.
 
@@ -91,7 +91,7 @@ Existem exatamente `docker-compose.yml` para dev e
 `docker-compose-prod.yml` para produção, sem `version` e profiles. Projetos:
 `weslei-bassotto-dev` e `weslei-bassotto`. Serviços têm nomes funcionais
 `backend`, `frontend` e `web`. Comandos ficam nos Dockerfiles, nunca no
-Compose. Targets/imagens usam Node 24.18.1, PHP 8.5.13 e Caddy 2.11.4.
+Compose. Targets/imagens usam Node 24.22.3, PHP 8.5.13 e Caddy 2.11.9.
 
 O Dockerfile da API tem os targets `vendor`, `dev`, `test` e `prod`. Dois
 detalhes não são negociáveis: o OPcache já vem compilado no PHP 8.5, então
