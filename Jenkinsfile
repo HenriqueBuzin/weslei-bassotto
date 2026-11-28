@@ -147,7 +147,7 @@ pipeline {
                         set -e
 
                         workspace=\$(pwd)
-                        target=/srv/vps/projects/${project}
+                        target=/srv/vps/projects/${project}/prod
                         image_tag=\$(git rev-parse --short=12 HEAD)
                         echo "🔄 Sincronizando checkout autenticado do Jenkins (main)..."
                         mkdir -p "\${target}"
@@ -196,7 +196,7 @@ pipeline {
                         set -e
 
                         workspace=\$(pwd)
-                        target=/srv/vps/projects/${project}-dev
+                        target=/srv/vps/projects/${project}/dev
                         image_tag=\$(git rev-parse --short=12 HEAD)
                         echo "🔄 Sincronizando checkout autenticado do Jenkins (dev)..."
                         mkdir -p "\${target}"
