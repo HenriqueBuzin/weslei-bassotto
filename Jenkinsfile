@@ -100,7 +100,7 @@ pipeline {
                               suffix="-dev"
                               stage_dir="dev"
                             fi
-                            env_file="/srv/vps/projects/envs/weslei-bassotto/${stage_dir}/weslei-bassotto${suffix}.env"
+                            env_file="/srv/vps/envs/projects/weslei-bassotto/${stage_dir}/weslei-bassotto${suffix}.env"
                             test -f "$env_file"
                             ln -sfn "$env_file" .env
                             if [ "$PIPELINE_BRANCH" = "main" ]; then
@@ -163,7 +163,7 @@ pipeline {
                         cd "\${target}"
 
                         echo "🔗 Aplicando .env produção..."
-                        ln -sfn /srv/vps/projects/envs/weslei-bassotto/prod/${project}-prod.env .env
+                        ln -sfn /srv/vps/envs/projects/weslei-bassotto/prod/${project}-prod.env .env
                         export COMPOSE_PROJECT_NAME=${project}
                         export IMAGE_TAG="\${image_tag}"
 
@@ -212,7 +212,7 @@ pipeline {
                         cd "\${target}"
 
                         echo "🔗 Aplicando .env dev..."
-                        ln -sfn /srv/vps/projects/envs/weslei-bassotto/dev/${project}-dev.env .env
+                        ln -sfn /srv/vps/envs/projects/weslei-bassotto/dev/${project}-dev.env .env
                         export COMPOSE_PROJECT_NAME=${project}-dev
                         export IMAGE_TAG="\${image_tag}"
 
