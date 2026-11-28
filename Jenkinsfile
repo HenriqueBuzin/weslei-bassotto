@@ -100,7 +100,7 @@ pipeline {
                               suffix="-dev"
                               stage_dir="dev"
                             fi
-                            env_file="/root/projects/envs/weslei-bassotto/${stage_dir}/weslei-bassotto${suffix}.env"
+                            env_file="/srv/vps/projects/envs/weslei-bassotto/${stage_dir}/weslei-bassotto${suffix}.env"
                             test -f "$env_file"
                             ln -sfn "$env_file" .env
                             if [ "$PIPELINE_BRANCH" = "main" ]; then
@@ -147,7 +147,7 @@ pipeline {
                         set -e
 
                         workspace=\$(pwd)
-                        target=/root/projects/${project}
+                        target=/srv/vps/projects/${project}
                         image_tag=\$(git rev-parse --short=12 HEAD)
                         echo "🔄 Sincronizando checkout autenticado do Jenkins (main)..."
                         mkdir -p "\${target}"
@@ -163,7 +163,7 @@ pipeline {
                         cd "\${target}"
 
                         echo "🔗 Aplicando .env produção..."
-                        ln -sfn /root/projects/envs/weslei-bassotto/prod/${project}-prod.env .env
+                        ln -sfn /srv/vps/projects/envs/weslei-bassotto/prod/${project}-prod.env .env
                         export COMPOSE_PROJECT_NAME=${project}
                         export IMAGE_TAG="\${image_tag}"
 
@@ -196,7 +196,7 @@ pipeline {
                         set -e
 
                         workspace=\$(pwd)
-                        target=/root/projects/${project}-dev
+                        target=/srv/vps/projects/${project}-dev
                         image_tag=\$(git rev-parse --short=12 HEAD)
                         echo "🔄 Sincronizando checkout autenticado do Jenkins (dev)..."
                         mkdir -p "\${target}"
@@ -212,7 +212,7 @@ pipeline {
                         cd "\${target}"
 
                         echo "🔗 Aplicando .env dev..."
-                        ln -sfn /root/projects/envs/weslei-bassotto/dev/${project}-dev.env .env
+                        ln -sfn /srv/vps/projects/envs/weslei-bassotto/dev/${project}-dev.env .env
                         export COMPOSE_PROJECT_NAME=${project}-dev
                         export IMAGE_TAG="\${image_tag}"
 
